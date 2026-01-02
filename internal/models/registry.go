@@ -47,7 +47,6 @@ func NewRegistry(openRouterAdapter, hfAdapter ModelAdapter) *Registry {
 
 // registerOpenRouterModels adds all OpenRouter models to the registry
 func (r *Registry) registerOpenRouterModels(adapter ModelAdapter) {
-    TaskLongContext := 0
     openRouterModels := map[string]struct {
         DisplayName   string
         Capabilities  []TaskType
@@ -134,7 +133,7 @@ func (r *Registry) registerOpenRouterModels(adapter ModelAdapter) {
         // === PREMIUM MODELS ===
         "anthropic/claude-3.5-sonnet": {
             DisplayName:   "Claude 3.5 Sonnet",
-            Capabilities:  []TaskType{TaskSummarize, TaskAnalyze, TaskType(TaskLongContext), TaskGenerate},
+            Capabilities:  []TaskType{TaskSummarize, TaskAnalyze, TaskGenerate},
             MaxTokens:     4096,
             ContextWindow: 200000,
             QualityScore:  0.95,

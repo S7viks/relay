@@ -74,7 +74,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
-	resp, err := gemini.GenerateText(ctx, req)
+	resp, err := gemini.GenerateText(ctx, "gemini-1.5-flash", req)
 	if err != nil {
 		fmt.Printf("❌ Error: %v\n", err)
 		return
@@ -101,8 +101,8 @@ func main() {
 	start := time.Now()
 	
 	// Make two quick requests
-	_, err1 := gemini.GenerateText(ctx, req)
-	_, err2 := gemini.GenerateText(ctx, req)
+	_, err1 := gemini.GenerateText(ctx, "gemini-1.5-flash", req)
+	_, err2 := gemini.GenerateText(ctx, "gemini-1.5-flash", req)
 	
 	elapsed := time.Since(start)
 	

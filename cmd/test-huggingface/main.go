@@ -63,7 +63,7 @@ func main() {
     ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
     defer cancel()
  
-    resp, err := hf.GenerateText(ctx, req)
+    resp, err := hf.GenerateText(ctx, "mistralai/Mistral-7B-Instruct-v0.2", req)
     if err != nil {
         fmt.Printf("❌ Error: %v\n", err)
         return

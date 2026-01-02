@@ -483,12 +483,6 @@ func queryModelByName(modelName, prompt string, maxTokens int, temperature float
 	return result
 }
 
-// Map legacy model names to new registry IDs
-// Map legacy model names to registry IDs
-// Map legacy model names to registry IDs
-// Map legacy model names to registry IDs
-// Map legacy model names to registry IDs
-// Map legacy model names to registry IDs
 // Map legacy model names to registry IDs
 func mapLegacyModelName(legacy string) string {
 	mapping := map[string]string{

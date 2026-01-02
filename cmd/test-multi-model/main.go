@@ -76,11 +76,14 @@ func testModel(adapter interface{}, prompt, providerName string) {
     var err error
     
     // Type switch to call the right adapter
+    var modelName string
     switch a := adapter.(type) {
     case *adapters.GeminiAdapter:
-        resp, err = a.GenerateText(ctx, req)
+        modelName = "gemini-1.5-flash"
+        resp, err = a.GenerateText(ctx, modelName, req)
     case *adapters.OpenRouterAdapter:
-        resp, err = a.GenerateText(ctx, req)
+        modelName = "qwen/qwq-32b:free"
+        resp, err = a.GenerateText(ctx, modelName, req)
     default:
         fmt.Println("   ❌ Unknown adapter type")
         return
