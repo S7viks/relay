@@ -30,19 +30,15 @@ type ModelInfo struct {
 
 // ModelAdapter defines the interface that all AI model adapters must implement
 type ModelAdapter interface {
-	// Basic model information
-	Name() string
-	Provider() string
-	SupportedTasks() []TaskType
-	RequiresAuth() bool
+    Name() string
+    Provider() string
+    SupportedTasks() []TaskType
+    RequiresAuth() bool
+    GetCapabilities() ModelCapabilities
+    GetCost() CostInfo
+    HealthCheck() error
 
-	// Core functionality
-	GenerateText(ctx context.Context, req *uaip.UAIPRequest) (*uaip.UAIPResponse, error)
-	HealthCheck() error
-
-	// Model metadata
-	GetCapabilities() ModelCapabilities
-	GetCost() CostInfo
+    GenerateText(ctx context.Context, modelName string, req *uaip.UAIPRequest) (*uaip.UAIPResponse, error)
 }
 
 // TaskType represents the type of AI task

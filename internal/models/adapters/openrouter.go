@@ -6,17 +6,17 @@ import (
     "encoding/json"
     "fmt"
     "net/http"
-    "regexp"  // Add this
+    "regexp"
     "strings"
     "time"
-    
+
     "gaiol/internal/models"
     "gaiol/internal/uaip"
 )
 
 // OpenRouterAdapter implements ModelAdapter for OpenRouter API
 type OpenRouterAdapter struct {
-    modelName    string
+    defaultModel string
     baseURL      string
     client       *http.Client
     rateLimiter  *RateLimiter
@@ -39,9 +39,9 @@ type Message struct {
 }
 
 type OpenRouterResponse struct {
-    ID      string   `json:"id"`
-    Choices []Choice `json:"choices"`
-    Usage   Usage    `json:"usage"`
+    ID      string    `json:"id"`
+    Choices []Choice  `json:"choices"`
+    Usage   Usage     `json:"usage"`
     Error   *APIError `json:"error,omitempty"`
 }
 
@@ -50,7 +50,7 @@ type Choice struct {
     Message struct {
         Role    string                 `json:"role"`
         Content string                 `json:"content"`
-        Extra   map[string]interface{} `json:"extra,omitempty"` // Add this field
+        Extra   map[string]interface{} `json:"extra,omitempty"`
     } `json:"message"`
     FinishReason string `json:"finish_reason"`
 }
@@ -68,32 +68,35 @@ type APIError struct {
 }
 
 // NewOpenRouterAdapter creates a new OpenRouter adapter
-func NewOpenRouterAdapter(modelName, apiKey string) *OpenRouterAdapter {
-    if modelName == "" {
-        modelName = "qwen/qwq-32b:free" // QwQ showed actual content in debug
+func NewOpenRouterAdapter(defaultModel, apiKey string) *OpenRouterAdapter {
+    if defaultModel == "" {
+        defaultModel = "google/gemini-2.0-flash-exp:free"
     }
-    
-    // Reorder based on debug results - QwQ showed content
+
     freeModels := []string{
-        "qwen/qwq-32b:free",              // This showed actual content in debug
-        "z-ai/glm-4.5-air:free",          // Keep as fallback
-        "deepseek/deepseek-r1:free",      // Keep as fallback
-        "moonshotai/kimi-k2:free",        // Final fallback
+        "google/gemini-2.0-flash-exp:free",
+        "google/gemini-flash-1.5:free",
+        "meta-llama/llama-3.2-3b-instruct:free",
+        "mistralai/mistral-7b-instruct:free",
+        "qwen/qwen-2-7b-instruct:free",
+        "z-ai/glm-4.5-air:free",
+        "deepseek/deepseek-r1:free",
+        "moonshotai/kimi-k2:free",
     }
-    
+
     return &OpenRouterAdapter{
-        modelName:   modelName,
-        baseURL:     "https://openrouter.ai/api/v1",
-        client:      &http.Client{Timeout: 60 * time.Second},
-        rateLimiter: NewRateLimiter(),
-        apiKey:      apiKey,
-        freeModels:  freeModels,
+        defaultModel: defaultModel,
+        baseURL:      "https://openrouter.ai/api/v1",
+        client:       &http.Client{Timeout: 60 * time.Second},
+        rateLimiter:  NewRateLimiter(),
+        apiKey:       apiKey,
+        freeModels:   freeModels,
     }
 }
 
-
 func (o *OpenRouterAdapter) Name() string {
-    return o.modelName
+    // Adapter name (provider-level)
+    return "openrouter"
 }
 
 func (o *OpenRouterAdapter) Provider() string {
@@ -116,20 +119,20 @@ func (o *OpenRouterAdapter) RequiresAuth() bool {
 
 func (o *OpenRouterAdapter) GetCapabilities() models.ModelCapabilities {
     return models.ModelCapabilities{
-        MaxTokens:         2048, // Good for free models
+        MaxTokens:         2048,
         SupportsStreaming: false,
         Languages:         []string{"en", "zh", "es", "fr", "de", "ja", "ko"},
-        ContextWindow:     32768, // Varies by model
-        QualityScore:      0.85,  // Free models are quite good
+        ContextWindow:     32768,
+        QualityScore:      0.85,
         Multimodal:        false,
     }
 }
 
 func (o *OpenRouterAdapter) GetCost() models.CostInfo {
     return models.CostInfo{
-        CostPerToken:    0.0, // Free models
-        CostPerRequest:  0.0, // Free models
-        FreeTierLimit:   20,  // 20 requests per minute
+        CostPerToken:    0.0,
+        CostPerRequest:  0.0,
+        FreeTierLimit:   20,
         RateLimitPerMin: 20,
     }
 }
@@ -137,7 +140,7 @@ func (o *OpenRouterAdapter) GetCost() models.CostInfo {
 func (o *OpenRouterAdapter) HealthCheck() error {
     ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
     defer cancel()
-    
+
     testReq := &uaip.UAIPRequest{
         UAIP: uaip.UAIPHeader{
             Version:   uaip.ProtocolVersion,
@@ -155,76 +158,97 @@ func (o *OpenRouterAdapter) HealthCheck() error {
             },
         },
     }
-    
-    resp, err := o.GenerateText(ctx, testReq)
+
+    resp, err := o.GenerateText(ctx, "", testReq)
     if err != nil {
         return fmt.Errorf("health check failed: %w", err)
     }
-    
+
     if !resp.Status.Success {
         return fmt.Errorf("health check unsuccessful: %s", resp.Status.Message)
     }
-    
+
     return nil
 }
 
-func (o *OpenRouterAdapter) GenerateText(ctx context.Context, req *uaip.UAIPRequest) (*uaip.UAIPResponse, error) {
+// GenerateText now accepts modelName per call
+func (o *OpenRouterAdapter) GenerateText(ctx context.Context, modelName string, req *uaip.UAIPRequest) (*uaip.UAIPResponse, error) {
     startTime := time.Now()
-    
-    // Rate limiting (20 req/min for free models)
+
+    // If caller didn't specify a model, use default
+    if modelName == "" {
+        modelName = o.defaultModel
+    }
+
+    // Rate limiting
     if err := o.rateLimiter.Wait(ctx); err != nil {
         return o.createErrorResponse(req, fmt.Errorf("rate limit error: %w", err), startTime), nil
     }
-    
-    // Try primary model first, then fallbacks
-    modelsToTry := []string{o.modelName}
+
+    // Primary model first, then free fallbacks
+    modelsToTry := []string{modelName}
     modelsToTry = append(modelsToTry, o.freeModels...)
-    
+
     var lastErr error
-    for i, modelName := range modelsToTry {
+    for i, m := range modelsToTry {
         if i > 0 {
-            fmt.Printf("   Trying fallback model: %s\n", modelName)
+            fmt.Printf("   Trying fallback model: %s\n", m)
         }
-        
-        orReq := o.convertToOpenRouterRequest(req, modelName)
+
+        orReq := o.optimizeForReasoningModels(req, m)
         orResp, err := o.callOpenRouterAPI(ctx, orReq)
-        
+
         if err == nil && len(orResp.Choices) > 0 {
-            // Success!
-            if i > 0 {
-                o.modelName = modelName
-                fmt.Printf("   ✅ Switched to working model: %s\n", modelName)
-            }
-            return o.convertToUAIPResponse(orResp, req, startTime), nil
+            // success – use the actual model used (m)
+            return o.convertToUAIPResponse(orResp, req, startTime, m), nil
         }
-        
+
         lastErr = err
-        // Don't fallback on auth errors
-        if strings.Contains(err.Error(), "401") || strings.Contains(err.Error(), "unauthorized") {
+        if err != nil && (strings.Contains(err.Error(), "401") || strings.Contains(err.Error(), "unauthorized")) {
             break
         }
     }
-    
+
     return o.createErrorResponse(req, lastErr, startTime), nil
+}
+
+// Special handling for reasoning models (qwq, glm)
+func (o *OpenRouterAdapter) optimizeForReasoningModels(req *uaip.UAIPRequest, modelName string) *OpenRouterRequest {
+    maxTokens := req.Payload.OutputRequirements.MaxTokens
+
+    if strings.Contains(modelName, "qwq") || strings.Contains(modelName, "glm") {
+        maxTokens = min(maxTokens+200, 800)
+
+        prompt := "Answer concisely after your reasoning: " + req.Payload.Input.Data
+
+        return &OpenRouterRequest{
+            Model: modelName,
+            Messages: []Message{
+                {Role: "user", Content: prompt},
+            },
+            MaxTokens:   maxTokens,
+            Temperature: 0.3,
+            TopP:        0.9,
+        }
+    }
+
+    return o.convertToOpenRouterRequest(req, modelName)
 }
 
 func (o *OpenRouterAdapter) convertToOpenRouterRequest(req *uaip.UAIPRequest, modelName string) *OpenRouterRequest {
     maxTokens := req.Payload.OutputRequirements.MaxTokens
     if maxTokens > 1000 {
-        maxTokens = 1000 // Keep reasonable for free tier
+        maxTokens = 1000
     }
-    
-    // Fix: Ensure minimum tokens for content generation
     if maxTokens < 50 {
-        maxTokens = 150 // Minimum for meaningful response
+        maxTokens = 150
     }
-    
-    // Fix: Optimize prompt for DeepSeek models
+
     prompt := req.Payload.Input.Data
     if strings.Contains(modelName, "deepseek") {
         prompt = "Please respond concisely: " + prompt
     }
-    
+
     return &OpenRouterRequest{
         Model: modelName,
         Messages: []Message{
@@ -244,50 +268,47 @@ func (o *OpenRouterAdapter) callOpenRouterAPI(ctx context.Context, req *OpenRout
     if err != nil {
         return nil, fmt.Errorf("failed to marshal request: %w", err)
     }
-    
+
     url := o.baseURL + "/chat/completions"
     httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
     if err != nil {
         return nil, fmt.Errorf("failed to create HTTP request: %w", err)
     }
-    
-    // OpenRouter headers
+
     httpReq.Header.Set("Content-Type", "application/json")
     httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", o.apiKey))
-    httpReq.Header.Set("HTTP-Referer", "https://gaiol.ai") // Your app URL
+    httpReq.Header.Set("HTTP-Referer", "https://gaiol.ai")
     httpReq.Header.Set("X-Title", "GAIOL Universal AI Interoperability")
-    
+
     resp, err := o.client.Do(httpReq)
     if err != nil {
         return nil, fmt.Errorf("HTTP request failed: %w", err)
     }
     defer resp.Body.Close()
-    
+
     var orResp OpenRouterResponse
     if err := json.NewDecoder(resp.Body).Decode(&orResp); err != nil {
         return nil, fmt.Errorf("failed to decode response: %w", err)
     }
-    
-    // Check for API errors
+
     if orResp.Error != nil {
         return nil, fmt.Errorf("OpenRouter API error: %s", orResp.Error.Message)
     }
-    
+
     if resp.StatusCode != http.StatusOK {
         return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
     }
-    
+
     return &orResp, nil
 }
+
 func (o *OpenRouterAdapter) extractFromReasoningFields(choice Choice) string {
-    // Try reasoning field first
     if reasoning, ok := choice.Message.Extra["reasoning"].(string); ok {
         if text := o.extractAnswerFromReasoning(reasoning); text != "" {
             return text
         }
     }
-    
-    // Try reasoning_details field
+
     if reasoningDetails, ok := choice.Message.Extra["reasoning_details"].([]interface{}); ok && len(reasoningDetails) > 0 {
         if detailMap, ok := reasoningDetails[0].(map[string]interface{}); ok {
             if text, ok := detailMap["text"].(string); ok {
@@ -295,49 +316,44 @@ func (o *OpenRouterAdapter) extractFromReasoningFields(choice Choice) string {
             }
         }
     }
-    
+
     return ""
 }
-func (o *OpenRouterAdapter) convertToUAIPResponse(resp *OpenRouterResponse, originalReq *uaip.UAIPRequest, startTime time.Time) *uaip.UAIPResponse {
+
+func (o *OpenRouterAdapter) convertToUAIPResponse(resp *OpenRouterResponse, originalReq *uaip.UAIPRequest, startTime time.Time, modelUsed string) *uaip.UAIPResponse {
     processingMs := int(time.Since(startTime).Milliseconds())
-    
+
     if len(resp.Choices) == 0 {
         return o.createEmptyResponse(originalReq)
     }
-    
+
     choice := resp.Choices[0]
     var responseText string
-    
-    // Enhanced parsing specifically for GLM and reasoning models
+
     content := strings.TrimSpace(choice.Message.Content)
-    
+
     if content != "" {
-        // Handle regular content
         responseText = o.cleanReasoningArtifacts(content)
     } else {
-        // GLM often puts the response in reasoning field - check raw response
         fmt.Printf("DEBUG: GLM empty content, checking reasoning fields...\n")
         fmt.Printf("DEBUG: Full choice: %+v\n", choice)
-        
-        // Try to access reasoning from raw JSON - GLM specific
+
         if rawData, ok := choice.Message.Extra["reasoning"].(string); ok {
             fmt.Printf("DEBUG: Found reasoning field: %s\n", rawData[:min(100, len(rawData))])
             responseText = o.extractAnswerFromReasoning(rawData)
         }
-        
-        // If still empty, try other GLM-specific fields
+
         if responseText == "" {
-            // Try accessing the reasoning field directly from the choice
-            // GLM sometimes structures responses differently
             responseText = o.extractGLMSpecificResponse(choice)
         }
     }
-    
-    // Fallback if still empty
+
+    responseText = NewResponseCleaner().AutoClean(responseText, modelUsed)
+
     if responseText == "" {
         responseText = o.generateFallbackResponse(choice, resp.Usage.TotalTokens)
     }
-    
+
     return &uaip.UAIPResponse{
         UAIP: uaip.UAIPHeader{
             Version:       uaip.ProtocolVersion,
@@ -356,30 +372,24 @@ func (o *OpenRouterAdapter) convertToUAIPResponse(resp *OpenRouterResponse, orig
             TokensUsed:   resp.Usage.TotalTokens,
             ProcessingMs: processingMs,
             Quality:      0.85,
-            ModelUsed:    o.modelName,
+            ModelUsed:    modelUsed,
             Metadata: map[string]interface{}{
-                "model_name":         o.modelName,
-                "provider":           "openrouter",
-                "finish_reason":      choice.FinishReason,
-                "is_reasoning_model": true,
-                "raw_choice":         choice,
+                "model_name":    modelUsed,
+                "provider":      "openrouter",
+                "finish_reason": choice.FinishReason,
+                "raw_choice":    choice,
             },
         },
     }
 }
+
 func (o *OpenRouterAdapter) extractGLMSpecificResponse(choice Choice) string {
-    // GLM may structure the response differently
-    // Try to extract from any field that contains meaningful text
-    
-    // Check if there's a reasoning field in the message itself
     if reasoningField, exists := choice.Message.Extra["reasoning"]; exists {
         if reasoning, ok := reasoningField.(string); ok && len(reasoning) > 10 {
-            // Extract the final answer from reasoning
             return o.extractAnswerFromReasoning(reasoning)
         }
     }
-    
-    // Check for any other text fields GLM might use
+
     for key, value := range choice.Message.Extra {
         if strValue, ok := value.(string); ok && len(strValue) > 10 && len(strValue) < 1000 {
             fmt.Printf("DEBUG: Found text in field '%s': %s\n", key, strValue[:min(50, len(strValue))])
@@ -388,54 +398,49 @@ func (o *OpenRouterAdapter) extractGLMSpecificResponse(choice Choice) string {
             }
         }
     }
-    
+
     return ""
 }
 
-// Helper to check if text looks like a valid response
 func (o *OpenRouterAdapter) looksLikeResponse(text string) bool {
     text = strings.ToLower(text)
-    // Avoid internal reasoning text, prefer actual answers
-    return !strings.Contains(text, "let me think") && 
-           !strings.Contains(text, "okay, so") &&
-           !strings.Contains(text, "hmm") &&
-           len(text) > 20 && len(text) < 500
+    return !strings.Contains(text, "let me think") &&
+        !strings.Contains(text, "okay, so") &&
+        !strings.Contains(text, "hmm") &&
+        len(text) > 20 && len(text) < 500
 }
 
-// Add min helper function
 func min(a, b int) int {
     if a < b {
         return a
     }
     return b
 }
+
 func (o *OpenRouterAdapter) generateFallbackResponse(choice Choice, totalTokens int) string {
     if choice.FinishReason == "length" {
         return "Response was truncated due to length limits. The model processed the request but exceeded token limits."
     }
     return fmt.Sprintf("Generated %d tokens but parsing needs adjustment. Finish reason: %s", totalTokens, choice.FinishReason)
 }
+
 func (o *OpenRouterAdapter) cleanReasoningArtifacts(content string) string {
-    // Remove <think> tags and their content
     thinkRegex := regexp.MustCompile(`<think>.*?</think>`)
     cleaned := thinkRegex.ReplaceAllString(content, "")
-    
-    // Remove reasoning prefixes
+
     prefixes := []string{"<think>", "</think>", "Okay,", "Let me think"}
     for _, prefix := range prefixes {
         if strings.HasPrefix(cleaned, prefix) {
             cleaned = strings.TrimPrefix(cleaned, prefix)
         }
     }
-    
+
     return strings.TrimSpace(cleaned)
 }
-// Extract final answer from reasoning text
+
 func (o *OpenRouterAdapter) extractAnswerFromReasoning(reasoning string) string {
-    // Look for common patterns where models conclude their reasoning
     reasoning = strings.TrimSpace(reasoning)
-    
-    // Split by common conclusion markers
+
     conclusionMarkers := []string{
         "So the answer is:",
         "Therefore:",
@@ -444,17 +449,16 @@ func (o *OpenRouterAdapter) extractAnswerFromReasoning(reasoning string) string 
         "Final answer:",
         "So:",
     }
-    
+
     for _, marker := range conclusionMarkers {
         if idx := strings.LastIndex(reasoning, marker); idx != -1 {
             answer := strings.TrimSpace(reasoning[idx+len(marker):])
-            if len(answer) > 0 && len(answer) < 500 { // Reasonable length
+            if len(answer) > 0 && len(answer) < 500 {
                 return answer
             }
         }
     }
-    
-    // If no conclusion marker, try to extract the last meaningful sentence
+
     sentences := strings.Split(reasoning, ".")
     for i := len(sentences) - 1; i >= 0; i-- {
         sentence := strings.TrimSpace(sentences[i])
@@ -462,13 +466,13 @@ func (o *OpenRouterAdapter) extractAnswerFromReasoning(reasoning string) string 
             return sentence + "."
         }
     }
-    
-    // Fallback: return first 200 characters of reasoning
+
     if len(reasoning) > 200 {
         return reasoning[:200] + "... (reasoning model response)"
     }
     return reasoning
 }
+
 func (o *OpenRouterAdapter) createEmptyResponse(req *uaip.UAIPRequest) *uaip.UAIPResponse {
     return &uaip.UAIPResponse{
         UAIP: uaip.UAIPHeader{
@@ -483,9 +487,9 @@ func (o *OpenRouterAdapter) createEmptyResponse(req *uaip.UAIPRequest) *uaip.UAI
             Success: false,
         },
         Error: &uaip.ErrorInfo{
-            Code:            uaip.ErrorCodeInternalError,
-            Type:            uaip.ErrorTypeInternal,
-            Message:         "OpenRouter returned empty response",
+            Code:           uaip.ErrorCodeInternalError,
+            Type:           uaip.ErrorTypeInternal,
+            Message:        "OpenRouter returned empty response",
             SuggestedAction: "try_different_model",
         },
     }
@@ -495,7 +499,7 @@ func (o *OpenRouterAdapter) createErrorResponse(req *uaip.UAIPRequest, err error
     errorCode := uaip.ErrorCodeInternalError
     errorType := uaip.ErrorTypeInternal
     suggestedAction := "retry"
-    
+
     errMsg := err.Error()
     if strings.Contains(errMsg, "rate limit") || strings.Contains(errMsg, "429") {
         errorCode = uaip.ErrorCodeRateLimit
@@ -506,7 +510,7 @@ func (o *OpenRouterAdapter) createErrorResponse(req *uaip.UAIPRequest, err error
         errorType = uaip.ErrorTypeAuthentication
         suggestedAction = "check_api_key"
     }
-    
+
     return &uaip.UAIPResponse{
         UAIP: uaip.UAIPHeader{
             Version:       uaip.ProtocolVersion,
@@ -520,9 +524,9 @@ func (o *OpenRouterAdapter) createErrorResponse(req *uaip.UAIPRequest, err error
             Success: false,
         },
         Error: &uaip.ErrorInfo{
-            Code:            errorCode,
-            Type:            errorType,
-            Message:         fmt.Sprintf("OpenRouter API issue: %s", errMsg),
+            Code:           errorCode,
+            Type:           errorType,
+            Message:        fmt.Sprintf("OpenRouter API issue: %s", errMsg),
             SuggestedAction: suggestedAction,
         },
         Metadata: uaip.ResponseMetadata{

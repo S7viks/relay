@@ -77,7 +77,7 @@ func main() {
     ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
     defer cancel()
     
-    resp, err := or.GenerateText(ctx, req)
+    resp, err := or.GenerateText(ctx, "qwen/qwq-32b:free", req)
     if err != nil {
         fmt.Printf("❌ Error: %v\n", err)
         return
