@@ -11,18 +11,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/joho/godotenv"
 	"gaiol/internal/auth"
 	"gaiol/internal/database"
 	"gaiol/internal/models"
 	"gaiol/internal/models/adapters"
+	"gaiol/internal/reasoning" // Added reasoning package
 	"gaiol/internal/uaip"
+
+	"github.com/joho/godotenv"
 )
 
 var (
-	router   *models.ModelRouter
-	registry *models.Registry
-	dbClient *database.Client
+	router       *models.ModelRouter
+	registry     *models.Registry
+	dbClient     *database.Client
+	reasoningAPI *reasoning.ReasoningAPI // Added reasoning API
 )
 
 // === REQUEST/RESPONSE TYPES ===
@@ -99,6 +102,7 @@ func main() {
 	}
 
 	router = models.NewModelRouter(registry)
+	reasoningAPI = reasoning.NewReasoningAPI(router)
 
 	// Initialize Supabase database connection
 	var dbErr error
@@ -108,7 +112,7 @@ func main() {
 		log.Println("   Continuing without database - some features may be unavailable")
 	} else {
 		log.Println("✅ Supabase database connection established")
-		
+
 		// Perform health check
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -122,14 +126,19 @@ func main() {
 	// Setup routes with authentication middleware
 	// IMPORTANT: Register API routes BEFORE the catch-all file server
 	// This ensures API routes are matched before the file server tries to serve files
-	
+
 	// Health check route
 	http.HandleFunc("/health", handleHealth)
-	
+
 	// Model routes - register specific routes before generic ones
 	http.HandleFunc("/api/models/free", corsMiddleware(handleListFreeModels))
 	http.HandleFunc("/api/models", corsMiddleware(handleListModels))
 	http.HandleFunc("/api/models/", corsMiddleware(handleModelsByProvider))
+
+	// Reasoning routes
+	http.HandleFunc("/api/reasoning/start", corsMiddleware(reasoningAPI.HandleStartReasoning))
+	http.HandleFunc("/api/reasoning/status/", corsMiddleware(reasoningAPI.HandleGetStatus))
+	http.HandleFunc("/ws/reasoning", reasoningAPI.HandleWebSocket)
 
 	// Authentication routes (public) - register even if dbClient is nil to return proper errors
 	if dbClient != nil {
@@ -149,7 +158,7 @@ func main() {
 		http.HandleFunc("/api/auth/refresh", corsMiddleware(handleAuthUnavailable))
 		http.HandleFunc("/api/auth/user", corsMiddleware(handleAuthUnavailable))
 	}
-	
+
 	// File server - register LAST as catch-all for static files
 	http.HandleFunc("/", noCacheFileServer)
 
@@ -216,7 +225,7 @@ func noCacheFileServer(w http.ResponseWriter, r *http.Request) {
 		sendError(w, "API endpoint not found", http.StatusNotFound)
 		return
 	}
-	
+
 	// Disable caching for development
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")

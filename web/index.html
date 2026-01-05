@@ -1,38 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat - GAIOL</title>
-    
+
     <!-- Meta Tags -->
-    <meta name="description" content="GAIOL - Unified AI Model Orchestration Platform. Compare and query multiple AI models through a single interface.">
+    <meta name="description"
+        content="GAIOL - Unified AI Model Orchestration Platform. Compare and query multiple AI models through a single interface.">
     <meta name="keywords" content="AI, machine learning, LLM, GPT, AI models, model comparison, AI orchestration">
     <meta name="author" content="GAIOL">
-    
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://gaiol.app/">
     <meta property="og:title" content="GAIOL - AI Model Orchestration Platform">
     <meta property="og:description" content="Compare and query multiple AI models through a unified interface">
-    
+
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://gaiol.app/">
     <meta property="twitter:title" content="GAIOL - AI Model Orchestration">
     <meta property="twitter:description" content="Compare and query multiple AI models">
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
     <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192x192.png">
-    
+
     <link rel="stylesheet" href="/css/styles.css">
     <script>
         // Immediate auth check - redirect to login if not authenticated
         // This runs before page content loads
-        (function() {
+        (function () {
             try {
                 const token = localStorage.getItem('gaiol_access_token');
                 if (!token) {
@@ -45,6 +47,7 @@
         })();
     </script>
 </head>
+
 <body>
     <div class="app-container">
         <!-- Main Content Area -->
@@ -54,7 +57,7 @@
                 <div class="welcome-section" id="welcomeSection">
                     <h2>Start a conversation</h2>
                     <p>Enter a prompt to begin. The system will automatically select the best model for your query.</p>
-                    
+
                     <div class="quick-actions">
                         <button class="quick-action-btn" onclick="setQuickPrompt('Write copy')">
                             <span>Write copy</span>
@@ -74,24 +77,64 @@
                 <!-- Chat Messages Area -->
                 <div class="chat-messages" id="chatMessages"></div>
 
-                <!-- Input Area -->
-                <div class="input-area">
-                    <div class="input-wrapper">
-                        <textarea 
-                            id="promptInput" 
-                            class="prompt-input-modern" 
-                            placeholder="Enter your prompt here..."
-                            rows="1"
-                        ></textarea>
-                        <div class="input-actions">
-                        </div>
-                        <div class="input-footer">
-                            <span id="charCount" class="char-count">0 / 3000</span>
-                            <button class="send-btn" id="sendBtn" onclick="handleQuerySubmit()" aria-label="Send">
-                                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M18 2L9 11M18 2L12 18L9 11M18 2L2 8L9 11"/>
-                                </svg>
-                            </button>
+                <!-- Chat Input Area -->
+                <div class="chat-input-area">
+                    <div class="chat-input-wrapper">
+                        <textarea id="promptInput" class="chat-input-field" placeholder="Enter your prompt here..."
+                            rows="1"></textarea>
+                        <div class="chat-input-footer">
+                            <div class="input-actions">
+                                <button class="input-action-btn" title="New Chat" aria-label="New Chat"
+                                    onclick="handleNewChat()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="1.5">
+                                        <path d="M12 5v14M5 12h14" />
+                                    </svg>
+                                </button>
+                                <button class="input-action-btn" title="Clear Selection" aria-label="Clear Selection"
+                                    onclick="handleClearSelection()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="1.5">
+                                        <path d="M19 6L5 20M5 6l14 14" />
+                                    </svg>
+                                </button>
+                                <button class="input-action-btn" title="Copy All Responses" aria-label="Copy All"
+                                    onclick="handleCopyAllResponses()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="1.5">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                    </svg>
+                                </button>
+                                <button class="input-action-btn" title="Prompt Templates" aria-label="Templates"
+                                    onclick="toggleSection('library')">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="1.5">
+                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="chat-input-controls">
+                                <button class="input-action-btn toggle-reasoning-btn" id="reasoningToggle"
+                                    title="Enable Reasoning Mode" onclick="toggleReasoningMode()"
+                                    aria-label="Toggle Reasoning">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="1.5">
+                                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                                    </svg>
+                                    <span class="btn-label">Reasoning</span>
+                                </button>
+                                <span id="charCount" class="char-count">0 / 3000</span>
+                                <button class="chat-send-btn" id="sendBtn" onclick="handleQuerySubmit()"
+                                    aria-label="Send">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -108,15 +151,18 @@
     <script src="/js/history.js"></script>
     <script src="/js/ui.js"></script>
     <script src="/js/layout.js"></script>
+    <script src="/js/sidebar-features.js"></script>
+    <script src="/js/model-selector-dropdown.js"></script>
     <script src="/js/main.js"></script>
     <script src="/js/navigation.js"></script>
     <script src="/js/features.js"></script>
-    <script src="/js/sidebar-features.js"></script>
     <script src="/js/design-enhancements.js"></script>
-    
+    <script src="/js/reasoning-engine.js"></script>
+    <script src="/js/reasoning-component.js"></script>
+
     <script>
         // Initialize layout for chat page
-        document.addEventListener('DOMContentLoaded', async function() {
+        document.addEventListener('DOMContentLoaded', async function () {
             // Wait for auth.js to load
             await new Promise(resolve => {
                 if (typeof isAuthenticated === 'function') {
@@ -133,16 +179,17 @@
                     }, 50);
                 }
             });
-            
+
             // Check authentication first
             if (typeof isAuthenticated === 'function' && !isAuthenticated()) {
                 // Redirect to login if not authenticated
                 window.location.href = '/login.html';
                 return;
             }
-            
+
             initializeLayout('Chat', 'chat');
         });
     </script>
 </body>
+
 </html>

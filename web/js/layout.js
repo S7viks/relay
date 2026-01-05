@@ -44,7 +44,7 @@ function renderTopBar(currentPageName = 'Chat') {
  */
 function renderLeftSidebar(currentPage = 'chat') {
     const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : false;
-    
+
     return `
         <div class="left-sidebar" id="leftSidebar">
             <div class="sidebar-header">
@@ -82,9 +82,58 @@ function renderLeftSidebar(currentPage = 'chat') {
                 </a>
             </nav>
 
+            <div class="sidebar-library">
+                ${renderLibrarySection()}
+            </div>
+
+            <div class="sidebar-analysis">
+                ${renderAnalysisSection()}
+            </div>
+
             <div class="sidebar-footer">
                 <button class="theme-btn" onclick="setTheme('light')" aria-label="Light theme">Light</button>
                 <button class="theme-btn" onclick="setTheme('dark')" aria-label="Dark theme">Dark</button>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Render Library Section (Favorites and Templates)
+ */
+function renderLibrarySection() {
+    return `
+        <div class="sidebar-section-compact collapsible" data-section="library">
+            <div class="sidebar-section-header-compact" onclick="toggleSection('library')">
+                <span class="section-title-compact">LIBRARY</span>
+                <span class="section-toggle-compact">▼</span>
+            </div>
+            <div class="sidebar-section-content-compact" id="libraryContent">
+                <div class="library-subsection">
+                    <h5>Favorites</h5>
+                    <div id="favoritesList" class="compact-list"></div>
+                </div>
+                <div class="library-subsection">
+                    <h5>Templates</h5>
+                    <div id="promptTemplatesList" class="compact-list"></div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Render Analysis Section (Activity Feed)
+ */
+function renderAnalysisSection() {
+    return `
+        <div class="sidebar-section-compact collapsible" data-section="analysis">
+            <div class="sidebar-section-header-compact" onclick="toggleSection('analysis')">
+                <span class="section-title-compact">ANALYSIS</span>
+                <span class="section-toggle-compact">▼</span>
+            </div>
+            <div class="sidebar-section-content-compact" id="analysisContent">
+                <div id="activityFeedList" class="activity-feed-compact"></div>
             </div>
         </div>
     `;
@@ -97,36 +146,12 @@ function renderRightSidebar() {
     return `
         <div class="right-sidebar glass-panel" id="rightSidebar">
             <div class="sidebar-header-right">
-                <h3 style="font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.1em; color: var(--accent-primary);">CORE OPERATIONAL INTEL</h3>
+                <h3 style="font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.1em; color: var(--accent-primary);">SYSTEM INTEL</h3>
                 <button class="icon-btn-small sidebar-toggle-btn" id="rightSidebarToggle" onclick="toggleRightSidebar()" aria-label="Toggle sidebar">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sidebar-toggle-icon">
                         <path d="M15 18l-6-6 6-6"/>
                     </svg>
                 </button>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="sidebar-section collapsible" data-section="quickActions">
-                <div class="sidebar-section-header" onclick="toggleSection('quickActions')">
-                    <h4>Quick Actions</h4>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="sidebar-section-content" id="quickActionsContent">
-                    <div class="quick-actions-grid">
-                        <button class="quick-action-item" onclick="handleNewChat()" title="New Chat">
-                            <span>New Chat</span>
-                        </button>
-                        <button class="quick-action-item" onclick="handleClearSelection()" title="Clear Selection">
-                            <span>Clear Selection</span>
-                        </button>
-                        <button class="quick-action-item" onclick="handleExportResults()" title="Export Results">
-                            <span>Export</span>
-                        </button>
-                        <button class="quick-action-item" onclick="handleCopyAllResponses()" title="Copy All">
-                            <span>Copy All</span>
-                        </button>
-                    </div>
-                </div>
             </div>
 
             <!-- Active Query Status -->
@@ -135,54 +160,6 @@ function renderRightSidebar() {
                     <h4>Query Status</h4>
                 </div>
                 <div class="sidebar-section-content" id="activeQueryContent"></div>
-            </div>
-
-            <!-- Quick Settings -->
-            <div class="sidebar-section collapsible" data-section="quickSettings">
-                <div class="sidebar-section-header" onclick="toggleSection('quickSettings')">
-                    <h4>Quick Settings</h4>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="sidebar-section-content" id="quickSettingsContent">
-                    <div class="setting-control">
-                        <label>Temperature</label>
-                        <input type="range" id="quickTemperature" min="0" max="2" step="0.1" value="0.7" oninput="updateQuickTemp(this.value)">
-                        <span class="setting-value" id="quickTempValue">0.7</span>
-                    </div>
-                    <div class="setting-control">
-                        <label>Max Tokens</label>
-                        <input type="number" id="quickMaxTokens" min="50" max="4096" value="200" oninput="updateQuickTokens(this.value)">
-                    </div>
-                    <div class="setting-control">
-                        <label>Strategy</label>
-                        <select id="quickStrategy" onchange="updateQuickStrategy(this.value)">
-                            <option value="free_only">Free Only</option>
-                            <option value="lowest_cost">Lowest Cost</option>
-                            <option value="highest_quality">Highest Quality</option>
-                            <option value="balanced">Balanced</option>
-                        </select>
-                    </div>
-                    <div class="setting-control">
-                        <label>Task</label>
-                        <select id="quickTask" onchange="updateQuickTask(this.value)">
-                            <option value="generate">Generate</option>
-                            <option value="analyze">Analyze</option>
-                            <option value="code">Code</option>
-                            <option value="summarize">Summarize</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Selected Models -->
-            <div class="sidebar-section collapsible" data-section="selectedModels">
-                <div class="sidebar-section-header" onclick="toggleSection('selectedModels')">
-                    <h4>Selected Models</h4>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="sidebar-section-content" id="selectedModelsContent">
-                    <div id="selectedModelsDropdown" class="selected-models-section"></div>
-                </div>
             </div>
 
             <!-- Model Recommendations -->
@@ -260,103 +237,71 @@ function renderRightSidebar() {
                 </div>
             </div>
 
-            <!-- Favorites -->
-            <div class="sidebar-section collapsible" data-section="favorites">
-                <div class="sidebar-section-header" onclick="toggleSection('favorites')">
-                    <h4>Favorites</h4>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="sidebar-section-content" id="favoritesContent">
-                    <div id="favoritesList"></div>
-                    <button class="btn-mini" onclick="saveCurrentAsFavorite()">Save Current</button>
-                </div>
-            </div>
-
-            <!-- Filter Presets -->
-            <div class="sidebar-section collapsible" data-section="filterPresets">
-                <div class="sidebar-section-header" onclick="toggleSection('filterPresets')">
-                    <h4>Filter Presets</h4>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="sidebar-section-content" id="filterPresetsContent">
-                    <div id="filterPresetsList"></div>
-                    <button class="btn-mini" onclick="saveCurrentFilterPreset()">Save Preset</button>
-                </div>
-            </div>
-
-            <!-- Prompt Templates -->
-            <div class="sidebar-section collapsible" data-section="promptTemplates">
-                <div class="sidebar-section-header" onclick="toggleSection('promptTemplates')">
-                    <h4>Templates</h4>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="sidebar-section-content" id="promptTemplatesContent">
-                    <div id="promptTemplatesList"></div>
-                </div>
-            </div>
-
-            <!-- Recent Queries -->
-            <div class="sidebar-section collapsible" data-section="recentQueries">
-                <div class="sidebar-section-header" onclick="toggleSection('recentQueries')">
-                    <h4>Recent</h4>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="sidebar-section-content" id="recentQueriesContent">
-                    <div id="recentQueries" class="recent-queries"></div>
-                </div>
-            </div>
-
-            <!-- Activity Feed -->
-            <div class="sidebar-section collapsible" data-section="activityFeed">
-                <div class="sidebar-section-header" onclick="toggleSection('activityFeed')">
-                    <h4>Activity</h4>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="sidebar-section-content" id="activityFeedContent">
-                    <div id="activityFeedList"></div>
-                </div>
-            </div>
-
-            <!-- Export Options -->
-            <div class="sidebar-section collapsible" data-section="exportOptions">
-                <div class="sidebar-section-header" onclick="toggleSection('exportOptions')">
-                    <h4>Export</h4>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="sidebar-section-content" id="exportOptionsContent">
-                    <div class="export-buttons">
-                        <button class="btn-mini" onclick="exportAsJSON()">JSON</button>
-                        <button class="btn-mini" onclick="exportAsMarkdown()">Markdown</button>
-                        <button class="btn-mini" onclick="exportAsCSV()">CSV</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Keyboard Shortcuts -->
-            <div class="sidebar-section collapsible" data-section="shortcuts">
-                <div class="sidebar-section-header" onclick="toggleSection('shortcuts')">
-                    <h4>Shortcuts</h4>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="sidebar-section-content" id="shortcutsContent">
-                    <div id="keyboardShortcutsList"></div>
-                </div>
-            </div>
-
             <!-- Stats Summary -->
-            <div class="sidebar-section">
-                <div class="sidebar-stats">
-                    <div class="stat-item">
-                        <div class="stat-value" id="totalModelsCount">-</div>
-                        <div class="stat-label">Total</div>
+            <div class="sidebar-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalModelsCount">-</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="freeModelsCount">-</div>
+                    <div class="stat-label">Free</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Render Chat Context Bar (The new header area for chat)
+ */
+function renderChatContextBar() {
+    return `
+        <div class="chat-context-bar glass-panel">
+            <div class="context-left">
+                <div class="context-item context-item-clickable" onclick="toggleModelSelector()">
+                    <span class="context-label">ACTIVE MODELS</span>
+                    <div class="selected-models-preview">
+                        <span id="selectedModelsCount" class="models-count">0 selected</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-icon">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="freeModelsCount">-</div>
-                        <div class="stat-label">Free</div>
+                </div>
+                <!-- Dropdown overlay -->
+                <div id="modelSelectorDropdown" class="model-selector-dropdown" style="display: none;">
+                    <div class="model-selector-header">
+                        <span>Select Models</span>
+                        <button class="close-dropdown" onclick="toggleModelSelector()">×</button>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="selectedModelsCount">0</div>
-                        <div class="stat-label">Selected</div>
+                    <div id="modelSelectorContent" class="model-selector-content">
+                        <!-- Model selection will be rendered here -->
+                    </div>
+                </div>
+            </div>
+            <div class="context-right">
+                <div class="context-controls">
+                    <div class="control-group">
+                        <label title="Strategy">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            </svg>
+                        </label>
+                        <select id="quickStrategy" onchange="updateQuickStrategy(this.value)" class="context-select">
+                            <option value="free_only">Free Only</option>
+                            <option value="lowest_cost">Lowest Cost</option>
+                            <option value="highest_quality">Highest Quality</option>
+                            <option value="balanced" selected>Balanced</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label title="Temperature">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+                            </svg>
+                        </label>
+                        <input type="range" id="quickTemperature" min="0" max="2" step="0.1" value="0.7" oninput="updateQuickTemp(this.value)" class="context-range">
+                        <span id="quickTempValue" class="context-value">0.7</span>
                     </div>
                 </div>
             </div>
@@ -396,17 +341,17 @@ function initializeLayout(pageName, currentPageId) {
     if (isAuthPage) {
         return; // Auth pages don't need layout
     }
-    
+
     // Insert top bar at the beginning of body
     document.body.insertAdjacentHTML('afterbegin', renderTopBar(pageName));
-    
+
     // Get app container
     const appContainer = document.querySelector('.app-container');
     if (!appContainer) {
         console.error('app-container not found');
         return;
     }
-    
+
     // Insert left sidebar INSIDE app-container, before main-content
     const mainContent = document.querySelector('.main-content');
     if (mainContent) {
@@ -415,7 +360,7 @@ function initializeLayout(pageName, currentPageId) {
         // If no main-content, insert at the beginning of app-container
         appContainer.insertAdjacentHTML('afterbegin', renderLeftSidebar(currentPageId));
     }
-    
+
     // Insert right sidebar INSIDE app-container, after main-content
     if (mainContent) {
         mainContent.insertAdjacentHTML('afterend', renderRightSidebar());
@@ -423,17 +368,22 @@ function initializeLayout(pageName, currentPageId) {
         // If no main-content, insert at the end of app-container
         appContainer.insertAdjacentHTML('beforeend', renderRightSidebar());
     }
-    
+
+    // Insert chat context bar at the beginning of main-content
+    if (mainContent && currentPageId === 'chat') {
+        mainContent.insertAdjacentHTML('afterbegin', renderChatContextBar());
+    }
+
     // Insert common UI (loading overlay, toast container, floating toggle)
     document.body.insertAdjacentHTML('beforeend', renderCommonUI());
-    
+
     // Initialize right sidebar state (defer to ensure navigation.js is loaded)
     setTimeout(() => {
         if (typeof initializeRightSidebar === 'function') {
             initializeRightSidebar();
         }
     }, 100);
-    
+
     // Update auth nav items (defer to ensure auth.js is loaded)
     setTimeout(() => {
         if (typeof updateAuthNavItems === 'function') {
@@ -446,5 +396,8 @@ function initializeLayout(pageName, currentPageId) {
 window.renderTopBar = renderTopBar;
 window.renderLeftSidebar = renderLeftSidebar;
 window.renderRightSidebar = renderRightSidebar;
+window.renderLibrarySection = renderLibrarySection;
+window.renderAnalysisSection = renderAnalysisSection;
+window.renderChatContextBar = renderChatContextBar;
 window.renderCommonUI = renderCommonUI;
 window.initializeLayout = initializeLayout;

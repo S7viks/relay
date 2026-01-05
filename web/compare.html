@@ -29,43 +29,108 @@
         })();
     </script>
 </head>
-<body>
+<body class="compare-page">
     <div class="app-container">
         <!-- Main Content Area -->
         <div class="main-content">
             <!-- Compare Page -->
-            <div id="comparePage" class="page active">
-                <div class="page-header">
-                    <h1>Compare</h1>
+            <div id="comparePage" class="page active compare-page-redesigned">
+                <!-- Header Section -->
+                <div class="compare-header-section">
+                    <div class="compare-header-left">
+                        <h1 class="compare-page-title">Model Comparison</h1>
+                        <p class="compare-page-subtitle">Compare responses from multiple AI models side-by-side</p>
+                    </div>
+                    <div class="compare-header-right">
+                        <button class="btn-icon-secondary" onclick="clearForm()" title="Clear Form">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="compare-content">
-                    <div class="compare-settings">
-                        <div id="queryModeSelector" class="query-mode-selector-modern"></div>
-                        <div id="querySettings" class="query-settings-modern"></div>
+                <!-- Query Mode Selector -->
+                <div class="compare-mode-section">
+                    <div class="mode-section-header">
+                        <h3 class="mode-section-title">Query Mode</h3>
+                        <p class="mode-section-description">Choose how you want to query the models</p>
                     </div>
-                    
-                    <!-- Prompt Input Area for Compare Page -->
-                    <div class="input-area" style="margin-top: 20px;">
-                        <div class="input-wrapper">
-                            <textarea 
-                                id="promptInput" 
-                                class="prompt-input-modern" 
-                                placeholder="Enter your prompt here..."
-                                rows="1"
-                            ></textarea>
-                            <div class="input-footer">
-                                <span id="charCount" class="char-count">0 / 3000</span>
-                                <button class="send-btn" id="sendBtn" onclick="handleQuerySubmit()" aria-label="Send">
-                                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M18 2L9 11M18 2L12 18L9 11M18 2L2 8L9 11"/>
-                                    </svg>
-                                </button>
-                            </div>
+                    <div id="queryModeSelector" class="query-mode-selector-redesigned"></div>
+                </div>
+
+                <!-- Query Settings Panel -->
+                <div class="compare-settings-section">
+                    <div class="settings-section-header" onclick="toggleCompareSettings()">
+                        <div>
+                            <h3 class="settings-section-title">Query Settings</h3>
+                            <p class="settings-section-description">Configure temperature, tokens, and strategy</p>
+                        </div>
+                        <svg class="settings-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 9l6 6 6-6"></path>
+                        </svg>
+                    </div>
+                    <div id="querySettings" class="query-settings-redesigned"></div>
+                </div>
+
+                <!-- Prompt Input Area -->
+                <div class="compare-input-section">
+                    <div class="input-section-header">
+                        <label for="promptInput" class="input-label">Enter Your Prompt</label>
+                        <span id="charCount" class="char-count-compare">0 / 3000</span>
+                    </div>
+                    <div class="compare-input-wrapper">
+                        <textarea 
+                            id="promptInput" 
+                            class="compare-prompt-input" 
+                            placeholder="Type your question or prompt here... Compare how different models respond to the same query."
+                            rows="4"
+                        ></textarea>
+                        <div class="input-actions-compare">
+                            <button class="btn-clear-input" onclick="clearPromptInput()" title="Clear">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                            <button class="btn-send-compare" id="sendBtn" onclick="handleQuerySubmit()" aria-label="Send Query">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                                <span>Send Query</span>
+                            </button>
                         </div>
                     </div>
-                    
-                    <div id="resultsSection" class="results-modern"></div>
+                </div>
+
+                <!-- Results Section -->
+                <div class="compare-results-section">
+                    <div class="results-section-header" id="resultsHeader" style="display: none;">
+                        <h3 class="results-section-title">Comparison Results</h3>
+                        <div class="results-actions-compare">
+                            <button class="btn-results-action" onclick="sortCompareResults('quality')" title="Sort by Quality">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                                </svg>
+                                Quality
+                            </button>
+                            <button class="btn-results-action" onclick="sortCompareResults('time')" title="Sort by Time">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                Time
+                            </button>
+                            <button class="btn-results-action" onclick="expandAllResults()" title="Expand All">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                                </svg>
+                                Expand All
+                            </button>
+                        </div>
+                    </div>
+                    <div id="resultsSection" class="results-modern-compare" style="display: none;"></div>
                 </div>
             </div>
         </div>
@@ -96,9 +161,50 @@
             }
             
             initializeLayout('Compare', 'compare');
+            
             // Initialize compare page content
             renderQueryModeSelector();
             renderQuerySettings();
+            
+            // Setup prompt input
+            const promptInput = document.getElementById('promptInput');
+            if (promptInput) {
+                // Auto-resize textarea
+                promptInput.addEventListener('input', function() {
+                    if (typeof autoResizeTextarea === 'function') {
+                        autoResizeTextarea(promptInput);
+                    }
+                    if (typeof updateCharCount === 'function') {
+                        updateCharCount();
+                    }
+                });
+                
+                // Enter key to submit (Ctrl/Cmd + Enter)
+                promptInput.addEventListener('keydown', function(e) {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                        e.preventDefault();
+                        if (typeof handleQuerySubmit === 'function') {
+                            handleQuerySubmit();
+                        }
+                    }
+                });
+                
+                // Initial resize
+                if (typeof autoResizeTextarea === 'function') {
+                    autoResizeTextarea(promptInput);
+                }
+                if (typeof updateCharCount === 'function') {
+                    updateCharCount();
+                }
+            }
+            
+            // Load models if needed
+            if (typeof loadModelsFromAPI === 'function') {
+                const models = getModels();
+                if (!models || models.length === 0) {
+                    await loadModelsFromAPI();
+                }
+            }
         });
     </script>
 </body>

@@ -18,7 +18,7 @@ function toggleSection(sectionId) {
  * Initialize sidebar sections state
  */
 function initializeSidebarSections() {
-    document.querySelectorAll('.sidebar-section.collapsible').forEach(section => {
+    document.querySelectorAll('.sidebar-section.collapsible, .sidebar-section-compact.collapsible').forEach(section => {
         const sectionId = section.dataset.section;
         const savedState = localStorage.getItem(`sidebar_section_${sectionId}`);
         if (savedState === 'true') {
@@ -56,12 +56,12 @@ function handleCopyAllResponses() {
         showToast('error', 'No responses to copy');
         return;
     }
-    
+
     let text = '';
     Object.entries(currentResults).forEach(([model, response]) => {
         text += `=== ${model} ===\n${response.content || response.text || ''}\n\n`;
     });
-    
+
     navigator.clipboard.writeText(text).then(() => {
         showToast('success', 'All responses copied');
     }).catch(() => {
@@ -107,7 +107,7 @@ function updateCostTracker() {
     const selectedModels = getSelectedModels();
     const models = getModels();
     let estimatedCost = 0;
-    
+
     selectedModels.forEach(modelId => {
         const model = models.find(m => (m.id || m.ID) === modelId);
         if (model) {
@@ -117,18 +117,18 @@ function updateCostTracker() {
             estimatedCost += costPerToken * maxTokens;
         }
     });
-    
+
     const sessionStats = getSessionStats();
     const sessionCost = sessionStats.totalCost || 0;
-    const perQueryCost = sessionStats.queriesCount > 0 
-        ? sessionCost / sessionStats.queriesCount 
+    const perQueryCost = sessionStats.queriesCount > 0
+        ? sessionCost / sessionStats.queriesCount
         : 0;
-    
+
     // Add null checks before setting textContent
     const estimatedCostEl = document.getElementById('estimatedCost');
     const sessionCostEl = document.getElementById('sessionCost');
     const perQueryCostEl = document.getElementById('perQueryCost');
-    
+
     if (estimatedCostEl) estimatedCostEl.textContent = `$${estimatedCost.toFixed(4)}`;
     if (sessionCostEl) sessionCostEl.textContent = `$${sessionCost.toFixed(4)}`;
     if (perQueryCostEl) perQueryCostEl.textContent = `$${perQueryCost.toFixed(4)}`;
@@ -139,17 +139,17 @@ function updateCostTracker() {
  */
 function updateSessionStats() {
     const stats = getSessionStats();
-    
+
     // Add null checks before setting textContent
     const queriesTodayEl = document.getElementById('queriesToday');
     const tokensUsedEl = document.getElementById('tokensUsed');
     const avgResponseTimeEl = document.getElementById('avgResponseTime');
     const modelsUsedCountEl = document.getElementById('modelsUsedCount');
-    
+
     if (queriesTodayEl) queriesTodayEl.textContent = stats.queriesCount || 0;
     if (tokensUsedEl) tokensUsedEl.textContent = formatNumber(stats.tokensUsed || 0);
-    if (avgResponseTimeEl) avgResponseTimeEl.textContent = stats.avgResponseTime 
-        ? `${stats.avgResponseTime}ms` 
+    if (avgResponseTimeEl) avgResponseTimeEl.textContent = stats.avgResponseTime
+        ? `${stats.avgResponseTime}ms`
         : '-';
     if (modelsUsedCountEl) modelsUsedCountEl.textContent = stats.modelsUsedCount || 0;
 }
@@ -175,12 +175,12 @@ function renderModelPerformance() {
     const performanceData = getModelPerformance();
     const container = document.getElementById('modelPerformanceList');
     if (!container) return;
-    
+
     if (Object.keys(performanceData).length === 0) {
         container.innerHTML = '<div style="font-size: 11px; color: var(--text-tertiary); text-align: center; padding: 10px;">No performance data yet</div>';
         return;
     }
-    
+
     let html = '';
     Object.entries(performanceData).slice(0, 5).forEach(([modelId, data]) => {
         const model = getModels().find(m => (m.id || m.ID) === modelId);
@@ -195,7 +195,7 @@ function renderModelPerformance() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
@@ -206,20 +206,20 @@ function updateModelRecommendations() {
     const prompt = document.getElementById('promptInput')?.value || '';
     const container = document.getElementById('modelRecommendations');
     if (!container) return;
-    
+
     if (!prompt.trim()) {
         container.innerHTML = '<div style="font-size: 11px; color: var(--text-tertiary); text-align: center; padding: 10px;">Enter a prompt for recommendations</div>';
         return;
     }
-    
+
     const models = getModels();
     const recommendations = getRecommendedModels(prompt, models);
-    
+
     if (recommendations.length === 0) {
         container.innerHTML = '<div style="font-size: 11px; color: var(--text-tertiary); text-align: center; padding: 10px;">No recommendations</div>';
         return;
     }
-    
+
     let html = '';
     recommendations.slice(0, 3).forEach(rec => {
         html += `
@@ -229,7 +229,7 @@ function updateModelRecommendations() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
@@ -241,18 +241,18 @@ function selectRecommendedModel(modelId) {
 function getRecommendedModels(prompt, models) {
     const promptLower = prompt.toLowerCase();
     const recommendations = [];
-    
+
     // Simple recommendation logic
     models.forEach(model => {
         let score = 0;
         let reason = '';
-        
+
         // Check if free
         if (isModelFree(model)) {
             score += 10;
             reason = 'Free';
         }
-        
+
         // Check task type
         if (promptLower.includes('code') && model.tags && model.tags.includes('code')) {
             score += 20;
@@ -261,11 +261,11 @@ function getRecommendedModels(prompt, models) {
             score += 20;
             reason = 'Analysis';
         }
-        
+
         // Quality score
         const quality = model.quality_score || model.QualityScore || 0;
         score += quality;
-        
+
         if (score > 0) {
             recommendations.push({
                 id: model.id || model.ID,
@@ -275,7 +275,7 @@ function getRecommendedModels(prompt, models) {
             });
         }
     });
-    
+
     return recommendations.sort((a, b) => b.score - a.score);
 }
 
@@ -286,12 +286,12 @@ function renderFavorites() {
     const favorites = getFavorites();
     const container = document.getElementById('favoritesList');
     if (!container) return;
-    
+
     if (favorites.length === 0) {
         container.innerHTML = '<div style="font-size: 11px; color: var(--text-tertiary); text-align: center; padding: 10px;">No favorites yet</div>';
         return;
     }
-    
+
     let html = '';
     favorites.slice(0, 5).forEach(fav => {
         html += `
@@ -301,19 +301,19 @@ function renderFavorites() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
 function saveCurrentAsFavorite() {
     const prompt = document.getElementById('promptInput')?.value || '';
     const selectedModels = getSelectedModels();
-    
+
     if (!prompt.trim() && selectedModels.length === 0) {
         showToast('error', 'Nothing to save');
         return;
     }
-    
+
     const name = prompt.trim() || `Model Set ${selectedModels.length}`;
     const favorite = {
         id: Date.now().toString(),
@@ -323,7 +323,7 @@ function saveCurrentAsFavorite() {
         models: selectedModels,
         timestamp: new Date().toISOString()
     };
-    
+
     addFavorite(favorite);
     renderFavorites();
     showToast('success', 'Saved to favorites');
@@ -332,12 +332,12 @@ function saveCurrentAsFavorite() {
 function loadFavorite(favoriteId) {
     const favorites = getFavorites();
     const favorite = favorites.find(f => f.id === favoriteId);
-    
+
     if (!favorite) {
         showToast('error', 'Favorite not found');
         return;
     }
-    
+
     if (favorite.prompt) {
         const promptInput = document.getElementById('promptInput');
         if (promptInput) {
@@ -350,12 +350,12 @@ function loadFavorite(favoriteId) {
             }
         }
     }
-    
+
     if (favorite.models && favorite.models.length > 0) {
         setSelectedModels(favorite.models);
         renderSelectedModelsDropdown();
     }
-    
+
     showToast('success', 'Favorite loaded');
 }
 
@@ -366,12 +366,12 @@ function renderFilterPresets() {
     const presets = getFilterPresets();
     const container = document.getElementById('filterPresetsList');
     if (!container) return;
-    
+
     if (presets.length === 0) {
         container.innerHTML = '<div style="font-size: 11px; color: var(--text-tertiary); text-align: center; padding: 10px;">No presets yet</div>';
         return;
     }
-    
+
     let html = '';
     presets.forEach(preset => {
         html += `
@@ -385,25 +385,25 @@ function renderFilterPresets() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
 function saveCurrentFilterPreset() {
     const filters = getFilters();
     const name = prompt('Enter preset name:');
-    
+
     if (!name || !name.trim()) {
         return;
     }
-    
+
     const preset = {
         id: Date.now().toString(),
         name: name.trim(),
         filters: { ...filters },
         timestamp: new Date().toISOString()
     };
-    
+
     addFilterPreset(preset);
     renderFilterPresets();
     showToast('success', 'Preset saved');
@@ -412,12 +412,12 @@ function saveCurrentFilterPreset() {
 function applyFilterPreset(presetId) {
     const presets = getFilterPresets();
     const preset = presets.find(p => p.id === presetId);
-    
+
     if (!preset) {
         showToast('error', 'Preset not found');
         return;
     }
-    
+
     setFilters(preset.filters);
     if (typeof renderFilterControls === 'function') {
         renderFilterControls();
@@ -425,7 +425,7 @@ function applyFilterPreset(presetId) {
     if (typeof renderModelSelection === 'function') {
         renderModelSelection();
     }
-    
+
     showToast('success', 'Preset applied');
 }
 
@@ -444,12 +444,12 @@ function renderPromptTemplates() {
     const templates = getPromptTemplates();
     const container = document.getElementById('promptTemplatesList');
     if (!container) return;
-    
+
     if (templates.length === 0) {
         container.innerHTML = '<div style="font-size: 11px; color: var(--text-tertiary); text-align: center; padding: 10px;">No templates</div>';
         return;
     }
-    
+
     let html = '';
     templates.slice(0, 5).forEach(template => {
         html += `
@@ -459,19 +459,19 @@ function renderPromptTemplates() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
 function insertTemplate(templateId) {
     const templates = getPromptTemplates();
     const template = templates.find(t => t.id === templateId);
-    
+
     if (!template) {
         showToast('error', 'Template not found');
         return;
     }
-    
+
     const promptInput = document.getElementById('promptInput');
     if (promptInput) {
         promptInput.value = template.prompt;
@@ -481,7 +481,7 @@ function insertTemplate(templateId) {
         promptInput.focus();
         updateCharCount();
     }
-    
+
     showToast('success', 'Template inserted');
 }
 
@@ -495,7 +495,7 @@ function addActivityItem(type, message) {
         message: message,
         timestamp: new Date().toISOString()
     };
-    
+
     addToActivityFeed(activity);
     renderActivityFeed();
 }
@@ -504,12 +504,12 @@ function renderActivityFeed() {
     const activities = getActivityFeed();
     const container = document.getElementById('activityFeedList');
     if (!container) return;
-    
+
     if (activities.length === 0) {
         container.innerHTML = '<div style="font-size: 11px; color: var(--text-tertiary); text-align: center; padding: 10px;">No activity</div>';
         return;
     }
-    
+
     let html = '';
     activities.slice(0, 10).reverse().forEach(activity => {
         const time = new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -520,7 +520,7 @@ function renderActivityFeed() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
@@ -533,7 +533,7 @@ function exportAsJSON() {
         showToast('error', 'No results to export');
         return;
     }
-    
+
     const dataStr = JSON.stringify(results, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
@@ -551,13 +551,13 @@ function exportAsMarkdown() {
         showToast('error', 'No results to export');
         return;
     }
-    
+
     let markdown = '# GAIOL Query Results\n\n';
     Object.entries(results).forEach(([model, response]) => {
         markdown += `## ${model}\n\n`;
         markdown += `${response.content || response.text || ''}\n\n`;
     });
-    
+
     const dataBlob = new Blob([markdown], { type: 'text/markdown' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
@@ -574,13 +574,13 @@ function exportAsCSV() {
         showToast('error', 'No results to export');
         return;
     }
-    
+
     let csv = 'Model,Response\n';
     Object.entries(results).forEach(([model, response]) => {
         const content = (response.content || response.text || '').replace(/"/g, '""');
         csv += `"${model}","${content}"\n`;
     });
-    
+
     const dataBlob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
@@ -594,7 +594,7 @@ function exportAsCSV() {
 /**
  * Keyboard Shortcuts
  */
-function renderKeyboardShortcuts() {
+function renderKeyboardShortcuts(containerId = 'keyboardShortcutsList') {
     const shortcuts = [
         { key: '⌘K / Ctrl+K', action: 'Global search' },
         { key: '⌘Enter / Ctrl+Enter', action: 'Send query' },
@@ -602,10 +602,10 @@ function renderKeyboardShortcuts() {
         { key: 'Esc', action: 'Close modals' },
         { key: '⌘N / Ctrl+N', action: 'New chat' }
     ];
-    
-    const container = document.getElementById('keyboardShortcutsList');
+
+    const container = document.getElementById(containerId);
     if (!container) return;
-    
+
     let html = '';
     shortcuts.forEach(shortcut => {
         html += `
@@ -615,7 +615,7 @@ function renderKeyboardShortcuts() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
@@ -625,11 +625,11 @@ function renderKeyboardShortcuts() {
 function showActiveQueryStatus(models) {
     const section = document.getElementById('activeQuerySection');
     const content = document.getElementById('activeQueryContent');
-    
+
     if (!section || !content) return;
-    
+
     section.style.display = 'block';
-    
+
     let html = '';
     models.forEach(modelId => {
         const model = getModels().find(m => (m.id || m.ID) === modelId);
@@ -641,14 +641,14 @@ function showActiveQueryStatus(models) {
             </div>
         `;
     });
-    
+
     content.innerHTML = html;
 }
 
 function updateQueryStatus(modelId, status) {
     const content = document.getElementById('activeQueryContent');
     if (!content) return;
-    
+
     const items = content.querySelectorAll('.query-status-item');
     items.forEach(item => {
         const text = item.textContent.trim();
@@ -680,14 +680,14 @@ function getCurrentResults() {
         // This would need to be implemented based on how results are stored
         return results;
     }
-    
+
     // Try results section
     const resultsSection = document.getElementById('resultsSection');
     if (resultsSection) {
         // Extract from results section
         return {};
     }
-    
+
     return null;
 }
 
@@ -702,9 +702,9 @@ function initializeSidebarFeatures() {
         setTimeout(initializeSidebarFeatures, 500);
         return;
     }
-    
+
     initializeSidebarSections();
-    
+
     // Only update if elements exist
     if (document.getElementById('estimatedCost')) {
         updateCostTracker();
@@ -718,7 +718,7 @@ function initializeSidebarFeatures() {
     renderPromptTemplates();
     renderActivityFeed();
     renderKeyboardShortcuts();
-    
+
     // Watch for prompt changes to update recommendations
     const promptInput = document.getElementById('promptInput');
     if (promptInput) {
@@ -730,7 +730,7 @@ function initializeSidebarFeatures() {
             }, 500);
         });
     }
-    
+
     // Watch for model selection changes
     subscribeStateChange(() => {
         updateCostTracker();
@@ -738,7 +738,7 @@ function initializeSidebarFeatures() {
             renderSelectedModelsDropdown();
         }
     });
-    
+
     // Periodic updates
     setInterval(() => {
         updateCostTracker();
@@ -770,6 +770,6 @@ window.exportAsMarkdown = exportAsMarkdown;
 window.exportAsCSV = exportAsCSV;
 
 // Initialize on load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializeSidebarFeatures();
 });

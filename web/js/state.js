@@ -23,7 +23,8 @@ const AppState = {
         loading: false,
         queryMode: 'compare', // 'compare', 'smart', 'single'
         errors: [],
-        currentQuery: null
+        currentQuery: null,
+        reasoningMode: false
     },
     listeners: []
 };
@@ -46,7 +47,7 @@ function notifyStateChange() {
             console.error('State change listener error:', error);
         }
     });
-    
+
     // Update selected models dropdown when selection changes
     if (typeof renderSelectedModelsDropdown === 'function') {
         renderSelectedModelsDropdown();
@@ -119,14 +120,14 @@ function addToHistory(query, response, config) {
         config: config,
         queryMode: AppState.uiState.queryMode
     };
-    
+
     AppState.queryHistory.unshift(historyItem);
-    
+
     // Keep only last 50 items
     if (AppState.queryHistory.length > 50) {
         AppState.queryHistory = AppState.queryHistory.slice(0, 50);
     }
-    
+
     saveToLocalStorage('queryHistory', AppState.queryHistory);
     notifyStateChange();
 }
@@ -298,7 +299,7 @@ function getPromptTemplates() {
         { id: '4', name: 'Summarize Text', category: 'Analysis', prompt: 'Summarize the following text:' },
         { id: '5', name: 'Create Story', category: 'Creative', prompt: 'Write a story about...' }
     ];
-    
+
     const customTemplates = loadFromLocalStorage('promptTemplates', []);
     return [...defaultTemplates, ...customTemplates];
 }
@@ -334,7 +335,7 @@ function addToActivityFeed(activity) {
 function getSessionStats() {
     const today = new Date().toDateString();
     const stats = loadFromLocalStorage('sessionStats', {});
-    
+
     // Reset if new day
     if (stats.date !== today) {
         return {
@@ -347,26 +348,26 @@ function getSessionStats() {
             responseTimes: []
         };
     }
-    
+
     return stats;
 }
 
 function updateSessionStats(updates) {
     const today = new Date().toDateString();
     const stats = getSessionStats();
-    
+
     const newStats = {
         ...stats,
         ...updates,
         date: today
     };
-    
+
     // Calculate average response time
     if (newStats.responseTimes && newStats.responseTimes.length > 0) {
         const sum = newStats.responseTimes.reduce((a, b) => a + b, 0);
         newStats.avgResponseTime = Math.round(sum / newStats.responseTimes.length);
     }
-    
+
     saveToLocalStorage('sessionStats', newStats);
     notifyStateChange();
 }
@@ -394,7 +395,7 @@ function getModelPerformance() {
 
 function updateModelPerformance(modelId, data) {
     const performance = getModelPerformance();
-    
+
     if (!performance[modelId]) {
         performance[modelId] = {
             queryCount: 0,
@@ -403,28 +404,28 @@ function updateModelPerformance(modelId, data) {
             lastUsed: null
         };
     }
-    
+
     performance[modelId] = {
         ...performance[modelId],
         ...data,
         queryCount: (performance[modelId].queryCount || 0) + 1,
         lastUsed: new Date().toISOString()
     };
-    
+
     if (data.success !== false) {
         performance[modelId].successCount = (performance[modelId].successCount || 0) + 1;
     }
-    
+
     if (data.responseTime) {
         performance[modelId].totalTime = (performance[modelId].totalTime || 0) + data.responseTime;
     }
-    
+
     // Calculate averages
     if (performance[modelId].queryCount > 0) {
         performance[modelId].avgTime = Math.round(performance[modelId].totalTime / performance[modelId].queryCount);
         performance[modelId].successRate = performance[modelId].successCount / performance[modelId].queryCount;
     }
-    
+
     saveToLocalStorage('modelPerformance', performance);
     notifyStateChange();
 }

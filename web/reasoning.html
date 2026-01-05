@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAIOL | Reasoning Engine</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/reasoning.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Background Elements -->
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+
+        <!-- Header -->
+        <header class="glass-header">
+            <div class="logo-area">
+                <span class="nexus-logo">GAIOL</span>
+                <span class="tagline">Reasoning Engine</span>
+            </div>
+            <div class="session-info">
+                <span id="session-status">Idle</span>
+                <span id="session-id"></span>
+            </div>
+        </header>
+
+        <main class="reasoning-layout">
+            <!-- Left Sidebar: Progress & Steps -->
+            <aside class="reasoning-sidebar glass-panel">
+                <h3>Reasoning Steps</h3>
+                <div id="steps-timeline" class="timeline">
+                    <!-- Steps will be injected here -->
+                </div>
+            </aside>
+
+            <!-- Main Content: Thinking & Outputs -->
+            <section class="thinking-area">
+                <div id="initial-prompt-display" class="glass-card prompt-card">
+                    <h4>Target Objective</h4>
+                    <p id="target-prompt">Enter a prompt to start reasoning...</p>
+                </div>
+
+                <div id="reasoning-dashboard" class="dashboard-hidden">
+                    <div class="current-step-header">
+                        <h2 id="current-step-title">Step 1: Decomposition</h2>
+                        <p id="current-step-objective">Analyzing prompt complexity...</p>
+                    </div>
+
+                    <div id="model-grid" class="comparison-grid">
+                        <!-- Model output cards injected here -->
+                    </div>
+
+                    <div id="final-output-card" class="glass-card final-result hidden">
+                        <h4>Final Composed Result</h4>
+                        <div id="final-text"></div>
+                    </div>
+                </div>
+
+                <!-- Input Area (if not started) -->
+                <div id="start-screen" class="glass-panel start-container">
+                    <textarea id="reasoning-input"
+                        placeholder="Enter a complex task for the reasoning engine..."></textarea>
+                    <div class="model-selection">
+                        <p>Models to involve:</p>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" checked value="openrouter:openai/gpt-4o"> GPT-4o</label>
+                            <label><input type="checkbox" checked value="openrouter:anthropic/claude-3.5-sonnet"> Claude
+                                3.5</label>
+                            <label><input type="checkbox" checked value="openrouter:google/gemini-pro-1.5"> Gemini
+                                1.5</label>
+                            <label><input type="checkbox" checked value="openrouter:deepseek/deepseek-r1"> DeepSeek
+                                R1</label>
+                        </div>
+                    </div>
+                    <button id="start-reasoning-btn" class="glow-button">Start Reasoning</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/state.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/reasoning-engine.js"></script>
+    <script src="js/reasoning-viz.js"></script>
+</body>
+
+</html>

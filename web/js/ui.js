@@ -93,16 +93,34 @@ function renderQueryModeSelector() {
     if (!container) return;
 
     const modes = [
-        { id: 'compare', label: 'Compare Models', icon: '⚡' },
-        { id: 'smart', label: 'Smart Query', icon: '🤖' },
-        { id: 'single', label: 'Single Model', icon: '🎯' }
+        { 
+            id: 'compare', 
+            label: 'Compare Models', 
+            icon: '⚡',
+            description: 'Query multiple selected models and compare their responses side-by-side'
+        },
+        { 
+            id: 'smart', 
+            label: 'Smart Query', 
+            icon: '🤖',
+            description: 'Let the system automatically select the best model for your query'
+        },
+        { 
+            id: 'single', 
+            label: 'Single Model', 
+            icon: '🎯',
+            description: 'Query a single specific model for focused results'
+        }
     ];
 
     const currentMode = getUIState().queryMode || 'compare';
+    container.className = 'query-mode-selector-redesigned';
     container.innerHTML = modes.map(mode => `
-        <button class="query-mode-btn ${currentMode === mode.id ? 'active' : ''}" 
+        <button class="query-mode-btn-redesigned ${currentMode === mode.id ? 'active' : ''}" 
                 onclick="setQueryMode('${mode.id}')">
-            ${mode.icon} ${mode.label}
+            <div class="query-mode-icon">${mode.icon}</div>
+            <div class="query-mode-label">${escapeHtml(mode.label)}</div>
+            <div class="query-mode-description">${escapeHtml(mode.description)}</div>
         </button>
     `).join('');
 }
@@ -138,68 +156,87 @@ function renderFilterControls() {
     const models = getModels();
     const providers = getAllProviders(models);
     const tags = getAllTags(models);
+    const filters = getFilters();
 
-    container.innerHTML = `
-        <div class="filter-controls-container">
-            <div class="filter-group">
-                <label class="filter-label">Provider</label>
-                <select id="providerFilter" class="filter-select">
-                    <option value="all">All Providers</option>
-                    ${providers.map(p => `<option value="${p}">${getProviderDisplayName(p)}</option>`).join('')}
-                </select>
-            </div>
-            <div class="filter-group">
-                <label class="filter-label">Cost</label>
-                <select id="costFilter" class="filter-select">
-                    <option value="all">All</option>
-                    <option value="free">Free Only</option>
-                    <option value="premium">Premium</option>
-                </select>
-            </div>
-            <div class="filter-group search">
-                <label class="filter-label">Search</label>
-                <input type="text" id="modelSearch" class="filter-input" placeholder="Search models...">
-            </div>
-            <div>
-                <button class="btn-secondary" onclick="clearFilters()">Clear</button>
+    let html = `
+        <div class="filter-section">
+            <label class="filter-section-label">Provider</label>
+            <div class="filter-options-redesigned">
+                <button class="filter-option-btn ${!filters.provider || filters.provider === 'all' ? 'active' : ''}" 
+                        data-filter-type="provider" data-value="all">
+                    All Providers
+                </button>
+                ${providers.map(provider => `
+                    <button class="filter-option-btn ${filters.provider === provider ? 'active' : ''}" 
+                            data-filter-type="provider" data-value="${provider}">
+                        ${escapeHtml(getProviderDisplayName(provider))}
+                    </button>
+                `).join('')}
             </div>
         </div>
+
+        <div class="filter-section">
+            <label class="filter-section-label">Cost</label>
+            <div class="filter-options-redesigned">
+                <button class="filter-option-btn ${!filters.cost || filters.cost === 'all' ? 'active' : ''}" 
+                        data-filter-type="cost" data-value="all">
+                    All Types
+                </button>
+                <button class="filter-option-btn ${filters.cost === 'free' ? 'active' : ''}" 
+                        data-filter-type="cost" data-value="free">
+                    🆓 Free
+                </button>
+                <button class="filter-option-btn ${filters.cost === 'premium' ? 'active' : ''}" 
+                        data-filter-type="cost" data-value="premium">
+                    💎 Premium
+                </button>
+            </div>
+        </div>
+
         ${tags.length > 0 ? `
-        <div class="filter-tags-container">
-            <div class="filter-tags-label">Tags</div>
-            <div class="filter-tags-list">
-                ${tags.slice(0, 15).map(tag => `
-                    <span class="filter-tag" data-tag="${tag}" onclick="toggleTagFilter('${tag}')">${escapeHtml(tag)}</span>
+        <div class="filter-section">
+            <label class="filter-section-label">Capabilities</label>
+            <div class="filter-tags-redesigned">
+                ${tags.map(tag => `
+                    <button class="filter-tag-btn ${filters.tags && filters.tags.includes(tag) ? 'active' : ''}" 
+                            data-tag="${tag}">
+                        ${escapeHtml(tag)}
+                    </button>
                 `).join('')}
             </div>
         </div>
         ` : ''}
+
+        <div class="filter-actions">
+            <button class="btn-filter-clear" onclick="clearFilters()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                Clear Filters
+            </button>
+        </div>
     `;
 
-    // Set current filter values
-    const filters = getFilters();
-    const providerFilter = document.getElementById('providerFilter');
-    if (providerFilter) {
-        providerFilter.value = filters.provider || 'all';
-        providerFilter.addEventListener('change', handleFilterChange);
-    }
-    const costFilter = document.getElementById('costFilter');
-    if (costFilter) {
-        costFilter.value = filters.cost || 'all';
-        costFilter.addEventListener('change', handleFilterChange);
-    }
-    const searchInput = document.getElementById('modelSearch');
-    if (searchInput) {
-        searchInput.value = filters.search || '';
-        const debouncedSearch = debounce(handleFilterChange, 300);
-        searchInput.addEventListener('input', debouncedSearch);
-    }
+    container.innerHTML = html;
 
-    // Add tag click handlers
-    container.querySelectorAll('.filter-tag').forEach(tag => {
-        tag.addEventListener('click', function () {
-            const tagName = this.dataset.tag;
-            toggleTagFilter(tagName);
+    // Add event listeners
+    container.querySelectorAll('.filter-option-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const type = btn.dataset.filterType;
+            const value = btn.dataset.value;
+            const filters = getFilters();
+            setFilters({ ...filters, [type]: value });
+            renderFilterControls();
+            renderModelSelection();
+        });
+    });
+
+    container.querySelectorAll('.filter-tag-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            toggleTagFilter(btn.dataset.tag);
+            renderFilterControls();
+            renderModelSelection();
         });
     });
 }
@@ -208,13 +245,6 @@ function renderFilterControls() {
  * Handle filter change
  */
 function handleFilterChange() {
-    const filters = {
-        provider: document.getElementById('providerFilter')?.value || 'all',
-        cost: document.getElementById('costFilter')?.value || 'all',
-        search: document.getElementById('modelSearch')?.value || '',
-        tags: getFilters().tags || []
-    };
-    setFilters(filters);
     renderModelSelection();
 }
 
@@ -233,13 +263,6 @@ function toggleTagFilter(tag) {
     }
 
     setFilters({ ...filters, tags });
-
-    // Update UI
-    const tagElement = document.querySelector(`[data-tag="${tag}"]`);
-    if (tagElement) {
-        tagElement.classList.toggle('active');
-    }
-
     renderModelSelection();
 }
 
@@ -254,146 +277,133 @@ function clearFilters() {
         search: '',
         task: 'all'
     });
+    
+    // Clear search input
+    const searchInput = document.getElementById('modelsSearchInput');
+    const clearBtn = document.getElementById('searchClearBtn');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    if (clearBtn) {
+        clearBtn.style.display = 'none';
+    }
+    
     renderFilterControls();
     renderModelSelection();
+    showToast('info', 'Filters cleared');
 }
 
 /**
  * Render model selection grid
  */
 function renderModelSelection() {
-    const models = getModels();
-    const filters = getFilters();
-    const selectedModels = getSelectedModels();
-    const queryMode = getUIState().queryMode;
-
-    // Hide model selection in smart query mode
-    if (queryMode === 'smart') {
-        const modelSelectionContainer = document.getElementById('modelSelectionContainer');
-        if (modelSelectionContainer) {
-            modelSelectionContainer.style.display = 'none';
-        }
-        return;
-    } else {
-        const modelSelectionContainer = document.getElementById('modelSelectionContainer');
-        if (modelSelectionContainer) {
-            modelSelectionContainer.style.display = 'block';
-        }
-    }
-
-    // Filter models
-    const filtered = filterModels(models, filters);
-
-    // Group by provider
-    const grouped = groupModelsByProvider(filtered);
-
-    // Render
     const container = document.getElementById('modelGridContainer');
     if (!container) return;
 
-    let html = '';
+    const models = getModels();
+    const filters = getFilters();
+    const selectedModelIds = getSelectedModels();
 
-    // Model selection actions
-    html += `
-        <div class="model-selection-actions">
-            <button class="btn-secondary" onclick="selectAllModels()">Select All</button>
-            <button class="btn-secondary" onclick="deselectAllModels()">Deselect All</button>
-            <button class="btn-secondary" onclick="selectAllFreeModels()">Select Free</button>
-            <span class="model-selection-count">
-                ${selectedModels.length} selected
-            </span>
-        </div>
-    `;
-
-    // Render by provider
-    for (const [provider, providerModels] of Object.entries(grouped)) {
-        html += `
-            <div class="provider-group">
-                <div class="provider-group-header">
-                    ${getProviderDisplayName(provider)} (${providerModels.length})
-                </div>
-                <div class="model-grid-modern">
-        `;
-
-        providerModels.forEach(model => {
-            // Handle both Go JSON format (capitalized) and snake_case format
-            const modelId = model.id || model.ID || '';
-            const isSelected = selectedModels.includes(modelId);
-
-            // Get model name - try multiple field name formats
-            const modelName = model.display_name ||
-                model.DisplayName ||
-                model.model_name ||
-                model.ModelName ||
-                (modelId ? modelId.split(':').pop().split('/').pop().replace(/:free$/, '') : 'Unknown Model');
-
-            // Get provider - try multiple formats
-            const modelProvider = model.provider ||
-                model.Provider ||
-                (modelId && modelId.includes(':') ? modelId.split(':')[0] : provider) ||
-                'unknown';
-
-            // Get quality score
-            const qualityScore = model.quality_score ||
-                model.QualityScore ||
-                0;
-            const qualityPercent = (qualityScore * 100).toFixed(0);
-            const qualityDisplay = qualityPercent > 0 ? `${qualityPercent}%` : 'N/A';
-
-            // Get cost info - handle both formats
-            const costInfo = model.cost_info || model.CostInfo || {};
-            const costPerToken = costInfo.cost_per_token ||
-                costInfo.CostPerToken ||
-                0;
-            const isFree = costPerToken === 0;
-
-            // Format cost display
-            const costDisplay = formatCost(costPerToken);
-
-            // Escape modelId for use in HTML attributes
-            const escapedModelId = escapeHtml(modelId);
-            const checkboxId = `model-${escapedModelId.replace(/[^a-zA-Z0-9-]/g, '_')}`;
-
-            html += `
-                <div class="model-card-modern ${isSelected ? 'selected' : ''}" data-model-id="${escapedModelId}" onclick="handleModelCardClick('${escapedModelId}')">
-                    <div class="model-card-content">
-                        <input type="checkbox" 
-                               class="model-checkbox" 
-                               id="${checkboxId}" 
-                               ${isSelected ? 'checked' : ''}
-                               onclick="event.stopPropagation(); handleModelCardClick('${escapedModelId}')">
-                        <div class="model-info">
-                            <div class="model-name-row">
-                                <div class="model-name">${escapeHtml(modelName)}</div>
-                                <span class="model-badge ${isFree ? 'free' : 'premium'}">${isFree ? 'FREE' : 'PREMIUM'}</span>
-                            </div>
-                            <div class="model-provider">${getProviderDisplayName(modelProvider)}</div>
-                            <div class="model-metrics">
-                                <span>Quality: ${qualityDisplay}</span>
-                                <span>Cost: ${costDisplay}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-
-        html += `</div></div>`;
+    // Apply search filter from search input
+    const searchInput = document.getElementById('modelsSearchInput');
+    if (searchInput && searchInput.value.trim()) {
+        filters.search = searchInput.value.trim();
     }
 
-    container.innerHTML = html;
+    const filteredModels = filterModels(models, filters);
 
-    // Add event listeners after rendering
-    container.querySelectorAll('.model-card-modern').forEach(card => {
-        const modelId = card.dataset.modelId;
-        if (modelId) {
-            card.addEventListener('click', function (e) {
-                if (e.target.type !== 'checkbox') {
-                    toggleModelSelectionUI(modelId);
-                }
-            });
+    // Update metrics
+    const totalCountEl = document.getElementById('totalModelsCount');
+    const selectedCountEl = document.getElementById('selectedModelsCount');
+    const providersCountEl = document.getElementById('totalProvidersCount');
+    const filteredCountEl = document.getElementById('filteredResultsCount');
+    const bulkActionsEl = document.getElementById('modelsBulkActions');
+    const bulkCountEl = document.getElementById('bulkSelectionCount');
+
+    if (totalCountEl) totalCountEl.textContent = models.length;
+    if (selectedCountEl) selectedCountEl.textContent = selectedModelIds.length;
+    if (providersCountEl) providersCountEl.textContent = new Set(models.map(m => m.provider || m.Provider || 'unknown')).size;
+    if (filteredCountEl) filteredCountEl.textContent = `${filteredModels.length} model${filteredModels.length !== 1 ? 's' : ''}`;
+    
+    // Show/hide bulk actions
+    if (bulkActionsEl) {
+        if (selectedModelIds.length > 0) {
+            bulkActionsEl.style.display = 'flex';
+            if (bulkCountEl) bulkCountEl.textContent = `${selectedModelIds.length} model${selectedModelIds.length !== 1 ? 's' : ''} selected`;
+        } else {
+            bulkActionsEl.style.display = 'none';
         }
-    });
+    }
+
+    if (filteredModels.length === 0) {
+        container.innerHTML = `
+            <div class="models-empty-state">
+                <div class="models-empty-icon">🔍</div>
+                <h3 class="models-empty-title">No models found</h3>
+                <p class="models-empty-description">Try adjusting your search or filters to find what you're looking for.</p>
+                <div class="models-empty-action">
+                    <button class="btn-secondary" onclick="clearFilters(); const input = document.getElementById('modelsSearchInput'); if(input) input.value = ''; renderModelSelection();">Clear All Filters</button>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // Get current view mode
+    const currentView = container.classList.contains('list-view') ? 'list' : 'grid';
+    const viewClass = currentView === 'list' ? 'list-view' : '';
+
+    container.innerHTML = filteredModels.map(model => {
+        const modelId = model.id || model.ID;
+        const displayName = model.display_name || model.DisplayName || modelId;
+        const provider = model.provider || model.Provider || 'unknown';
+        const isSelected = selectedModelIds.includes(modelId);
+        const description = model.description || model.Description || 'High-performance AI model for various tasks.';
+        const tags = model.tags || model.Tags || [];
+        const isFree = isModelFree(model);
+        const costInfo = model.cost_info || model.CostInfo || {};
+        const qualityScore = model.quality_score || model.QualityScore || 0;
+
+        return `
+            <div class="model-card-redesigned ${viewClass} ${isSelected ? 'selected' : ''}" onclick="event.stopPropagation(); toggleModelSelectionUI('${modelId}')">
+                <div class="model-card-header-redesigned">
+                    <div class="model-card-title-section">
+                        <h3 class="model-card-title">${escapeHtml(displayName)}</h3>
+                        <code class="model-card-id">${escapeHtml(modelId)}</code>
+                    </div>
+                    <div class="model-card-checkbox-wrapper">
+                        <input type="checkbox" class="model-card-checkbox" ${isSelected ? 'checked' : ''} 
+                               onclick="event.stopPropagation(); toggleModelSelectionUI('${modelId}')">
+                    </div>
+                </div>
+                <div class="model-card-body">
+                    <div class="model-card-provider">${escapeHtml(getProviderDisplayName(provider))}</div>
+                    <p class="model-card-description">${escapeHtml(description.length > 150 ? description.substring(0, 150) + '...' : description)}</p>
+                    ${tags.length > 0 ? `
+                        <div class="model-card-tags">
+                            ${tags.slice(0, 4).map(tag => `<span class="model-card-tag">${escapeHtml(tag)}</span>`).join('')}
+                            ${tags.length > 4 ? `<span class="model-card-tag">+${tags.length - 4}</span>` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="model-card-footer">
+                    <div class="model-card-cost ${isFree ? 'free' : 'premium'}">
+                        ${isFree ? '🆓 Free' : '💎 Premium'}
+                    </div>
+                    <div class="model-card-metrics">
+                        ${qualityScore > 0 ? `
+                            <div class="model-metric-item" title="Quality Score">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                                <span>${qualityScore.toFixed(1)}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 /**
@@ -436,41 +446,46 @@ function renderQuerySettings() {
     const settings = getSettings();
     const queryMode = getUIState().queryMode;
 
+    container.className = 'query-settings-redesigned';
+    
     let html = `
-        <div class="query-settings-header" onclick="toggleSettingsPanel()">
-            <h3>⚙️ Query Settings</h3>
-            <span id="settingsToggle">▼</span>
+        <div class="setting-group-redesigned">
+            <label class="setting-group-label">
+                Max Tokens
+                <span class="setting-group-value" id="maxTokensValue">${settings.defaultMaxTokens || 200}</span>
+            </label>
+            <div class="setting-input-group">
+                <input type="range" id="maxTokensSlider" class="setting-slider" min="50" max="4096" value="${settings.defaultMaxTokens || 200}" step="50">
+                <input type="number" id="maxTokensInput" class="setting-number-input" min="50" max="4096" value="${settings.defaultMaxTokens || 200}">
+            </div>
         </div>
-        <div class="query-settings-content" id="settingsContent">
-            <div class="setting-group">
-                <label>Max Tokens</label>
-                <input type="range" id="maxTokensSlider" min="50" max="4096" value="${settings.defaultMaxTokens || 200}" step="50">
-                <input type="number" id="maxTokensInput" min="50" max="4096" value="${settings.defaultMaxTokens || 200}">
-                <div class="setting-value" id="maxTokensValue">${settings.defaultMaxTokens || 200} tokens</div>
+        <div class="setting-group-redesigned">
+            <label class="setting-group-label">
+                Temperature
+                <span class="setting-group-value" id="temperatureValue">${settings.defaultTemperature || 0.7}</span>
+            </label>
+            <div class="setting-input-group">
+                <input type="range" id="temperatureSlider" class="setting-slider" min="0" max="2" value="${settings.defaultTemperature || 0.7}" step="0.1">
+                <input type="number" id="temperatureInput" class="setting-number-input" min="0" max="2" value="${settings.defaultTemperature || 0.7}" step="0.1">
             </div>
-            <div class="setting-group">
-                <label>Temperature</label>
-                <input type="range" id="temperatureSlider" min="0" max="2" value="${settings.defaultTemperature || 0.7}" step="0.1">
-                <input type="number" id="temperatureInput" min="0" max="2" value="${settings.defaultTemperature || 0.7}" step="0.1">
-                <div class="setting-value" id="temperatureValue">${settings.defaultTemperature || 0.7}</div>
-            </div>
+        </div>
     `;
 
     // Smart routing settings (only in smart mode)
     if (queryMode === 'smart') {
         html += `
-            <div class="setting-group">
-                <label>Strategy</label>
-                <select id="strategySelect">
+            <div class="setting-group-redesigned">
+                <label class="setting-group-label">Strategy</label>
+                <select id="strategySelect" class="setting-select">
                     <option value="free_only" ${settings.defaultStrategy === 'free_only' ? 'selected' : ''}>Free Only</option>
                     <option value="lowest_cost" ${settings.defaultStrategy === 'lowest_cost' ? 'selected' : ''}>Lowest Cost</option>
                     <option value="highest_quality" ${settings.defaultStrategy === 'highest_quality' ? 'selected' : ''}>Highest Quality</option>
                     <option value="balanced" ${settings.defaultStrategy === 'balanced' ? 'selected' : ''}>Balanced</option>
                 </select>
             </div>
-            <div class="setting-group">
-                <label>Task Type</label>
-                <select id="taskSelect">
+            <div class="setting-group-redesigned">
+                <label class="setting-group-label">Task Type</label>
+                <select id="taskSelect" class="setting-select">
                     <option value="generate" ${settings.defaultTask === 'generate' ? 'selected' : ''}>Generate</option>
                     <option value="analyze" ${settings.defaultTask === 'analyze' ? 'selected' : ''}>Analyze</option>
                     <option value="summarize" ${settings.defaultTask === 'summarize' ? 'selected' : ''}>Summarize</option>
@@ -487,26 +502,47 @@ function renderQuerySettings() {
     if (queryMode === 'single') {
         const models = getModels();
         html += `
-            <div class="setting-group">
-                <label>Select Model</label>
-                <select id="singleModelSelect">
+            <div class="setting-group-redesigned">
+                <label class="setting-group-label">Select Model</label>
+                <select id="singleModelSelect" class="setting-select">
                     <option value="">Choose a model...</option>
-                    ${models.map(m => `<option value="${m.id}">${m.display_name || m.model_name}</option>`).join('')}
+                    ${models.map(m => `<option value="${m.id || m.ID}">${escapeHtml(m.display_name || m.DisplayName || m.model_name || m.ModelName || m.id || m.ID)}</option>`).join('')}
                 </select>
             </div>
         `;
     }
 
-    html += `
-            <div class="setting-group">
-                <button onclick="resetSettings()" style="padding:8px 15px;background:#f0f0f0;border:1px solid #e0e0e0;border-radius:5px;cursor:pointer;">Reset to Defaults</button>
-            </div>
-        </div>
-    `;
-
     container.innerHTML = html;
     updateMaxTokensDisplay();
     updateTemperatureDisplay();
+    
+    // Add event listeners
+    const maxTokensSlider = document.getElementById('maxTokensSlider');
+    const maxTokensInput = document.getElementById('maxTokensInput');
+    const tempSlider = document.getElementById('temperatureSlider');
+    const tempInput = document.getElementById('temperatureInput');
+    
+    if (maxTokensSlider && maxTokensInput) {
+        maxTokensSlider.addEventListener('input', () => {
+            maxTokensInput.value = maxTokensSlider.value;
+            updateMaxTokensDisplay();
+        });
+        maxTokensInput.addEventListener('input', () => {
+            maxTokensSlider.value = maxTokensInput.value;
+            updateMaxTokensDisplay();
+        });
+    }
+    
+    if (tempSlider && tempInput) {
+        tempSlider.addEventListener('input', () => {
+            tempInput.value = tempSlider.value;
+            updateTemperatureDisplay();
+        });
+        tempInput.addEventListener('input', () => {
+            tempSlider.value = tempInput.value;
+            updateTemperatureDisplay();
+        });
+    }
 }
 
 /**
@@ -563,8 +599,8 @@ function autoResizeTextarea(textarea) {
     textarea.style.height = 'auto';
 
     // Calculate new height based on content
-    const minHeight = 64; // min-height from CSS
-    const maxHeight = 200; // max-height from CSS
+    const minHeight = 80; // min-height from CSS
+    const maxHeight = 300; // max-height from CSS
     const scrollHeight = textarea.scrollHeight;
 
     // Set height, respecting min and max constraints
@@ -1046,3 +1082,200 @@ function resetSettings() {
     renderQuerySettings();
     showToast('success', 'Settings reset to defaults');
 }
+
+/**
+ * Set model view mode (grid or list)
+ */
+function setModelView(view) {
+    const container = document.getElementById('modelGridContainer');
+    const gridBtn = document.querySelector('[data-view="grid"]');
+    const listBtn = document.querySelector('[data-view="list"]');
+    
+    if (!container) return;
+    
+    // Update container class
+    if (view === 'list') {
+        container.classList.add('list-view');
+    } else {
+        container.classList.remove('list-view');
+    }
+    
+    // Update button states
+    if (gridBtn && listBtn) {
+        if (view === 'list') {
+            gridBtn.classList.remove('active');
+            listBtn.classList.add('active');
+        } else {
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+        }
+    }
+    
+    // Save preference
+    localStorage.setItem('gaiol_modelView', view);
+}
+
+/**
+ * Clear search input
+ */
+function clearSearchInput() {
+    const searchInput = document.getElementById('modelsSearchInput');
+    const clearBtn = document.getElementById('searchClearBtn');
+    
+    if (searchInput) {
+        searchInput.value = '';
+        const filters = getFilters();
+        setFilters({ ...filters, search: '' });
+        renderModelSelection();
+    }
+    
+    if (clearBtn) {
+        clearBtn.style.display = 'none';
+    }
+}
+
+/**
+ * Handle model sorting
+ */
+function handleModelSort(sortBy) {
+    const models = getModels();
+    const filters = getFilters();
+    const filteredModels = filterModels(models, filters);
+    
+    let sortedModels = [...filteredModels];
+    
+    switch (sortBy) {
+        case 'name':
+            sortedModels = sortModels(sortedModels, 'name');
+            break;
+        case 'provider':
+            sortedModels = sortModels(sortedModels, 'provider');
+            break;
+        case 'cost':
+            sortedModels = sortModels(sortedModels, 'cost');
+            break;
+        case 'quality':
+            sortedModels = sortModels(sortedModels, 'quality');
+            break;
+    }
+    
+    // Re-render with sorted models
+    const container = document.getElementById('modelGridContainer');
+    if (!container) return;
+    
+    // Temporarily store sorted models
+    const originalModels = getModels();
+    setModels(sortedModels);
+    renderModelSelection();
+    // Restore original models
+    setModels(originalModels);
+}
+
+/**
+ * Toggle filter sidebar
+ */
+function toggleFilterSidebar() {
+    const sidebar = document.getElementById('modelsFilterSidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('collapsed');
+        sidebar.classList.toggle('open');
+    }
+}
+
+// Initialize models page enhancements
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup search input
+    const searchInput = document.getElementById('modelsSearchInput');
+    if (searchInput) {
+        const clearBtn = document.getElementById('searchClearBtn');
+        
+        searchInput.addEventListener('input', debounce(() => {
+            const value = searchInput.value.trim();
+            if (clearBtn) {
+                clearBtn.style.display = value ? 'flex' : 'none';
+            }
+            
+            const filters = getFilters();
+            setFilters({ ...filters, search: value });
+            renderModelSelection();
+        }, 300));
+        
+        // Show clear button if input has value on load
+        if (searchInput.value.trim() && clearBtn) {
+            clearBtn.style.display = 'flex';
+        }
+    }
+    
+    // Load saved view preference
+    const savedView = localStorage.getItem('gaiol_modelView') || 'grid';
+    if (savedView) {
+        setModelView(savedView);
+    }
+    
+    // Update bulk actions visibility
+    const selectedModels = getSelectedModels();
+    const bulkActions = document.getElementById('modelsBulkActions');
+    if (bulkActions) {
+        bulkActions.style.display = selectedModels.length > 0 ? 'flex' : 'none';
+    }
+});
+
+/**
+ * Toggle compare settings panel
+ */
+function toggleCompareSettings() {
+    const section = document.querySelector('.compare-settings-section');
+    if (section) {
+        section.classList.toggle('collapsed');
+    }
+}
+
+/**
+ * Clear prompt input
+ */
+function clearPromptInput() {
+    const promptInput = document.getElementById('promptInput');
+    if (promptInput) {
+        promptInput.value = '';
+        if (typeof autoResizeTextarea === 'function') {
+            autoResizeTextarea(promptInput);
+        }
+        updateCharCount();
+    }
+}
+
+/**
+ * Sort compare results
+ */
+function sortCompareResults(criteria) {
+    const container = document.getElementById('resultsSection');
+    if (!container) return;
+    
+    const cards = Array.from(container.querySelectorAll('.result-card-compare, .result-card'));
+    
+    cards.sort((a, b) => {
+        if (criteria === 'quality') {
+            const qualityA = parseFloat(a.querySelector('.result-metric-value')?.textContent) || 0;
+            const qualityB = parseFloat(b.querySelector('.result-metric-value')?.textContent) || 0;
+            return qualityB - qualityA;
+        } else if (criteria === 'time') {
+            // Extract time from metric or text
+            const timeA = parseFloat(a.querySelector('[title*="Time"], .result-metric-value')?.textContent) || 0;
+            const timeB = parseFloat(b.querySelector('[title*="Time"], .result-metric-value')?.textContent) || 0;
+            return timeA - timeB;
+        }
+        return 0;
+    });
+    
+    cards.forEach(card => container.appendChild(card));
+    showToast('info', `Results sorted by ${criteria}`);
+}
+
+// Make new functions globally available
+window.setModelView = setModelView;
+window.clearSearchInput = clearSearchInput;
+window.handleModelSort = handleModelSort;
+window.toggleFilterSidebar = toggleFilterSidebar;
+window.toggleCompareSettings = toggleCompareSettings;
+window.clearPromptInput = clearPromptInput;
+window.sortCompareResults = sortCompareResults;
