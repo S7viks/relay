@@ -11,6 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/joho/godotenv"
+	"gaiol/internal/auth"
+	"gaiol/internal/database"
 	"gaiol/internal/models"
 	"gaiol/internal/models/adapters"
 	"gaiol/internal/uaip"
@@ -19,6 +22,7 @@ import (
 var (
 	router   *models.ModelRouter
 	registry *models.Registry
+	dbClient *database.Client
 )
 
 // === REQUEST/RESPONSE TYPES ===
@@ -50,6 +54,11 @@ type ErrorResponse struct {
 }
 
 func main() {
+	// Load .env file if it exists (ignore errors if file doesn't exist)
+	if err := godotenv.Load(); err != nil {
+		log.Println("ℹ️  No .env file found, using environment variables")
+	}
+
 	// Get API keys
 	geminiKey := os.Getenv("GEMINI_API_KEY")
 	openrouterKey := os.Getenv("OPENROUTER_API_KEY")
@@ -91,15 +100,72 @@ func main() {
 
 	router = models.NewModelRouter(registry)
 
-	// Setup routes
-	http.HandleFunc("/", noCacheFileServer)
-	http.HandleFunc("/api/query", corsMiddleware(handleQuery))
-	http.HandleFunc("/api/query/smart", corsMiddleware(handleSmartQuery))
-	http.HandleFunc("/api/query/model", corsMiddleware(handleQueryWithModel))
-	http.HandleFunc("/api/models", corsMiddleware(handleListModels))
-	http.HandleFunc("/api/models/free", corsMiddleware(handleListFreeModels))
-	http.HandleFunc("/api/models/", corsMiddleware(handleModelsByProvider))
+	// Initialize Supabase database connection
+	var dbErr error
+	dbClient, dbErr = database.NewClient()
+	if dbErr != nil {
+		log.Printf("⚠️  Warning: Failed to initialize database: %v", dbErr)
+		log.Println("   Continuing without database - some features may be unavailable")
+	} else {
+		log.Println("✅ Supabase database connection established")
+		
+		// Perform health check
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := database.HealthCheck(ctx); err != nil {
+			log.Printf("⚠️  Warning: Database health check failed: %v", err)
+		} else {
+			log.Println("✅ Database health check passed")
+		}
+	}
+
+	// Setup routes with authentication middleware
+	// IMPORTANT: Register API routes BEFORE the catch-all file server
+	// This ensures API routes are matched before the file server tries to serve files
+	
+	// Health check route
 	http.HandleFunc("/health", handleHealth)
+	
+	// Model routes - register specific routes before generic ones
+	http.HandleFunc("/api/models/free", corsMiddleware(handleListFreeModels))
+	http.HandleFunc("/api/models", corsMiddleware(handleListModels))
+	http.HandleFunc("/api/models/", corsMiddleware(handleModelsByProvider))
+
+	// Authentication routes (public) - register even if dbClient is nil to return proper errors
+	if dbClient != nil {
+		authAPI := auth.NewAuthAPI(dbClient)
+		http.HandleFunc("/api/auth/signup", corsMiddleware(handleSignUp(authAPI)))
+		http.HandleFunc("/api/auth/signin", corsMiddleware(handleSignIn(authAPI)))
+		http.HandleFunc("/api/auth/signout", corsMiddleware(handleSignOut(authAPI)))
+		http.HandleFunc("/api/auth/session", corsMiddleware(handleGetSession(authAPI)))
+		http.HandleFunc("/api/auth/refresh", corsMiddleware(handleRefreshToken(authAPI)))
+		http.HandleFunc("/api/auth/user", corsMiddleware(handleGetUser(authAPI)))
+	} else {
+		// Register auth routes with error handlers when database is unavailable
+		http.HandleFunc("/api/auth/signup", corsMiddleware(handleAuthUnavailable))
+		http.HandleFunc("/api/auth/signin", corsMiddleware(handleAuthUnavailable))
+		http.HandleFunc("/api/auth/signout", corsMiddleware(handleAuthUnavailable))
+		http.HandleFunc("/api/auth/session", corsMiddleware(handleAuthUnavailable))
+		http.HandleFunc("/api/auth/refresh", corsMiddleware(handleAuthUnavailable))
+		http.HandleFunc("/api/auth/user", corsMiddleware(handleAuthUnavailable))
+	}
+	
+	// File server - register LAST as catch-all for static files
+	http.HandleFunc("/", noCacheFileServer)
+
+	// Protected routes (auth required)
+	if dbClient != nil {
+		authMiddleware := auth.AuthMiddleware(dbClient)
+		http.Handle("/api/query", authMiddleware(http.HandlerFunc(corsMiddleware(handleQuery))))
+		http.Handle("/api/query/smart", authMiddleware(http.HandlerFunc(corsMiddleware(handleSmartQuery))))
+		http.Handle("/api/query/model", authMiddleware(http.HandlerFunc(corsMiddleware(handleQueryWithModel))))
+	} else {
+		// Fallback: allow without auth if database not available
+		log.Println("⚠️  Running in unauthenticated mode - database unavailable")
+		http.HandleFunc("/api/query", corsMiddleware(handleQuery))
+		http.HandleFunc("/api/query/smart", corsMiddleware(handleSmartQuery))
+		http.HandleFunc("/api/query/model", corsMiddleware(handleQueryWithModel))
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -113,13 +179,31 @@ func main() {
 	fmt.Printf("🌐 Server: http://localhost:%s\n", port)
 	fmt.Printf("📂 Web UI: http://localhost:%s\n", port)
 	fmt.Println("\nAPI Endpoints:")
-	fmt.Println("  POST /api/query             - Multi-model comparison (legacy)")
-	fmt.Println("  POST /api/query/smart       - Smart routing (recommended)")
-	fmt.Println("  POST /api/query/model       - Query specific model")
-	fmt.Println("  GET  /api/models            - List all models")
-	fmt.Println("  GET  /api/models/free       - List free models")
-	fmt.Println("  GET  /api/models/:provider  - List by provider")
-	fmt.Println("  GET  /health                - Health check")
+	fmt.Println("  Authentication:")
+	if dbClient != nil {
+		fmt.Println("    POST /api/auth/signup      - Create new account")
+		fmt.Println("    POST /api/auth/signin      - Sign in")
+		fmt.Println("    POST /api/auth/signout     - Sign out")
+		fmt.Println("    GET  /api/auth/session     - Get current session")
+		fmt.Println("    GET  /api/auth/user       - Get current user")
+		fmt.Println("    POST /api/auth/refresh    - Refresh access token")
+	}
+	fmt.Println("  Models:")
+	fmt.Println("    GET  /api/models            - List all models")
+	fmt.Println("    GET  /api/models/free       - List free models")
+	fmt.Println("    GET  /api/models/:provider  - List by provider")
+	fmt.Println("  Queries:")
+	if dbClient != nil {
+		fmt.Println("    POST /api/query             - Multi-model comparison (auth required)")
+		fmt.Println("    POST /api/query/smart       - Smart routing (auth required)")
+		fmt.Println("    POST /api/query/model       - Query specific model (auth required)")
+	} else {
+		fmt.Println("    POST /api/query             - Multi-model comparison (no auth)")
+		fmt.Println("    POST /api/query/smart       - Smart routing (no auth)")
+		fmt.Println("    POST /api/query/model       - Query specific model (no auth)")
+	}
+	fmt.Println("  System:")
+	fmt.Println("    GET  /health                - Health check")
 	fmt.Println(strings.Repeat("=", 70))
 
 	log.Fatal(http.ListenAndServe(":"+port, nil))
@@ -127,6 +211,12 @@ func main() {
 
 // === MIDDLEWARE ===
 func noCacheFileServer(w http.ResponseWriter, r *http.Request) {
+	// Skip API routes - they should be handled by specific handlers
+	if strings.HasPrefix(r.URL.Path, "/api/") {
+		sendError(w, "API endpoint not found", http.StatusNotFound)
+		return
+	}
+	
 	// Disable caching for development
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
@@ -140,7 +230,8 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
@@ -412,12 +503,26 @@ func handleModelsByProvider(w http.ResponseWriter, r *http.Request) {
 // GET /health - Health check
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	health := map[string]interface{}{
 		"status":      "ok",
 		"models":      registry.Count(),
 		"free_models": len(registry.FindFreeModels()),
 		"timestamp":   time.Now().Format(time.RFC3339),
-	})
+	}
+
+	// Add database status if available
+	if dbClient != nil {
+		health["database"] = map[string]interface{}{
+			"connected": true,
+			"url":       dbClient.URL,
+		}
+	} else {
+		health["database"] = map[string]interface{}{
+			"connected": false,
+		}
+	}
+
+	json.NewEncoder(w).Encode(health)
 }
 
 // === HELPER FUNCTIONS ===
@@ -508,6 +613,11 @@ func mapLegacyModelName(legacy string) string {
 	return legacy
 }
 
+// Handle auth routes when database is unavailable
+func handleAuthUnavailable(w http.ResponseWriter, r *http.Request) {
+	sendError(w, "Database connection unavailable. Authentication features are disabled.", http.StatusServiceUnavailable)
+}
+
 func sendError(w http.ResponseWriter, message string, code int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
@@ -516,6 +626,246 @@ func sendError(w http.ResponseWriter, message string, code int) {
 		Code:    fmt.Sprintf("HTTP_%d", code),
 		Message: message,
 	})
+}
+
+// === AUTHENTICATION HANDLERS ===
+
+// POST /api/auth/signup - Create a new user account
+func handleSignUp(authAPI *auth.AuthAPI) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			sendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req auth.SignUpRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			sendError(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if req.Email == "" || req.Password == "" {
+			sendError(w, "Email and password are required", http.StatusBadRequest)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+
+		resp, err := authAPI.SignUp(ctx, req)
+		if err != nil {
+			sendError(w, "Signup failed: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}
+}
+
+// POST /api/auth/signin - Authenticate a user
+func handleSignIn(authAPI *auth.AuthAPI) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			sendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req auth.SignInRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			sendError(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if req.Email == "" || req.Password == "" {
+			sendError(w, "Email and password are required", http.StatusBadRequest)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+
+		resp, err := authAPI.SignIn(ctx, req)
+		if err != nil {
+			sendError(w, "Signin failed: "+err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		// Set cookies for browser-based auth
+		http.SetCookie(w, &http.Cookie{
+			Name:     "sb-access-token",
+			Value:    resp.AccessToken,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   false, // Set to true in production with HTTPS
+			SameSite: http.SameSiteLaxMode,
+		})
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     "sb-refresh-token",
+			Value:    resp.RefreshToken,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   false, // Set to true in production with HTTPS
+			SameSite: http.SameSiteLaxMode,
+		})
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}
+}
+
+// POST /api/auth/signout - Sign out the current user
+func handleSignOut(authAPI *auth.AuthAPI) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			sendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Get token from header or cookie
+		authHeader := r.Header.Get("Authorization")
+		token := ""
+		if authHeader != "" {
+			parts := strings.Split(authHeader, " ")
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				token = parts[1]
+			}
+		} else if cookie, err := r.Cookie("sb-access-token"); err == nil {
+			token = cookie.Value
+		}
+
+		if token == "" {
+			sendError(w, "No authentication token provided", http.StatusUnauthorized)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+
+		if err := authAPI.SignOut(ctx, token); err != nil {
+			sendError(w, "Signout failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Clear cookies
+		http.SetCookie(w, &http.Cookie{
+			Name:     "sb-access-token",
+			Value:    "",
+			Path:     "/",
+			HttpOnly: true,
+			Expires:  time.Unix(0, 0),
+		})
+		http.SetCookie(w, &http.Cookie{
+			Name:     "sb-refresh-token",
+			Value:    "",
+			Path:     "/",
+			HttpOnly: true,
+			Expires:  time.Unix(0, 0),
+		})
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "Signed out successfully",
+		})
+	}
+}
+
+// GET /api/auth/session - Get current session information
+func handleGetSession(authAPI *auth.AuthAPI) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			sendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Get token from header or cookie
+		authHeader := r.Header.Get("Authorization")
+		token := ""
+		if authHeader != "" {
+			parts := strings.Split(authHeader, " ")
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				token = parts[1]
+			}
+		} else if cookie, err := r.Cookie("sb-access-token"); err == nil {
+			token = cookie.Value
+		}
+
+		if token == "" {
+			sendError(w, "No authentication token provided", http.StatusUnauthorized)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+
+		user, err := authAPI.GetUser(ctx, token)
+		if err != nil {
+			sendError(w, "Failed to get session: "+err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"user": user,
+		})
+	}
+}
+
+// POST /api/auth/refresh - Refresh access token
+func handleRefreshToken(authAPI *auth.AuthAPI) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			sendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			RefreshToken string `json:"refresh_token"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			// Try to get from cookie if not in body
+			if cookie, err := r.Cookie("sb-refresh-token"); err == nil {
+				req.RefreshToken = cookie.Value
+			} else {
+				sendError(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+		}
+
+		if req.RefreshToken == "" {
+			sendError(w, "Refresh token is required", http.StatusBadRequest)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+
+		session, err := authAPI.RefreshToken(ctx, req.RefreshToken)
+		if err != nil {
+			sendError(w, "Token refresh failed: "+err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		// Update cookies
+		http.SetCookie(w, &http.Cookie{
+			Name:     "sb-access-token",
+			Value:    session.AccessToken,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   false,
+			SameSite: http.SameSiteLaxMode,
+		})
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(session)
+	}
+}
+
+// GET /api/auth/user - Get current user information
+func handleGetUser(authAPI *auth.AuthAPI) http.HandlerFunc {
+	return handleGetSession(authAPI) // Same implementation
 }
 
 // === DUMMY ADAPTER (for registry when HF is not available) ===

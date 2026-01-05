@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - GAIOL</title>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="View and manage your GAIOL profile">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192x192.png">
+    
+    <link rel="stylesheet" href="/css/styles.css">
+    <script>
+        // Immediate auth check - redirect to login if not authenticated
+        (function() {
+            try {
+                const token = localStorage.getItem('gaiol_access_token');
+                if (!token) {
+                    window.location.href = '/login.html';
+                }
+            } catch (e) {
+                window.location.href = '/login.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Profile Page -->
+            <div id="profilePage" class="page active">
+                <div class="page-header">
+                    <h1>Profile</h1>
+                    <button class="btn-secondary" onclick="handleLogout()">Sign Out</button>
+                </div>
+                <div class="profile-content">
+                    <div class="profile-section">
+                        <div class="profile-header">
+                            <div class="profile-avatar">
+                                <span id="profileAvatarText">U</span>
+                            </div>
+                            <div class="profile-info">
+                                <h2 id="profileName">User</h2>
+                                <p id="profileEmail" class="profile-email">-</p>
+                                <p id="profileId" class="profile-id">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-section">
+                        <h3>Account Information</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>User ID</label>
+                                <div id="profileUserId" class="info-value">-</div>
+                            </div>
+                            <div class="info-item">
+                                <label>Email</label>
+                                <div id="profileUserEmail" class="info-value">-</div>
+                            </div>
+                            <div class="info-item">
+                                <label>Account Created</label>
+                                <div id="profileCreatedAt" class="info-value">-</div>
+                            </div>
+                            <div class="info-item">
+                                <label>Tenant ID</label>
+                                <div id="profileTenantId" class="info-value">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-section">
+                        <h3>Session Information</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Session Status</label>
+                                <div id="sessionStatus" class="info-value">
+                                    <span class="status-badge" id="sessionStatusBadge">Checking...</span>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <label>Token Expires</label>
+                                <div id="tokenExpires" class="info-value">-</div>
+                            </div>
+                        </div>
+                        <div class="profile-actions">
+                            <button class="btn-secondary" onclick="refreshSession()">Refresh Session</button>
+                        </div>
+                    </div>
+
+                    <div class="profile-section">
+                        <h3>Danger Zone</h3>
+                        <div class="danger-zone">
+                            <p>Permanently delete your account and all associated data.</p>
+                            <button class="btn-danger" onclick="handleDeleteAccount()" disabled>
+                                Delete Account
+                            </button>
+                            <small>Account deletion is not yet implemented</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/state.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/models.js"></script>
+    <script src="/js/history.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/main.js"></script>
+    <script src="/js/navigation.js"></script>
+    <script src="/js/features.js"></script>
+    <script src="/js/sidebar-features.js"></script>
+    
+    <script>
+        // Initialize layout for profile page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeLayout('Profile', 'profile');
+            // Load profile data
+            if (typeof loadUserProfile === 'function' && typeof isAuthenticated === 'function' && isAuthenticated()) {
+                loadUserProfile().then(() => {
+                    if (typeof updateProfilePage === 'function') {
+                        updateProfilePage();
+                    }
+                }).catch(error => {
+                    console.error('Failed to load profile:', error);
+                });
+            } else {
+                // Redirect to login if not authenticated
+                window.location.href = '/login.html';
+            }
+        });
+    </script>
+</body>
+</html>

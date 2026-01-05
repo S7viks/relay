@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Models - GAIOL</title>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Browse and select AI models on GAIOL">
+    <meta name="keywords" content="AI models, LLM, GPT, model selection">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192x192.png">
+    
+    <link rel="stylesheet" href="/css/styles.css">
+    <script>
+        // Immediate auth check - redirect to login if not authenticated
+        (function() {
+            try {
+                const token = localStorage.getItem('gaiol_access_token');
+                if (!token) {
+                    window.location.href = '/login.html';
+                }
+            } catch (e) {
+                window.location.href = '/login.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Models Page -->
+            <div id="modelsPage" class="page active">
+                <div class="page-header">
+                    <h1>Models</h1>
+                    <button class="btn-secondary" onclick="refreshModels()">Refresh</button>
+                </div>
+
+                <div class="models-content">
+                    <div id="filterControls" class="filter-controls-modern"></div>
+                    <div id="modelGridContainer" class="model-grid-modern"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/state.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/models.js"></script>
+    <script src="/js/history.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/main.js"></script>
+    <script src="/js/navigation.js"></script>
+    <script src="/js/features.js"></script>
+    <script src="/js/sidebar-features.js"></script>
+    
+    <script>
+        // Initialize layout for models page
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check authentication first
+            if (typeof isAuthenticated === 'function' && !isAuthenticated()) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            initializeLayout('Models', 'models');
+            // Load models and render
+            showLoading('Loading models...');
+            loadModelsFromAPI().then(() => {
+                renderModelSelection();
+                renderFilterControls();
+                hideLoading();
+            }).catch(error => {
+                hideLoading();
+                showToast('error', 'Failed to load models', error.message);
+            });
+        });
+    </script>
+</body>
+</html>

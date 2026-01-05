@@ -3,469 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GAIOL - AI Model Comparison</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-        }
-
-        .header h1 {
-            font-size: 3em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
-        }
-
-        .prompt-input {
-            width: 100%;
-            min-height: 120px;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            margin-bottom: 20px;
-            resize: vertical;
-            font-family: inherit;
-        }
-
-        .prompt-input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .section-header {
-            font-size: 16px;
-            font-weight: 700;
-            color: #333;
-            margin: 20px 0 10px 0;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .model-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .model-option {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #e0e0e0;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .model-option:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
-        }
-
-        .model-option.selected {
-            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-            border-color: #667eea;
-        }
-
-        .model-checkbox {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        .model-label {
-            flex: 1;
-            cursor: pointer;
-        }
-
-        .model-name {
-            font-size: 14px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .model-provider {
-            font-size: 11px;
-            color: #666;
-            margin-top: 2px;
-        }
-
-        .badge {
-            background: #4caf50;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: 600;
-            margin-left: 5px;
-        }
-
-        .submit-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 50px;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.3s;
-        }
-
-        .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .submit-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 60px;
-        }
-
-        .loading.active {
-            display: block;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        .results {
-            display: none;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-            gap: 25px;
-        }
-
-        .results.active {
-            display: grid;
-        }
-
-        .result-card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            border-top: 5px solid #667eea;
-        }
-
-        .model-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .response-content {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            min-height: 100px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-size: 14px;
-        }
-
-        .metrics {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-        }
-
-        .metric {
-            text-align: center;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .metric-value {
-            font-size: 20px;
-            font-weight: 700;
-            color: #667eea;
-        }
-
-        .metric-label {
-            font-size: 11px;
-            color: #666;
-            margin-top: 5px;
-        }
-
-        .error-message {
-            color: #c33;
-            background: #fee;
-            padding: 15px;
-            border-radius: 10px;
-            border-left: 4px solid #c33;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-            .model-grid {
-                grid-template-columns: 1fr;
+    <title>Chat - GAIOL</title>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="GAIOL - Unified AI Model Orchestration Platform. Compare and query multiple AI models through a single interface.">
+    <meta name="keywords" content="AI, machine learning, LLM, GPT, AI models, model comparison, AI orchestration">
+    <meta name="author" content="GAIOL">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://gaiol.app/">
+    <meta property="og:title" content="GAIOL - AI Model Orchestration Platform">
+    <meta property="og:description" content="Compare and query multiple AI models through a unified interface">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://gaiol.app/">
+    <meta property="twitter:title" content="GAIOL - AI Model Orchestration">
+    <meta property="twitter:description" content="Compare and query multiple AI models">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192x192.png">
+    
+    <link rel="stylesheet" href="/css/styles.css">
+    <script>
+        // Immediate auth check - redirect to login if not authenticated
+        // This runs before page content loads
+        (function() {
+            try {
+                const token = localStorage.getItem('gaiol_access_token');
+                if (!token) {
+                    window.location.href = '/login.html';
+                }
+            } catch (e) {
+                // If localStorage fails, redirect to login
+                window.location.href = '/login.html';
             }
-            .results {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+        })();
+    </script>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 GAIOL AI Comparison</h1>
-            <p>Compare responses from multiple AI models</p>
+    <div class="app-container">
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Chat Page -->
+            <div id="chatPage" class="page active">
+                <div class="welcome-section" id="welcomeSection">
+                    <h2>Start a conversation</h2>
+                    <p>Enter a prompt to begin. The system will automatically select the best model for your query.</p>
+                    
+                    <div class="quick-actions">
+                        <button class="quick-action-btn" onclick="setQuickPrompt('Write copy')">
+                            <span>Write copy</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="setQuickPrompt('Explain concept')">
+                            <span>Explain concept</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="setQuickPrompt('Generate code')">
+                            <span>Generate code</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="setQuickPrompt('Summarize text')">
+                            <span>Summarize text</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chat Messages Area -->
+                <div class="chat-messages" id="chatMessages"></div>
+
+                <!-- Input Area -->
+                <div class="input-area">
+                    <div class="input-wrapper">
+                        <textarea 
+                            id="promptInput" 
+                            class="prompt-input-modern" 
+                            placeholder="Enter your prompt here..."
+                            rows="1"
+                        ></textarea>
+                        <div class="input-actions">
+                            <button class="input-action-btn" title="Attach file" aria-label="Attach file">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M15.5 4.5l-7 7-3-3-3 3 3 3 7-7 3 3-3 3"/>
+                                </svg>
+                            </button>
+                            <button class="input-action-btn" title="Voice input" aria-label="Voice input">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M10 1v6M10 13v6M5 6v4a5 5 0 0 0 10 0V6"/>
+                                </svg>
+                            </button>
+                            <button class="input-action-btn" title="Browse prompts" aria-label="Browse prompts">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <circle cx="9" cy="9" r="7"/>
+                                    <path d="M17 17l-4-4"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="input-footer">
+                            <span id="charCount" class="char-count">0 / 3000</span>
+                            <button class="send-btn" id="sendBtn" onclick="handleQuerySubmit()" aria-label="Send">
+                                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 2L9 11M18 2L12 18L9 11M18 2L2 8L9 11"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <div class="card">
-            <textarea 
-                id="promptInput" 
-                class="prompt-input" 
-                placeholder="Enter your question or prompt here...&#10;&#10;Example: Explain quantum computing in simple terms"
-            ></textarea>
-
-            <div class="section-header">🔀 OpenRouter (Fast)</div>
-            <div class="model-grid" id="openRouterGrid"></div>
-
-            <div class="section-header">🤗 HuggingFace (Experimental)</div>
-            <div class="model-grid" id="huggingFaceGrid"></div>
-
-            <button class="submit-btn" id="submitBtn" onclick="submitQuery()">
-                ⚡ Query Selected Models
-            </button>
-        </div>
-
-        <div id="loadingSection" class="card loading">
-            <div class="spinner"></div>
-            <h3>Querying AI Models...</h3>
-            <p>This may take a few seconds</p>
-        </div>
-
-        <div id="resultsSection" class="results"></div>
     </div>
 
+    <!-- Scripts -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/state.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/models.js"></script>
+    <script src="/js/history.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/main.js"></script>
+    <script src="/js/navigation.js"></script>
+    <script src="/js/features.js"></script>
+    <script src="/js/sidebar-features.js"></script>
+    
     <script>
-    const OPENROUTER_MODELS = [
-        { key: 'llama3', name: 'Llama 3.2 3B', provider: 'Meta', icon: '🦙' },
-        { key: 'mistral', name: 'Mistral 7B', provider: 'Mistral AI', icon: '🌪️' },
-        { key: 'qwen', name: 'Qwen 2 7B', provider: 'Alibaba', icon: '🎯' },
-        { key: 'glm', name: 'GLM 4.5 Air', provider: 'Zhipu AI', icon: '✨' },
-        { key: 'deepseek', name: 'DeepSeek R1', provider: 'DeepSeek', icon: '🔬' }
-    ];
-
-    const HUGGINGFACE_MODELS = [
-        { key: 'hf-llama', name: 'Llama 3.1 8B', provider: 'Meta', icon: '🤗' }
-    ];
-
-    // Rest of the JavaScript code stays the same...
-    window.addEventListener('DOMContentLoaded', function() {
-        loadModels('openRouterGrid', OPENROUTER_MODELS, true);
-        loadModels('huggingFaceGrid', HUGGINGFACE_MODELS, false);
-    });
-
-    function loadModels(gridId, models, selectFirst3) {
-        const grid = document.getElementById(gridId);
-        
-        models.forEach((model, index) => {
-            const isSelected = selectFirst3 && index < 3;
-            
-            const div = document.createElement('div');
-            div.className = 'model-option' + (isSelected ? ' selected' : '');
-            div.onclick = function() { toggleModel(model.key); };
-            
-            div.innerHTML = `
-                <input type="checkbox" 
-                       class="model-checkbox" 
-                       id="model-${model.key}" 
-                       ${isSelected ? 'checked' : ''}>
-                <div class="model-label">
-                    <div class="model-name">
-                        ${model.icon} ${model.name}
-                        <span class="badge">FREE</span>
-                    </div>
-                    <div class="model-provider">${model.provider}</div>
-                </div>
-            `;
-            
-            grid.appendChild(div);
-        });
-    }
-
-    function toggleModel(key) {
-        const checkbox = document.getElementById('model-' + key);
-        const option = checkbox.closest('.model-option');
-        checkbox.checked = !checkbox.checked;
-        option.classList.toggle('selected');
-    }
-
-    async function submitQuery() {
-        const prompt = document.getElementById('promptInput').value.trim();
-        
-        if (!prompt) {
-            alert('Please enter a prompt!');
-            return;
-        }
-
-        const allModels = [...OPENROUTER_MODELS, ...HUGGINGFACE_MODELS];
-        const selectedModels = allModels
-            .filter(m => document.getElementById('model-' + m.key).checked)
-            .map(m => m.key);
-
-        if (selectedModels.length === 0) {
-            alert('Please select at least one model!');
-            return;
-        }
-
-        console.log('Querying models:', selectedModels);
-
-        document.getElementById('loadingSection').classList.add('active');
-        document.getElementById('resultsSection').classList.remove('active');
-        document.getElementById('submitBtn').disabled = true;
-
-        try {
-            const response = await fetch('/api/query', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prompt: prompt,
-                    models: selectedModels,
-                    max_tokens: 300
-                })
+        // Initialize layout for chat page
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for auth.js to load
+            await new Promise(resolve => {
+                if (typeof isAuthenticated === 'function') {
+                    resolve();
+                } else {
+                    // Wait up to 1 second for auth.js to load
+                    let attempts = 0;
+                    const checkAuth = setInterval(() => {
+                        attempts++;
+                        if (typeof isAuthenticated === 'function' || attempts > 20) {
+                            clearInterval(checkAuth);
+                            resolve();
+                        }
+                    }, 50);
+                }
             });
-
-            if (!response.ok) {
-                throw new Error('Server error: ' + response.status);
-            }
-
-            const data = await response.json();
-            console.log('Response:', data);
-            displayResults(data, selectedModels);
-
-        } catch (error) {
-            console.error('Error:', error);
-            showError('Failed to connect to server: ' + error.message);
-        } finally {
-            document.getElementById('submitBtn').disabled = false;
-        }
-    }
-
-    function displayResults(data, modelKeys) {
-        const resultsSection = document.getElementById('resultsSection');
-        resultsSection.innerHTML = '';
-
-        const allModels = [...OPENROUTER_MODELS, ...HUGGINGFACE_MODELS];
-
-        modelKeys.forEach(key => {
-            const modelInfo = allModels.find(m => m.key === key);
-            const result = data[key];
             
-            if (result && modelInfo) {
-                const card = createResultCard(modelInfo, result);
-                resultsSection.appendChild(card);
+            // Check authentication first
+            if (typeof isAuthenticated === 'function' && !isAuthenticated()) {
+                // Redirect to login if not authenticated
+                window.location.href = '/login.html';
+                return;
             }
+            
+            initializeLayout('Chat', 'chat');
         });
-
-        document.getElementById('loadingSection').classList.remove('active');
-        resultsSection.classList.add('active');
-    }
-
-    function createResultCard(modelInfo, result) {
-        const card = document.createElement('div');
-        card.className = 'result-card';
-
-        const statusIcon = result.success ? '✅' : '❌';
-        const statusColor = result.success ? '#4caf50' : '#f44336';
-
-        card.innerHTML = `
-            <div class="model-header">
-                <span>${modelInfo.icon} ${modelInfo.name}</span>
-                <span style="font-size:14px;font-weight:normal;color:#666;margin-left:auto;">
-                    ${modelInfo.provider}
-                </span>
-                <span style="color:${statusColor};">${statusIcon}</span>
-            </div>
-            <div class="response-content">
-                ${result.success ? result.response : '<span class="error-message">Error: ' + (result.error || 'Unknown error') + '</span>'}
-            </div>
-            <div class="metrics">
-                <div class="metric">
-                    <div class="metric-value">${result.time || 0}ms</div>
-                    <div class="metric-label">Time</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">${result.tokens || 0}</div>
-                    <div class="metric-label">Tokens</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">${result.quality ? result.quality.toFixed(2) : 'N/A'}</div>
-                    <div class="metric-label">Quality</div>
-                </div>
-            </div>
-        `;
-
-        return card;
-    }
-
-    function showError(message) {
-        const resultsSection = document.getElementById('resultsSection');
-        resultsSection.innerHTML = '<div class="error-message" style="padding:30px;text-align:center;">' + message + '</div>';
-        resultsSection.classList.add('active');
-        document.getElementById('loadingSection').classList.remove('active');
-    }
-</script>
-
+    </script>
 </body>
 </html>

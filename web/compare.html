@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compare - GAIOL</title>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Compare responses from multiple AI models on GAIOL">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192x192.png">
+    
+    <link rel="stylesheet" href="/css/styles.css">
+    <script>
+        // Immediate auth check - redirect to login if not authenticated
+        (function() {
+            try {
+                const token = localStorage.getItem('gaiol_access_token');
+                if (!token) {
+                    window.location.href = '/login.html';
+                }
+            } catch (e) {
+                window.location.href = '/login.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Compare Page -->
+            <div id="comparePage" class="page active">
+                <div class="page-header">
+                    <h1>Compare</h1>
+                </div>
+
+                <div class="compare-content">
+                    <div class="compare-settings">
+                        <div id="queryModeSelector" class="query-mode-selector-modern"></div>
+                        <div id="querySettings" class="query-settings-modern"></div>
+                    </div>
+                    
+                    <!-- Prompt Input Area for Compare Page -->
+                    <div class="input-area" style="margin-top: 20px;">
+                        <div class="input-wrapper">
+                            <textarea 
+                                id="promptInput" 
+                                class="prompt-input-modern" 
+                                placeholder="Enter your prompt here..."
+                                rows="1"
+                            ></textarea>
+                            <div class="input-footer">
+                                <span id="charCount" class="char-count">0 / 3000</span>
+                                <button class="send-btn" id="sendBtn" onclick="handleQuerySubmit()" aria-label="Send">
+                                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 2L9 11M18 2L12 18L9 11M18 2L2 8L9 11"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="resultsSection" class="results-modern"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/state.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/models.js"></script>
+    <script src="/js/history.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/main.js"></script>
+    <script src="/js/navigation.js"></script>
+    <script src="/js/features.js"></script>
+    <script src="/js/sidebar-features.js"></script>
+    
+    <script>
+        // Initialize layout for compare page
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check authentication first
+            if (typeof isAuthenticated === 'function' && !isAuthenticated()) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            initializeLayout('Compare', 'compare');
+            // Initialize compare page content
+            renderQueryModeSelector();
+            renderQuerySettings();
+        });
+    </script>
+</body>
+</html>
