@@ -71,6 +71,23 @@ svg {
     --shadow-neon: 0 0 20px rgba(0, 229, 255, 0.15);
 }
 
+.light-theme {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #f1f5f9;
+    --bg-tertiary: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-tertiary: #94a3b8;
+    --border-color: rgba(0, 0, 0, 0.08);
+    --border-glow: rgba(0, 229, 255, 0.1);
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(0, 0, 0, 0.05);
+    --shadow-neon: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --accent-primary: #0088cc;
+    --accent-secondary: #10b981;
+    --accent-hover: #0077aa;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -656,7 +673,7 @@ body::before {
     min-height: 64px;
     max-height: 200px;
     max-width: 100%;
-    padding: 14px 60px 14px 100px;
+    padding: 14px 60px 14px 20px;
     background: rgba(15, 15, 18, 0.6);
     backdrop-filter: blur(25px);
     border: 1px solid var(--border-color);
@@ -691,28 +708,6 @@ body::before {
     z-index: 101;
 }
 
-.input-action-btn {
-    width: 34px;
-    height: 34px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 50%;
-    color: var(--text-tertiary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-.input-action-btn:hover {
-    background: var(--border-color);
-    color: var(--accent-primary);
-    transform: scale(1.1);
-}
-
-.input-action-btn svg {
-    display: block;
-}
 
 .input-footer {
     position: absolute;

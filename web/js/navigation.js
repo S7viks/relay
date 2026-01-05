@@ -28,7 +28,7 @@ function switchPage(pageId) {
         'login': '/login.html',
         'signup': '/signup.html'
     };
-    
+
     const targetUrl = pageMap[pageId];
     if (targetUrl) {
         window.location.href = targetUrl;
@@ -52,7 +52,7 @@ function loadPageContent(pageId) {
     else if (path.includes('login.html')) pageId = 'login';
     else if (path.includes('signup.html')) pageId = 'signup';
     else pageId = 'chat';
-    
+
     switch (pageId) {
         case 'chat':
             // Chat page is already set up
@@ -107,11 +107,11 @@ function toggleRightSidebar() {
     const sidebar = document.getElementById('rightSidebar');
     const toggleBtn = document.getElementById('rightSidebarToggle');
     const floatingToggle = document.getElementById('rightSidebarToggleFloating');
-    
+
     if (sidebar) {
         const isCollapsed = sidebar.classList.contains('collapsed');
         sidebar.classList.toggle('collapsed');
-        
+
         // Update toggle button icon
         if (toggleBtn) {
             const icon = toggleBtn.querySelector('.sidebar-toggle-icon');
@@ -125,7 +125,7 @@ function toggleRightSidebar() {
                 }
             }
         }
-        
+
         // Show/hide floating toggle button
         if (floatingToggle) {
             if (isCollapsed) {
@@ -136,7 +136,7 @@ function toggleRightSidebar() {
                 floatingToggle.style.display = 'flex';
             }
         }
-        
+
         // Save sidebar state
         const newState = !isCollapsed;
         localStorage.setItem('rightSidebarCollapsed', newState.toString());
@@ -150,7 +150,7 @@ function initializeRightSidebar() {
     const savedState = localStorage.getItem('rightSidebarCollapsed');
     const sidebar = document.getElementById('rightSidebar');
     const floatingToggle = document.getElementById('rightSidebarToggleFloating');
-    
+
     if (savedState === 'true' && sidebar) {
         sidebar.classList.add('collapsed');
         if (floatingToggle) {
@@ -167,7 +167,12 @@ function initializeRightSidebar() {
  * Set theme
  */
 function setTheme(theme) {
-    document.body.className = theme === 'dark' ? 'dark-theme' : '';
+    if (theme === 'light') {
+        document.body.classList.add('light-theme');
+    } else {
+        document.body.classList.remove('light-theme');
+    }
+
     document.querySelectorAll('.theme-btn').forEach(btn => {
         btn.classList.remove('active');
         if ((theme === 'light' && btn.textContent.trim() === 'Light') ||
@@ -175,7 +180,12 @@ function setTheme(theme) {
             btn.classList.add('active');
         }
     });
-    saveToLocalStorage('theme', theme);
+
+    if (typeof saveToLocalStorage === 'function') {
+        saveToLocalStorage('theme', theme);
+    } else {
+        localStorage.setItem('theme', theme);
+    }
 }
 
 /**
@@ -199,7 +209,7 @@ function setQuickPrompt(prompt) {
         input.focus();
         updateCharCount();
     }
-    
+
     // Hide welcome section
     const welcomeSection = document.getElementById('welcomeSection');
     if (welcomeSection) {
@@ -232,7 +242,7 @@ function loadSettingsPage() {
     const defaultStrategy = document.getElementById('defaultStrategy');
     const defaultMaxTokens = document.getElementById('defaultMaxTokens');
     const defaultTemperature = document.getElementById('defaultTemperature');
-    
+
     if (defaultStrategy) {
         defaultStrategy.value = settings.defaultStrategy || 'free_only';
         defaultStrategy.addEventListener('change', saveSettings);
@@ -254,12 +264,12 @@ function saveSettings() {
     const defaultStrategy = document.getElementById('defaultStrategy')?.value;
     const defaultMaxTokens = parseInt(document.getElementById('defaultMaxTokens')?.value);
     const defaultTemperature = parseFloat(document.getElementById('defaultTemperature')?.value);
-    
+
     const newSettings = {};
     if (defaultStrategy) newSettings.defaultStrategy = defaultStrategy;
     if (defaultMaxTokens) newSettings.defaultMaxTokens = defaultMaxTokens;
     if (defaultTemperature !== undefined) newSettings.defaultTemperature = defaultTemperature;
-    
+
     updateSettings(newSettings);
     showToast('success', 'Settings saved', 'Your preferences have been saved');
 }
@@ -280,7 +290,7 @@ function renderRecentQueries() {
 function updateSidebarStats() {
     const models = getModels();
     const selectedModels = getSelectedModels();
-    
+
     // Check if isModelFree is available
     let freeModels = [];
     if (typeof isModelFree === 'function') {
@@ -294,11 +304,11 @@ function updateSidebarStats() {
             return costPerToken === 0 || modelId.includes('free');
         });
     }
-    
+
     const totalCount = document.getElementById('totalModelsCount');
     const freeCount = document.getElementById('freeModelsCount');
     const selectedCount = document.getElementById('selectedModelsCount');
-    
+
     if (totalCount) totalCount.textContent = models.length;
     if (freeCount) freeCount.textContent = freeModels.length;
     if (selectedCount) selectedCount.textContent = selectedModels.length;
@@ -314,10 +324,10 @@ function renderSelectedModelsDropdown() {
         container = document.getElementById('selectedModelsDropdown');
     }
     if (!container) return;
-    
+
     const selectedModelIds = getSelectedModels();
     const models = getModels();
-    
+
     if (selectedModelIds.length === 0) {
         container.innerHTML = `
             <div class="no-selected-models">
@@ -326,14 +336,14 @@ function renderSelectedModelsDropdown() {
         `;
         return;
     }
-    
+
     const selectedModels = selectedModelIds
         .map(id => {
             const model = models.find(m => (m.id || m.ID) === id);
             return model ? { id, model } : null;
         })
         .filter(item => item !== null);
-    
+
     let html = `
         <div class="selected-models-dropdown" id="selectedModelsDropdownContent">
             <div class="selected-models-header" onclick="toggleSelectedModelsDropdown()">
@@ -349,17 +359,17 @@ function renderSelectedModelsDropdown() {
             </div>
             <div class="selected-models-list">
     `;
-    
+
     selectedModels.forEach(({ id, model }) => {
-        const modelName = model.display_name || 
-                         model.DisplayName ||
-                         model.model_name ||
-                         model.ModelName ||
-                         (id ? id.split(':').pop().split('/').pop() : 'Unknown');
-        const provider = model.provider || 
-                        model.Provider ||
-                        (id && id.includes(':') ? id.split(':')[0] : 'unknown');
-        
+        const modelName = model.display_name ||
+            model.DisplayName ||
+            model.model_name ||
+            model.ModelName ||
+            (id ? id.split(':').pop().split('/').pop() : 'Unknown');
+        const provider = model.provider ||
+            model.Provider ||
+            (id && id.includes(':') ? id.split(':')[0] : 'unknown');
+
         html += `
             <div class="selected-model-item">
                 <div class="selected-model-info">
@@ -374,12 +384,12 @@ function renderSelectedModelsDropdown() {
             </div>
         `;
     });
-    
+
     html += `
             </div>
         </div>
     `;
-    
+
     container.innerHTML = html;
 }
 
@@ -389,7 +399,7 @@ function renderSelectedModelsDropdown() {
 function toggleSelectedModelsDropdown() {
     const dropdown = document.getElementById('selectedModelsDropdownContent');
     if (!dropdown) return;
-    
+
     dropdown.classList.toggle('open');
     const header = dropdown.querySelector('.selected-models-header');
     if (header) {
@@ -416,15 +426,15 @@ function removeSelectedModel(modelId) {
 }
 
 // Initialize navigation on load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadTheme();
     renderRecentQueries();
     renderSelectedModelsDropdown();
     updateSidebarStats();
-    
+
     // Initialize right sidebar state
     initializeRightSidebar();
-    
+
     // Update recent queries when history changes
     subscribeStateChange(() => {
         renderRecentQueries();
@@ -456,7 +466,7 @@ function resetSettingsToDefaults() {
         defaultMaxTokens: 200,
         defaultTemperature: 0.7
     };
-    
+
     updateSettings(defaults);
     loadSettingsPage();
     showToast('success', 'Settings reset', 'All settings have been reset to defaults');
