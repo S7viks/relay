@@ -39,10 +39,8 @@ const ReasoningViz = {
                 const prompt = this.dom.promptInput.value;
                 if (!prompt) return;
 
-                const models = Array.from(document.querySelectorAll('.checkbox-group input:checked'))
-                    .map(i => i.value);
-
-                this.startReasoning(prompt, models);
+                // No model selection - backend will auto-select best models
+                this.startReasoning(prompt, []);
             };
         }
     },
@@ -75,11 +73,24 @@ const ReasoningViz = {
             case 'step_end':
                 this.markStepCompleted(event.payload);
                 break;
+            case 'beam_update':
+                this.dom.statusText.innerText = `Beam Search: ${event.payload.active_paths} paths, Best: ${(event.payload.best_score * 100).toFixed(0)}%`;
+                break;
+            case 'consensus':
+                this.dom.statusText.innerText = `Consensus: ${event.payload.method || 'reconciling'}...`;
+                break;
             case 'reasoning_end':
                 this.renderFinalResult(event.payload.final_output);
                 break;
             case 'error':
+                this.dom.statusText.innerText = 'Error: ' + event.payload;
                 alert('Error: ' + event.payload);
+                break;
+            case 'ws_connected':
+                console.log('WebSocket connected');
+                break;
+            case 'ws_disconnected':
+                console.log('WebSocket disconnected:', event.payload);
                 break;
         }
     },

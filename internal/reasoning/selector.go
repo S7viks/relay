@@ -45,9 +45,20 @@ func NewComposer() *Composer {
 
 // AssembleFinalOutput merges the selected path into a final response
 func (c *Composer) AssembleFinalOutput(path []ModelOutput) string {
+	if len(path) == 0 {
+		return "No outputs to assemble."
+	}
+	
 	var finalResponse string
-	for _, output := range path {
-		finalResponse += output.Response + "\n\n"
+	for i, output := range path {
+		// Add step header for clarity
+		if len(path) > 1 {
+			finalResponse += fmt.Sprintf("## Step %d: %s\n\n", i+1, output.ModelName)
+		}
+		finalResponse += output.Response
+		if i < len(path)-1 {
+			finalResponse += "\n\n"
+		}
 	}
 	return finalResponse
 }

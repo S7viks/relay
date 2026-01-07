@@ -49,275 +49,31 @@ document.addEventListener('DOMContentLoaded', async function () {
 });
 
 /**
- * Execute multi-model comparison query
+ * Execute comparison query (Deprecated - redirected to unified reasoning path)
  */
 async function executeCompareQuery() {
-    const prompt = document.getElementById('promptInput')?.value.trim();
-    const validation = validatePrompt(prompt);
-
-    if (!validation.valid) {
-        showToast('error', 'Validation Error', validation.error);
-        return;
-    }
-
-    const selectedModels = getSelectedModels();
-    const selectionValidation = validateModelSelection(selectedModels);
-
-    if (!selectionValidation.valid) {
-        showToast('error', 'Selection Error', selectionValidation.error);
-        return;
-    }
-
-    // Get settings
-    const maxTokens = parseInt(document.getElementById('maxTokensInput')?.value) || 200;
-    const temperature = parseFloat(document.getElementById('temperatureInput')?.value) || 0.7;
-
-    // Map model IDs to legacy names if needed
-    const modelIds = selectedModels.map(id => {
-        // Try to find legacy name mapping
-        const model = getModels().find(m => m.id === id);
-        if (model) {
-            // Extract model name from ID (format: provider:model-name)
-            const parts = id.split(':');
-            return parts.length > 1 ? parts[1] : id;
-        }
-        return id;
-    });
-
-    showLoading(`Querying ${selectedModels.length} models...`);
-    setUIState({ loading: true });
-
-    // Show active query status
-    if (typeof showActiveQueryStatus === 'function') {
-        showActiveQueryStatus(selectedModels);
-    }
-
-    // Add activity
-    if (typeof addActivityItem === 'function') {
-        addActivityItem('query', `Querying ${selectedModels.length} models`);
-    }
-
-    const startTime = Date.now();
-    try {
-        const responses = await queryMultipleModels(prompt, modelIds, {
-            max_tokens: maxTokens,
-            temperature: temperature
-        });
-
-        const endTime = Date.now();
-        const responseTime = endTime - startTime;
-
-        // Transform responses
-        const transformed = transformLegacyResponse(responses);
-
-        // Update model performance
-        Object.keys(transformed).forEach(modelId => {
-            if (typeof updateModelPerformance === 'function') {
-                updateModelPerformance(modelId, {
-                    success: true,
-                    responseTime: responseTime / Object.keys(transformed).length
-                });
-            }
-        });
-
-        // Update session stats
-        if (typeof updateSessionStats === 'function') {
-            const stats = getSessionStats();
-            const tokens = Object.values(transformed).reduce((sum, r) => sum + (r.tokens_used || 0), 0);
-            const cost = Object.values(transformed).reduce((sum, r) => sum + (r.cost || 0), 0);
-
-            updateSessionStats({
-                queriesCount: (stats.queriesCount || 0) + 1,
-                tokensUsed: (stats.tokensUsed || 0) + tokens,
-                totalCost: (stats.totalCost || 0) + cost,
-                modelsUsedCount: new Set([...selectedModels, ...Object.keys(transformed)]).size,
-                responseTimes: [...(stats.responseTimes || []), responseTime]
-            });
-        }
-
-        // Save to history
-        saveToHistory(prompt, transformed, {
-            max_tokens: maxTokens,
-            temperature: temperature
-        });
-
-        // Render results based on current page
-        const currentPage = document.querySelector('.page.active')?.id;
-        if (currentPage === 'chatPage') {
-            renderResults(transformed, {
-                prompt,
-                mode: 'compare',
-                models: selectedModels
-            });
-        } else {
-            const resultsContainer = document.getElementById('resultsSection');
-            if (resultsContainer) {
-                renderResultsLegacy(transformed, {
-                    prompt,
-                    mode: 'compare',
-                    models: selectedModels
-                }, resultsContainer);
-            }
-        }
-
-        hideLoading();
-        if (typeof hideActiveQueryStatus === 'function') {
-            hideActiveQueryStatus();
-        }
-        if (typeof updateCostTracker === 'function') {
-            updateCostTracker();
-        }
-        if (typeof updateSessionStats === 'function') {
-            updateSessionStats();
-        }
-        if (typeof renderModelPerformance === 'function') {
-            renderModelPerformance();
-        }
-        showToast('success', 'Query completed', `Received responses from ${Object.keys(transformed).length} models`);
-    } catch (error) {
-        hideLoading();
-        if (typeof hideActiveQueryStatus === 'function') {
-            hideActiveQueryStatus();
-        }
-        // Update failed model performance
-        selectedModels.forEach(modelId => {
-            if (typeof updateModelPerformance === 'function') {
-                updateModelPerformance(modelId, {
-                    success: false,
-                    responseTime: Date.now() - startTime
-                });
-            }
-        });
-        showError('Query failed', error.message);
-    } finally {
-        setUIState({ loading: false });
-    }
+    showToast('info', 'Unified Mode', 'All queries now use the unified reasoning engine.');
+    handleQuerySubmit();
 }
 
 /**
  * Execute smart routing query
  */
+/**
+ * Execute smart routing query (Deprecated - redirected to unified reasoning path)
+ */
 async function executeSmartQuery() {
-    const prompt = document.getElementById('promptInput')?.value.trim();
-    const validation = validatePrompt(prompt);
-
-    if (!validation.valid) {
-        showToast('error', 'Validation Error', validation.error);
-        return;
-    }
-
-    // Get settings
-    const maxTokens = parseInt(document.getElementById('maxTokensInput')?.value) || 200;
-    const temperature = parseFloat(document.getElementById('temperatureInput')?.value) || 0.7;
-    const strategy = document.getElementById('strategySelect')?.value || 'free_only';
-    const task = document.getElementById('taskSelect')?.value || 'generate';
-
-    showLoading('Selecting best model and querying...');
-    setUIState({ loading: true });
-
-    // Add activity
-    if (typeof addActivityItem === 'function') {
-        addActivityItem('query', 'Smart routing query');
-    }
-
-    const startTime = Date.now();
-    try {
-        const response = await queryWithSmartRouting(prompt, {
-            strategy: strategy,
-            task: task,
-            max_tokens: maxTokens,
-            temperature: temperature
-        });
-
-        const endTime = Date.now();
-        const responseTime = endTime - startTime;
-
-        // Transform UAIP response
-        const transformed = transformUAIPResponse(response);
-
-        // Create results object with model info
-        const modelId = response.result?.model_used || 'unknown';
-        const results = {
-            [modelId]: transformed
-        };
-
-        // Update model performance
-        if (typeof updateModelPerformance === 'function') {
-            updateModelPerformance(modelId, {
-                success: true,
-                responseTime: responseTime
-            });
-        }
-
-        // Update session stats
-        if (typeof updateSessionStats === 'function') {
-            const stats = getSessionStats();
-            const tokens = transformed.tokens_used || 0;
-            const cost = transformed.cost || 0;
-
-            updateSessionStats({
-                queriesCount: (stats.queriesCount || 0) + 1,
-                tokensUsed: (stats.tokensUsed || 0) + tokens,
-                totalCost: (stats.totalCost || 0) + cost,
-                modelsUsedCount: new Set([...Object.keys(results)]).size,
-                responseTimes: [...(stats.responseTimes || []), responseTime]
-            });
-        }
-
-        // Save to history
-        saveToHistory(prompt, results, {
-            strategy: strategy,
-            task: task,
-            max_tokens: maxTokens,
-            temperature: temperature
-        });
-
-        // Render results based on current page
-        const currentPage = document.querySelector('.page.active')?.id;
-        if (currentPage === 'chatPage') {
-            renderResults(results, {
-                prompt,
-                mode: 'smart',
-                strategy: strategy,
-                task: task,
-                selectedModel: modelId
-            });
-        } else {
-            const resultsContainer = document.getElementById('resultsSection');
-            if (resultsContainer) {
-                renderResultsLegacy(results, {
-                    prompt,
-                    mode: 'smart',
-                    strategy: strategy,
-                    task: task,
-                    selectedModel: modelId
-                }, resultsContainer);
-            }
-        }
-
-        hideLoading();
-        if (typeof updateCostTracker === 'function') {
-            updateCostTracker();
-        }
-        if (typeof updateSessionStats === 'function') {
-            updateSessionStats();
-        }
-        if (typeof renderModelPerformance === 'function') {
-            renderModelPerformance();
-        }
-        showToast('success', 'Smart query completed', `Selected: ${transformed.model}`);
-    } catch (error) {
-        hideLoading();
-        showError('Smart query failed', error.message);
-    } finally {
-        setUIState({ loading: false });
-    }
+    handleQuerySubmit();
 }
 
 /**
- * Execute single model query
+ * Execute single model query (REMOVED - use automatic smart routing instead)
+ * @deprecated Use executeSmartQuery() for automatic model selection
  */
 async function executeSingleQuery() {
+    // This function has been removed - all queries now use automatic model selection
+    showToast('info', 'Automatic Mode', 'Model selection is now automatic. Use smart routing instead.');
+    executeSmartQuery();
     const prompt = document.getElementById('promptInput')?.value.trim();
     const validation = validatePrompt(prompt);
 
@@ -392,6 +148,11 @@ async function executeSingleQuery() {
             temperature: temperature
         });
 
+        // Refresh history display
+        if (typeof renderHistory === 'function') {
+            renderHistory();
+        }
+
         // Render results based on current page
         const currentPage = document.querySelector('.page.active')?.id;
         if (currentPage === 'chatPage') {
@@ -431,7 +192,17 @@ async function executeSingleQuery() {
                 responseTime: Date.now() - startTime
             });
         }
-        showError('Query failed', error.message);
+        const errorMsg = error.message || 'Query failed';
+
+        // Handle authentication errors specially
+        if (errorMsg.includes('Authentication required') || errorMsg.includes('Please sign in')) {
+            showToast('warning', 'Authentication Required', 'Please sign in to use AI models');
+            if (typeof switchPage === 'function') {
+                switchPage('login');
+            }
+        } else {
+            showError('Query failed', errorMsg);
+        }
     } finally {
         setUIState({ loading: false });
     }
@@ -440,18 +211,11 @@ async function executeSingleQuery() {
 /**
  * Toggle Reasoning Mode
  */
+/**
+ * Toggle Reasoning Mode (Deprecated - Reasoning is always ON)
+ */
 function toggleReasoningMode() {
-    const state = getUIState();
-    const newMode = !state.reasoningMode;
-    setUIState({ reasoningMode: newMode });
-
-    const btn = document.getElementById('reasoningToggle');
-    if (btn) {
-        btn.classList.toggle('active', newMode);
-        btn.title = newMode ? 'Disable Reasoning Mode' : 'Enable Reasoning Mode';
-    }
-
-    showToast('info', `Reasoning Mode ${newMode ? 'Enabled' : 'Disabled'}`);
+    showToast('info', 'Reasoning mode is now the default and cannot be disabled.');
 }
 
 /**
@@ -583,37 +347,27 @@ async function executeReasoningQuery() {
         return;
     }
 
-    const selectedModels = getSelectedModels();
-
-    // Intelligent model selection
-    let modelIds;
-    let selectionReasoning = '';
-
-    if (selectedModels.length > 0) {
-        // User has manually selected models - respect their choice
-        modelIds = selectedModels;
-        selectionReasoning = `Using ${selectedModels.length} user-selected models`;
-    } else {
-        // AI-powered model recommendation based on prompt analysis
-        const recommendation = selectModelsForReasoning(prompt);
-        modelIds = recommendation.models;
-        selectionReasoning = recommendation.reasoning;
-
-        // Show toast to inform user about auto-selection
-        showToast('info', 'Smart Model Selection',
-            `${selectionReasoning} (${recommendation.taskType})`);
-    }
+    // Always use automatic model selection - backend will choose best models
+    const modelIds = []; // Empty array = backend auto-selects
 
 
     // Setup Chat UI for reasoning
     const chatMessages = document.getElementById('chatMessages');
     const welcomeSection = document.getElementById('welcomeSection');
-    if (welcomeSection) welcomeSection.style.display = 'none';
+    if (welcomeSection) {
+        welcomeSection.style.display = 'none';
+        if (chatMessages) chatMessages.style.display = 'flex';
+    }
 
     // 1. Add User Message
     const userMsg = document.createElement('div');
     userMsg.className = 'chat-message user';
-    userMsg.innerHTML = `<div class="chat-message-content">${escapeHtml(prompt)}</div>`;
+    userMsg.innerHTML = `
+        <div class="chat-message-header">You</div>
+        <div class="chat-message-bubble">
+            <div class="chat-message-content">${escapeHtml(prompt)}</div>
+        </div>
+    `;
     chatMessages.appendChild(userMsg);
 
     // 2. Add Assistant Message with Reasoning Container
@@ -637,18 +391,24 @@ async function executeReasoningQuery() {
     try {
         setUIState({ loading: true });
 
-        // NOTE: These heavy reasoning features are disabled by default to prevent slowness.
-        // Each of these adds significant sequential LLM calls to the process.
-        const enableReflection = false; // Set to true to enable self-correction
-        const enableBeamSearch = false; // Set to true to enable multi-path exploration
+        // Beam search and consensus are enabled by default on the backend
+        // The backend automatically selects models and breaks down the prompt
 
         ReasoningEngine.onEvent((event) => {
             component.onEvent(event);
+
+            // Add status rows for major events
+            if (event.type === 'decompose_start') {
+                addChatStatusRow('Decomposing prompt into logical steps...', 'loading');
+            } else if (event.type === 'decompose_end') {
+                addChatStatusRow(`Analysis complete: ${event.payload.steps.length} steps identified`);
+            }
 
             // If reasoning is complete, the final output will be in reasoning_end or similar
             // Actually, the final assembled output comes from the Engine.
             // But we can also look for a specific event 'final_output'
             if (event.type === 'reasoning_end') {
+                addChatStatusRow('Reasoning complete. Best path selected.');
                 const contentBody = document.getElementById(contentId);
                 if (contentBody) {
                     contentBody.textContent = event.payload.final_output;
@@ -656,66 +416,55 @@ async function executeReasoningQuery() {
 
                     // Save to history
                     const results = { 'ReasoningEngine': { response: event.payload.final_output, success: true } };
-                    saveToHistory(prompt, results, { mode: 'reasoning', reflection_enabled: enableReflection });
+                    saveToHistory(prompt, results, { mode: 'reasoning' });
+
+                    // Refresh history display
+                    if (typeof renderHistory === 'function') {
+                        renderHistory();
+                    }
                 }
                 setUIState({ loading: false });
+                if (typeof clearChatStatus === 'function') {
+                    clearChatStatus();
+                }
             }
         });
 
-        // Start reasoning with reflection config
+        // Start reasoning - backend handles beam search and consensus automatically
         await ReasoningEngine.start(prompt, modelIds, {
-            reflection: {
-                enabled: enableReflection,
-                min_quality: 0.75,
-                max_retries: 2
-            },
             beam: {
-                enabled: enableBeamSearch,
-                beam_width: 2
+                enabled: true,  // Beam search enabled by default
+                beam_width: 3   // Explore 3 paths per step
             }
         });
     } catch (error) {
-        showError('Reasoning failed', error.message);
+        const errorMsg = error.message || 'Reasoning failed';
+
+        // Handle authentication errors specially
+        if (errorMsg.includes('Authentication required') || errorMsg.includes('Please sign in')) {
+            showToast('warning', 'Authentication Required', 'Please sign in to use AI models');
+            if (typeof switchPage === 'function') {
+                switchPage('login');
+            }
+        } else {
+            showError('Reasoning failed', errorMsg);
+        }
         setUIState({ loading: false });
+        if (typeof showChatStatus === 'function') {
+            showChatStatus('error', errorMsg);
+        }
     }
 }
 
 /**
- * Handle query submission based on current mode
+ * Handle query submission - always uses automatic smart routing
+ */
+/**
+ * Handle query submission - always uses the Reasoning Engine
  */
 function handleQuerySubmit() {
-    // Check authentication before allowing queries
-    if (typeof isAuthenticated === 'function' && !isAuthenticated()) {
-        showToast('warning', 'Authentication Required', 'Please sign in to use AI models');
-        if (typeof switchPage === 'function') {
-            switchPage('login');
-        }
-        return;
-    }
-
-    const uiState = getUIState();
-
-    // If Reasoning Mode is ON, intercept and use reasoning flow
-    if (uiState.reasoningMode) {
-        executeReasoningQuery();
-        return;
-    }
-
-    const queryMode = uiState.queryMode;
-
-    switch (queryMode) {
-        case 'compare':
-            executeCompareQuery();
-            break;
-        case 'smart':
-            executeSmartQuery();
-            break;
-        case 'single':
-            executeSingleQuery();
-            break;
-        default:
-            showToast('error', 'Invalid mode', 'Please select a query mode');
-    }
+    // All queries now go through the reasoning flow
+    executeReasoningQuery();
 }
 
 /**
@@ -738,11 +487,15 @@ function clearForm() {
     if (chatMessages) {
         chatMessages.innerHTML = '';
     }
+    if (typeof clearChatStatus === 'function') {
+        clearChatStatus();
+    }
 
     // Show welcome section again
     const welcomeSection = document.getElementById('welcomeSection');
     if (welcomeSection) {
-        welcomeSection.style.display = 'block';
+        welcomeSection.style.display = 'flex';
+        if (chatMessages) chatMessages.style.display = 'none';
     }
 
     // Clear results section (for compare page)

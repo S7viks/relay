@@ -27,10 +27,10 @@ type ConsensusConfig struct {
 // DefaultConsensusConfig returns recommended settings
 func DefaultConsensusConfig() ConsensusConfig {
 	return ConsensusConfig{
-		Enabled:   false,
-		Strategy:  StrategyMajority,
-		MetaModel: "openrouter:anthropic/claude-3.5-sonnet",
-		Threshold: 0.7,
+		Enabled:   true, // Enabled by default for better consensus
+		Strategy:  StrategyMetaAgent,
+		MetaModel: "openrouter:google/gemini-2.0-flash-exp:free", // Use free model for consensus
+		Threshold: 0.6, // Lower threshold to trigger more often
 	}
 }
 

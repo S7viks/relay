@@ -82,8 +82,8 @@ func (o *Orchestrator) ExecuteStep(ctx context.Context, step ReasoningStep, shar
 		go func(mid string) {
 			defer wg.Done()
 
-			// Add timeout per model query
-			mctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			// Add timeout per model query (reduced to 20s for faster feedback)
+			mctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 			defer cancel()
 
 			output, err := o.executeModelWithRetry(mctx, mid, wrappedPrompt, 2)

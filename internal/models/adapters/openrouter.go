@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -76,24 +77,24 @@ type APIError struct {
 // NewOpenRouterAdapter creates a new OpenRouter adapter
 func NewOpenRouterAdapter(defaultModel, apiKey string) *OpenRouterAdapter {
 	if defaultModel == "" {
-		defaultModel = "google/gemini-2.0-flash-exp:free"
+		defaultModel = "deepseek/deepseek-r1" // 2026 working free model
 	}
 
 	freeModels := []string{
-		"google/gemini-2.0-flash-exp:free",
-		"google/gemini-flash-1.5:free",
-		"meta-llama/llama-3.2-3b-instruct:free",
-		"mistralai/mistral-7b-instruct:free",
-		"qwen/qwen-2-7b-instruct:free",
-		"z-ai/glm-4.5-air:free",
-		"deepseek/deepseek-r1:free",
-		"moonshotai/kimi-k2:free",
+		// 2026 WORKING Free Models (verified)
+		"deepseek/deepseek-r1",
+		"xiaomi/mimo-v2-flash",
+		"z-ai/glm-4.5-air",
+		"qwen/qwen3-coder-480b-a35b",
+		"meta-llama/llama-4-maverick",
+		"google/gemini-2.5-pro-exp-03-25",
+		"mistralai/mistral-small-3.1-24b-instruct",
 	}
 
 	return &OpenRouterAdapter{
 		defaultModel: defaultModel,
 		baseURL:      "https://openrouter.ai/api/v1",
-		client:       &http.Client{Timeout: 60 * time.Second},
+		client:       &http.Client{Timeout: 20 * time.Second}, // Reduced to match handler timeout
 		rateLimiter:  NewRateLimiter(),
 		apiKey:       apiKey,
 		freeModels:   freeModels,
@@ -191,12 +192,23 @@ func (o *OpenRouterAdapter) GenerateText(ctx context.Context, modelName string, 
 		return o.createErrorResponse(req, fmt.Errorf("rate limit error: %w", err), startTime), nil
 	}
 
-	// Primary model first, then free fallbacks
+	// Primary model first, then free fallbacks (limit to 3 attempts to avoid long waits)
 	modelsToTry := []string{modelName}
-	modelsToTry = append(modelsToTry, o.freeModels...)
+	// Only try first 2 fallbacks to avoid long waits
+	if len(o.freeModels) > 0 {
+		modelsToTry = append(modelsToTry, o.freeModels[0])
+		if len(o.freeModels) > 1 {
+			modelsToTry = append(modelsToTry, o.freeModels[1])
+		}
+	}
 
 	var lastErr error
 	for i, m := range modelsToTry {
+		// Check if context is already cancelled
+		if ctx.Err() != nil {
+			return o.createErrorResponse(req, fmt.Errorf("context cancelled: %w", ctx.Err()), startTime), nil
+		}
+
 		if i > 0 {
 			fmt.Printf("   Trying fallback model: %s\n", m)
 		}
@@ -210,7 +222,12 @@ func (o *OpenRouterAdapter) GenerateText(ctx context.Context, modelName string, 
 		}
 
 		lastErr = err
-		if err != nil && (strings.Contains(err.Error(), "401") || strings.Contains(err.Error(), "unauthorized")) {
+		// Fail fast on auth errors, timeouts, OR rate limits (don't spam retries)
+		if err != nil && (strings.Contains(err.Error(), "401") ||
+			strings.Contains(err.Error(), "unauthorized") ||
+			strings.Contains(err.Error(), "timeout") ||
+			strings.Contains(err.Error(), "429") ||
+			strings.Contains(err.Error(), "Too Many Requests")) {
 			break
 		}
 	}
@@ -270,6 +287,11 @@ func (o *OpenRouterAdapter) convertToOpenRouterRequest(req *uaip.UAIPRequest, mo
 }
 
 func (o *OpenRouterAdapter) callOpenRouterAPI(ctx context.Context, req *OpenRouterRequest) (*OpenRouterResponse, error) {
+	// Check API key early
+	if o.apiKey == "" {
+		return nil, fmt.Errorf("OpenRouter API key not configured")
+	}
+
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -288,9 +310,21 @@ func (o *OpenRouterAdapter) callOpenRouterAPI(ctx context.Context, req *OpenRout
 
 	resp, err := o.client.Do(httpReq)
 	if err != nil {
+		// Check if it's a context timeout
+		if ctx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("request timeout: %w", err)
+		}
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
 	defer resp.Body.Close()
+
+	// Log HTTP status for debugging
+	fmt.Printf("   OpenRouter HTTP Status: %d %s\n", resp.StatusCode, resp.Status)
+
+	// Check for auth errors early
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("OpenRouter API key invalid or expired (401)")
+	}
 
 	var orResp OpenRouterResponse
 	if err := json.NewDecoder(resp.Body).Decode(&orResp); err != nil {
@@ -302,6 +336,9 @@ func (o *OpenRouterAdapter) callOpenRouterAPI(ctx context.Context, req *OpenRout
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		// Read body for error details
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		fmt.Printf("❌ OpenRouter API failed with HTTP %d: %s\n", resp.StatusCode, string(bodyBytes))
 		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
 	}
 

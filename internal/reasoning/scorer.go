@@ -32,7 +32,7 @@ func (s *Scorer) ScoreOutput(ctx context.Context, objective, response, modelID s
 
 	// Use reasoning's QueryModel wrapper
 	qm := NewQueryModel(s.Router)
-	promptFull := SystemPromptCritic + "\n\n" + prompt
+	promptFull := SystemPromptScorer + "\n\n" + prompt
 
 	resp, err := qm.Query(ctx, "anthropic/claude-3-5-sonnet", promptFull)
 

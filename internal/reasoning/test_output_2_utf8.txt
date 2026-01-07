@@ -1,0 +1,137 @@
+﻿=== RUN   TestReasoningEngineCreation
+--- PASS: TestReasoningEngineCreation (0.00s)
+=== RUN   TestDefaultBeamConfig
+    engine_test.go:66: Default beam config: Enabled=true, BeamWidth=3
+--- PASS: TestDefaultBeamConfig (0.00s)
+=== RUN   TestInitSession
+    engine_test.go:94: Created session: 8298307e-2f49-4ad4-8e4d-8417be81f9d6
+--- PASS: TestInitSession (0.00s)
+=== RUN   TestInitSessionUniqueness
+--- PASS: TestInitSessionUniqueness (0.00s)
+=== RUN   TestEnableDisableBeamSearch
+--- PASS: TestEnableDisableBeamSearch (0.00s)
+=== RUN   TestEngineEventCallback
+    engine_test.go:169: Event: Type=step_start, SessionID=e9c0a40d-d427-4c86-8217-b9d89ad9866e
+--- PASS: TestEngineEventCallback (0.01s)
+=== RUN   TestRunSessionNotFound
+--- PASS: TestRunSessionNotFound (0.00s)
+=== RUN   TestRunSessionConcurrentSafety
+    engine_test.go:224: Skipping - requires full mock decomposer and router
+--- SKIP: TestRunSessionConcurrentSafety (0.00s)
+=== RUN   TestBeamConfigVariations
+=== RUN   TestBeamConfigVariations/Default_config
+    engine_test.go:310: Config applied: Enabled=true, BeamWidth=3
+=== RUN   TestBeamConfigVariations/Narrow_beam
+    engine_test.go:310: Config applied: Enabled=true, BeamWidth=1
+=== RUN   TestBeamConfigVariations/Wide_beam
+    engine_test.go:310: Config applied: Enabled=true, BeamWidth=10
+=== RUN   TestBeamConfigVariations/Disabled_beam_search
+    engine_test.go:310: Config applied: Enabled=false, BeamWidth=3
+--- PASS: TestBeamConfigVariations (0.00s)
+    --- PASS: TestBeamConfigVariations/Default_config (0.00s)
+    --- PASS: TestBeamConfigVariations/Narrow_beam (0.00s)
+    --- PASS: TestBeamConfigVariations/Wide_beam (0.00s)
+    --- PASS: TestBeamConfigVariations/Disabled_beam_search (0.00s)
+=== RUN   TestSessionLifecycle
+    engine_test.go:349: Session lifecycle test passed for 13a44152-f63d-4293-9574-1b10dcf98865
+--- PASS: TestSessionLifecycle (0.00s)
+=== RUN   TestMemoryManagerIntegration
+--- PASS: TestMemoryManagerIntegration (0.00s)
+=== RUN   TestComponentsInitialization
+    engine_test.go:417: All components properly initialized and wired
+--- PASS: TestComponentsInitialization (0.00s)
+=== RUN   TestPermanentReasoningPipeline
+    engine_test.go:449: Permanent pipeline verified with 7 steps and 3 parallel tasks
+--- PASS: TestPermanentReasoningPipeline (0.00s)
+=== RUN   TestParallelExecutionGrouping
+≡ƒôï Found 11 free models available for decomposition
+≡ƒöì Attempting decomposition with model: openrouter:google/gemini-flash-1.5:free
+≡ƒô¥ Sending prompt (first 200 chars): You are the GAIOL Architect. Your task is to decompose a complex user prompt into a strictly defined 7-step High-Speed Reasoning Pipeline.
+Each step must fulfill its specific role in the pipeline.
+
+PI...
+≡ƒôñ Raw response length: 14, Error: <nil>
+≡ƒôä Raw response (first 500 chars): Dummy response
+Γ£à Got response from openrouter:google/gemini-flash-1.5:free (length: 14 chars)
+JSON Parse Error: invalid character 'D' looking for beginning of value
+Cleaned Response: Dummy response
+Raw Response: Dummy response
+ΓÜá∩╕Å  JSON parsing failed. Falling back to simple single-step decomposition.
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+    engine_test.go:486: Parallel execution grouping verified
+--- PASS: TestParallelExecutionGrouping (2.01s)
+=== RUN   TestOrchestratorCreation
+--- PASS: TestOrchestratorCreation (0.00s)
+=== RUN   TestExecuteStepSingleModel
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+--- PASS: TestExecuteStepSingleModel (0.40s)
+=== RUN   TestExecuteStepMultipleModels
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+--- PASS: TestExecuteStepMultipleModels (0.40s)
+=== RUN   TestExecuteStepWithTimeout
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+    orchestrator_test.go:155: Execution completed in 401.3923ms
+--- PASS: TestExecuteStepWithTimeout (0.40s)
+=== RUN   TestExecuteStepWithModelFailure
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+    orchestrator_test.go:194: Error properly captured in output: Error: model not found: failing-model
+--- PASS: TestExecuteStepWithModelFailure (0.40s)
+=== RUN   TestExecuteStepRetryMechanism
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+    orchestrator_test.go:236: First attempt outputs: 1, Second attempt outputs: 1
+--- PASS: TestExecuteStepRetryMechanism (0.80s)
+=== RUN   TestExecuteStepConcurrentSafety
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+≡ƒÜ¿ All models failed for step. Attempting fallback to guardian model...
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+Γ¥î Fallback guardian model also failed: model not found: anthropic/claude-3-5-sonnet
+--- PASS: TestExecuteStepConcurrentSafety (0.40s)
+=== RUN   TestQueryMethod
+    orchestrator_test.go:302: Query failed: model not found: mock-model
+--- FAIL: TestQueryMethod (0.00s)
+=== RUN   TestEventCallback
+    orchestrator_test.go:321: Event received: Type=step_start, SessionID=test-session-123
+--- PASS: TestEventCallback (0.00s)
+=== RUN   TestAutoModelSelection
+≡ƒÄ» Dynamic routing selected openrouter:anthropic/claude-3.5-sonnet for task code
+    orchestrator_test.go:366: Auto-selected model completed successfully
+--- PASS: TestAutoModelSelection (0.00s)
+FAIL
+FAIL	gaiol/internal/reasoning	5.761s
+FAIL

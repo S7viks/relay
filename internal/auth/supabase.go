@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang-jwt/jwt/v5"
 	"gaiol/internal/database"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // User represents an authenticated user
@@ -25,11 +26,10 @@ func AuthMiddleware(db *database.Client) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Skip auth for public routes
-			if r.URL.Path == "/health" || 
-			   r.URL.Path == "/" ||
-			   strings.HasPrefix(r.URL.Path, "/web/") ||
-			   strings.HasPrefix(r.URL.Path, "/api/models") ||
-			   strings.HasPrefix(r.URL.Path, "/api/auth/") {
+			if r.URL.Path == "/health" ||
+				r.URL.Path == "/" ||
+				strings.HasPrefix(r.URL.Path, "/web/") ||
+				strings.HasPrefix(r.URL.Path, "/api/models") {
 				next.ServeHTTP(w, r)
 				return
 			}

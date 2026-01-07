@@ -7,7 +7,7 @@ class ReasoningComponent {
         this.container = document.getElementById(containerId);
         this.sessionID = sessionID;
         this.steps = [];
-        this.activeStepIndex = 0;
+        this.activeSteps = new Set();
         this.isCollapsed = false;
 
         this.render();
@@ -20,17 +20,22 @@ class ReasoningComponent {
         this.container.innerHTML = `
             <div class="thought-process-container">
                 <div class="thought-header">
-                    <h4><span class="status-dot"></span> Thought Process</h4>
-                    <div class="session-cost-badge" style="margin-left: auto; font-size: 10px; color: var(--text-tertiary); padding: 2px 6px; border: 1px solid var(--border-color); border-radius: 4px; display: none;">
-                        $0.000
+                    <div class="thought-header-left">
+                        <span class="status-dot"></span>
+                        <h4>Thought Process</h4>
                     </div>
-                    <span class="toggle-icon" style="margin-left: 10px;">▲</span>
+                    <div class="thought-header-right">
+                        <div class="session-cost-badge" style="display: none;">$0.000</div>
+                        <span class="toggle-icon">▲</span>
+                    </div>
                 </div>
                 <div class="thought-content">
                     <div class="steps-timeline-mini"></div>
-                    <div class="model-grid-mini"></div>
-                    <div class="step-detail-mini" style="margin-top: 10px; font-size: 11px; color: var(--text-tertiary); font-style: italic;">
-                        Initializing reasoning engine...
+                    <div class="thought-main">
+                        <div class="model-grid-mini"></div>
+                        <div class="step-detail-mini">
+                            Initializing reasoning engine...
+                        </div>
                     </div>
                 </div>
             </div>
@@ -68,12 +73,21 @@ class ReasoningComponent {
                 this.updateDetail('Prompt decomposed into ' + this.steps.length + ' steps.');
                 break;
             case 'step_start':
-                this.activeStepIndex = payload.step_index;
+                this.activeSteps.add(payload.step_index);
                 const taskType = payload.task_type || 'analyze';
                 this.updateTimeline();
-                this.updateDetail(`[${taskType.toUpperCase()}] ${payload.title}`);
+
+                if (this.activeSteps.size > 1) {
+                    this.updateDetail(`Executing Parallel Phase: ${this.activeSteps.size} Concurrent Tasks...`);
+                    this.container.querySelector('.thought-process-container').classList.add('high-speed');
+                } else {
+                    this.updateDetail(`[${taskType.toUpperCase()}] ${payload.title}`);
+                }
+
                 this.renderTaskBadge(taskType);
-                this.dom.modelGrid.innerHTML = '';
+                if (this.activeSteps.size === 1) {
+                    this.dom.modelGrid.innerHTML = '';
+                }
                 break;
             case 'rag':
                 this.showRAGDetails(payload);
@@ -82,14 +96,13 @@ class ReasoningComponent {
                 this.renderModelOutput(payload);
                 break;
             case 'step_end':
+                this.activeSteps.delete(payload.index);
                 this.markStepCompleted(payload);
                 this.updateTotalCost(payload.total_cost);
-                break;
-            case 'reflection':
-                this.showReflectionFeedback(payload);
-                break;
-            case 'refinement':
-                this.showRefinementAttempt(payload);
+
+                if (this.activeSteps.size === 0) {
+                    this.container.querySelector('.thought-process-container').classList.remove('high-speed');
+                }
                 break;
             case 'beam_update':
                 this.showBeamUpdate(payload);
@@ -126,7 +139,7 @@ class ReasoningComponent {
     updateTimeline() {
         const pills = this.dom.timeline.querySelectorAll('.step-pill');
         pills.forEach((pill, i) => {
-            pill.classList.toggle('active', i === this.activeStepIndex);
+            pill.classList.toggle('active', this.activeSteps.has(i));
         });
     }
 
@@ -164,44 +177,6 @@ class ReasoningComponent {
         }
     }
 
-    showReflectionFeedback(payload) {
-        const qualityPercent = (payload.quality * 100).toFixed(0);
-        const statusIcon = payload.accepted ? '✓' : '⚠️';
-        const statusClass = payload.accepted ? 'success' : 'warning';
-
-        const feedbackHTML = `
-            <div class="reflection-feedback ${statusClass}">
-                <div class="reflection-header">
-                    <span class="reflection-icon">${statusIcon}</span>
-                    <span class="reflection-title">Critic Review</span>
-                    <span class="quality-badge">Quality: ${qualityPercent}%</span>
-                </div>
-                ${payload.issues && payload.issues.length > 0 ? `
-                    <div class="reflection-issues">
-                        <strong>Issues:</strong>
-                        <ul>${payload.issues.map(issue => `<li>${issue}</li>`).join('')}</ul>
-                    </div>
-                ` : ''}
-                ${payload.suggestions && payload.suggestions.length > 0 ? `
-                    <div class="reflection-suggestions">
-                        <strong>Suggestions:</strong>
-                        <ul>${payload.suggestions.map(s => `<li>${s}</li>`).join('')}</ul>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-
-        // Insert before the model grid
-        if (this.dom.modelGrid && this.dom.modelGrid.parentNode) {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = feedbackHTML;
-            this.dom.modelGrid.parentNode.insertBefore(tempDiv.firstElementChild, this.dom.modelGrid.nextSibling);
-        }
-    }
-
-    showRefinementAttempt(payload) {
-        this.updateDetail(`Refining output (Attempt ${payload.attempt})...`);
-    }
 
     showBeamUpdate(payload) {
         this.updateDetail(`Beam Search: Exploring ${payload.active_paths} paths. Best score: ${(payload.best_score * 100).toFixed(0)}%`);
@@ -209,10 +184,10 @@ class ReasoningComponent {
 
     markStepCompleted(payload) {
         const pills = this.dom.timeline.querySelectorAll('.step-pill');
-        const activePill = pills[this.activeStepIndex];
-        if (activePill) {
-            activePill.classList.remove('active');
-            activePill.classList.add('completed');
+        const completedPill = pills[payload.index];
+        if (completedPill) {
+            completedPill.classList.remove('active');
+            completedPill.classList.add('completed');
         }
 
         // Highlight winner in grid
@@ -264,6 +239,17 @@ class ReasoningComponent {
         if (this.dom.detail) {
             this.dom.detail.after(ragDiv);
         }
+    }
+
+    showConsensus(payload) {
+        if (!payload) return;
+
+        const method = payload.method || 'unknown';
+        const message = method === 'meta_agent'
+            ? 'Consensus: Meta-agent synthesized best output'
+            : `Consensus: ${method} reconciliation applied`;
+
+        this.updateDetail(message);
     }
 
     setFinalStatus() {

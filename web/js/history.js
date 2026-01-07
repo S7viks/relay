@@ -125,20 +125,41 @@ function renderHistoryPage(history) {
     history.forEach(item => {
         const date = new Date(item.timestamp);
         const timeStr = date.toLocaleString();
-        const promptPreview = item.prompt.length > 100 
-            ? item.prompt.substring(0, 100) + '...' 
+        const promptPreview = item.prompt.length > 150 
+            ? item.prompt.substring(0, 150) + '...' 
             : item.prompt;
+        
+        // Get response preview
+        let responsePreview = '';
+        let modelCount = 0;
+        if (item.response && typeof item.response === 'object') {
+            modelCount = Object.keys(item.response).length;
+            // Get first response text for preview
+            const firstResponse = Object.values(item.response)[0];
+            if (firstResponse && (firstResponse.response || firstResponse.data)) {
+                const responseText = firstResponse.response || firstResponse.data || '';
+                responsePreview = responseText.length > 100 
+                    ? responseText.substring(0, 100) + '...' 
+                    : responseText;
+            }
+        }
 
         html += `
             <div class="history-item-modern" onclick="replayQuery('${item.id}')">
-                <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px;">
-                    <div style="flex:1;">
-                        <div style="font-weight:600;margin-bottom:5px;color:var(--text-primary);">${escapeHtml(promptPreview)}</div>
-                        <div style="font-size:12px;color:var(--text-tertiary);">${timeStr} • ${item.queryMode || 'compare'}</div>
+                <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;margin-bottom:8px;color:var(--text-primary);font-size:14px;line-height:1.4;">${escapeHtml(promptPreview)}</div>
+                        ${responsePreview ? `<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;padding:8px;background:rgba(255,255,255,0.02);border-radius:6px;border-left:2px solid var(--accent-primary);">${escapeHtml(responsePreview)}</div>` : ''}
+                        <div style="display:flex;align-items:center;gap:12px;font-size:11px;color:var(--text-tertiary);font-family:var(--font-mono);">
+                            <span>${timeStr}</span>
+                            <span>•</span>
+                            <span>${item.queryMode || 'compare'}</span>
+                            ${modelCount > 0 ? `<span>•</span><span>${modelCount} model${modelCount > 1 ? 's' : ''}</span>` : ''}
+                        </div>
                     </div>
-                    <div style="display:flex;gap:5px;">
-                        <button onclick="event.stopPropagation();replayQuery('${item.id}')" style="padding:5px 10px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:5px;cursor:pointer;font-size:12px;">Replay</button>
-                        <button onclick="event.stopPropagation();deleteHistoryItem('${item.id}')" style="padding:5px 10px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:5px;cursor:pointer;font-size:12px;color:var(--error-color);">Delete</button>
+                    <div style="display:flex;gap:8px;flex-shrink:0;margin-left:16px;">
+                        <button onclick="event.stopPropagation();replayQuery('${item.id}')" style="padding:6px 12px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;cursor:pointer;font-size:12px;color:var(--text-primary);transition:all 0.2s ease;">Replay</button>
+                        <button onclick="event.stopPropagation();deleteHistoryItem('${item.id}')" style="padding:6px 12px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;cursor:pointer;font-size:12px;color:var(--error-color);transition:all 0.2s ease;">Delete</button>
                     </div>
                 </div>
             </div>
@@ -158,6 +179,19 @@ function replayQuery(itemId) {
     if (!item) {
         showToast('error', 'History item not found');
         return;
+    }
+
+    // Reset chat transcript before loading history item
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) {
+        chatMessages.innerHTML = '';
+    }
+    if (typeof clearChatStatus === 'function') {
+        clearChatStatus();
+    }
+    const welcomeSection = document.getElementById('welcomeSection');
+    if (welcomeSection) {
+        welcomeSection.style.display = 'block';
     }
 
     // Set prompt

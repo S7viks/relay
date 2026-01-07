@@ -24,18 +24,18 @@ var upgrader = websocket.Upgrader{
 
 // ReasoningAPI provides HTTP and WS handlers for the reasoning engine
 type ReasoningAPI struct {
-	Engine      *ReasoningEngine
-	Metrics     *monitoring.MetricsService // NEW: For monitoring stats
-	connections map[string][]*websocket.Conn
-	connMu      sync.RWMutex
+	Engine  *ReasoningEngine
+	Metrics *monitoring.MetricsService // NEW: For monitoring stats
+	Clients map[string][]*websocket.Conn
+	mu      sync.RWMutex // Protects Clients and WebSocket writes
 }
 
 // NewReasoningAPI creates a new reasoning API instance
 func NewReasoningAPI(router *models.ModelRouter) *ReasoningAPI {
 	api := &ReasoningAPI{
-		Engine:      NewReasoningEngine(router),
-		Metrics:     monitoring.NewMetricsService(),
-		connections: make(map[string][]*websocket.Conn),
+		Engine:  NewReasoningEngine(router),
+		Metrics: monitoring.NewMetricsService(),
+		Clients: make(map[string][]*websocket.Conn),
 	}
 
 	// Register the engine's event callback to broadcast via WebSocket
@@ -45,16 +45,19 @@ func NewReasoningAPI(router *models.ModelRouter) *ReasoningAPI {
 
 // BroadcastEvent sends a reasoning event to all connected WebSocket clients for a session
 func (api *ReasoningAPI) BroadcastEvent(event ReasoningEvent) {
-	api.connMu.RLock()
-	conns, exists := api.connections[event.SessionID]
-	api.connMu.RUnlock()
+	api.mu.RLock()
+	conns, exists := api.Clients[event.SessionID]
+	api.mu.RUnlock()
 
 	if !exists {
 		return
 	}
 
+	// Serialize WebSocket writes to prevent concurrent write panic
 	for _, conn := range conns {
+		api.mu.Lock()
 		conn.WriteJSON(event)
+		api.mu.Unlock()
 	}
 }
 
@@ -66,10 +69,9 @@ func (api *ReasoningAPI) HandleStartReasoning(w http.ResponseWriter, r *http.Req
 	}
 
 	var req struct {
-		Prompt     string           `json:"prompt"`
-		Models     []string         `json:"models"`
-		Reflection ReflectionConfig `json:"reflection"` // NEW: Accept reflection config
-		Beam       BeamConfig       `json:"beam"`       // NEW: Accept beam config
+		Prompt string     `json:"prompt"`
+		Models []string   `json:"models"`
+		Beam   BeamConfig `json:"beam"` // Optional: Override beam config
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -79,12 +81,19 @@ func (api *ReasoningAPI) HandleStartReasoning(w http.ResponseWriter, r *http.Req
 
 	sessionID := api.Engine.InitSession(r.Context(), req.Prompt)
 
-	// Apply reflection config if provided
-	if req.Reflection.Enabled {
-		api.Engine.EnableReflection(req.Reflection)
+	// Auto-select models if none provided - use best free models
+	modelIDs := req.Models
+	if len(modelIDs) == 0 {
+		// Auto-select top 4 free models for best results
+		modelIDs = []string{
+			"openrouter:google/gemini-2.0-flash-exp:free",
+			"openrouter:google/gemini-flash-1.5:free",
+			"openrouter:meta-llama/llama-3.2-3b-instruct:free",
+			"openrouter:mistralai/mistral-7b-instruct:free",
+		}
 	}
 
-	// Apply beam search config if provided
+	// Apply beam search config if provided (beam search is already enabled by default)
 	if req.Beam.Enabled {
 		api.Engine.EnableBeamSearch(req.Beam)
 	}
@@ -92,7 +101,7 @@ func (api *ReasoningAPI) HandleStartReasoning(w http.ResponseWriter, r *http.Req
 	// Run reasoning in a background goroutine
 	go func() {
 		ctx := context.Background()
-		api.Engine.RunSession(ctx, sessionID, req.Prompt, req.Models)
+		api.Engine.RunSession(ctx, sessionID, req.Prompt, modelIDs)
 	}()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -143,9 +152,9 @@ func (api *ReasoningAPI) HandleWebSocket(w http.ResponseWriter, r *http.Request)
 	}
 	defer conn.Close()
 
-	api.connMu.Lock()
-	api.connections[sessionID] = append(api.connections[sessionID], conn)
-	api.connMu.Unlock()
+	api.mu.Lock()
+	api.Clients[sessionID] = append(api.Clients[sessionID], conn)
+	api.mu.Unlock()
 
 	// Keep connection alive
 	for {
@@ -155,18 +164,18 @@ func (api *ReasoningAPI) HandleWebSocket(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Cleanup on disconnect
-	api.connMu.Lock()
-	conns := api.connections[sessionID]
+	api.mu.Lock()
+	conns := api.Clients[sessionID]
 	for i, c := range conns {
 		if c == conn {
-			api.connections[sessionID] = append(conns[:i], conns[i+1:]...)
+			api.Clients[sessionID] = append(conns[:i], conns[i+1:]...)
 			break
 		}
 	}
-	if len(api.connections[sessionID]) == 0 {
-		delete(api.connections, sessionID)
+	if len(api.Clients[sessionID]) == 0 {
+		delete(api.Clients, sessionID)
 	}
-	api.connMu.Unlock()
+	api.mu.Unlock()
 }
 
 // HandleGetStats handles GET /api/monitoring/stats

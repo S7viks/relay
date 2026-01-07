@@ -20,14 +20,11 @@ function escapeHtmlText(text) {
 function switchPage(pageId) {
     const pageMap = {
         'chat': '/index.html',
-        'models': '/models.html',
-        'compare': '/compare.html',
         'history': '/history.html',
         'settings': '/settings.html',
         'profile': '/profile.html',
         'login': '/login.html',
-        'signup': '/signup.html',
-        'observability': '/observability.html'
+        'signup': '/signup.html'
     };
 
     const targetUrl = pageMap[pageId];
@@ -45,27 +42,16 @@ function switchPage(pageId) {
 function loadPageContent(pageId) {
     // Determine page ID from current URL
     const path = window.location.pathname;
-    if (path.includes('models.html')) pageId = 'models';
-    else if (path.includes('compare.html')) pageId = 'compare';
-    else if (path.includes('history.html')) pageId = 'history';
+    if (path.includes('history.html')) pageId = 'history';
     else if (path.includes('settings.html')) pageId = 'settings';
     else if (path.includes('profile.html')) pageId = 'profile';
     else if (path.includes('login.html')) pageId = 'login';
     else if (path.includes('signup.html')) pageId = 'signup';
-    else if (path.includes('observability.html')) pageId = 'observability';
     else pageId = 'chat';
 
     switch (pageId) {
         case 'chat':
             // Chat page is already set up
-            break;
-        case 'models':
-            if (typeof renderModelSelection === 'function') renderModelSelection();
-            if (typeof renderFilterControls === 'function') renderFilterControls();
-            break;
-        case 'compare':
-            if (typeof renderQueryModeSelector === 'function') renderQueryModeSelector();
-            if (typeof renderQuerySettings === 'function') renderQuerySettings();
             break;
         case 'history':
             if (typeof renderHistory === 'function') renderHistory();

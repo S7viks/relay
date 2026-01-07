@@ -64,13 +64,22 @@ async function apiRequest(endpoint, method = 'GET', body = null, retries = 3, re
         credentials: 'include', // Include cookies
     };
 
-    // Add authentication token if available
+    // Add authentication token ONLY if required OR if endpoint needs auth
+    // Don't send tokens for public endpoints to avoid 401 errors on invalid/expired tokens
+    const publicEndpoints = ['/api/models', '/api/query', '/health'];
+    const isPublicEndpoint = publicEndpoints.some(ep => endpoint.startsWith(ep));
+
     const token = getAccessToken();
-    if (token || requireAuth) {
+    if (requireAuth || (token && !isPublicEndpoint)) {
         if (token) {
             options.headers['Authorization'] = `Bearer ${token}`;
         } else if (requireAuth) {
-            throw new Error('Authentication required. Please sign in.');
+            // Return error object instead of throwing
+            return {
+                success: false,
+                data: null,
+                error: 'Authentication required. Please sign in.'
+            };
         }
     }
 
@@ -92,9 +101,51 @@ async function apiRequest(endpoint, method = 'GET', body = null, retries = 3, re
                 }
                 const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText || 'Unknown error'}`;
 
-                // CRITICAL: Immediately throw if 401 Unauthorized - don't retry and waste time
-                if (response.status === 401) {
-                    throw new Error('Authentication required');
+                // If 401 Unauthorized and requireAuth is false, return error object instead of throwing
+                // This allows callers to handle "not logged in" gracefully
+                if (response.status === 401 && !requireAuth) {
+                    return {
+                        success: false,
+                        data: null,
+                        error: errorMessage
+                    };
+                }
+
+                // If 401 Unauthorized, try to refresh token before giving up
+                if (response.status === 401 && requireAuth) {
+                    // Only try refresh if we have a refresh token and this is the first attempt
+                    if (i === 0 && getRefreshToken()) {
+                        try {
+                            await refreshAccessToken();
+                            // Retry the request with new token
+                            const newToken = getAccessToken();
+                            if (newToken) {
+                                options.headers['Authorization'] = `Bearer ${newToken}`;
+                                // Continue to retry the request
+                                continue;
+                            } else {
+                                // Refresh succeeded but no token? Clear and throw
+                                clearTokens();
+                                throw new Error('Authentication required. Please sign in again.');
+                            }
+                        } catch (refreshError) {
+                            // Refresh failed - only clear tokens if it's an auth error
+                            const refreshErrorMsg = refreshError.message || '';
+                            if (refreshErrorMsg.includes('Invalid') ||
+                                refreshErrorMsg.includes('expired') ||
+                                refreshErrorMsg.includes('Authentication')) {
+                                clearTokens();
+                            }
+                            throw new Error('Authentication required. Please sign in again.');
+                        }
+                    } else {
+                        // No refresh token or already retried
+                        if (i === 0 && !getRefreshToken()) {
+                            // No refresh token available - clear access token
+                            clearTokens();
+                        }
+                        throw new Error('Authentication required. Please sign in again.');
+                    }
                 }
 
                 throw new Error(errorMessage);
@@ -106,6 +157,15 @@ async function apiRequest(endpoint, method = 'GET', body = null, retries = 3, re
                 error: null
             };
         } catch (error) {
+            // If it's an auth error and we've exhausted retries, return error
+            if (error.message && error.message.includes('Authentication required') && i === retries - 1) {
+                return {
+                    success: false,
+                    data: null,
+                    error: error.message || 'Authentication required'
+                };
+            }
+
             if (i === retries - 1) {
                 return {
                     success: false,
@@ -117,6 +177,13 @@ async function apiRequest(endpoint, method = 'GET', body = null, retries = 3, re
             await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
         }
     }
+
+    // Fallback: should never reach here, but return error if we do
+    return {
+        success: false,
+        data: null,
+        error: 'Request failed after retries'
+    };
 }
 
 /**
@@ -156,17 +223,7 @@ async function fetchModelsByProvider(provider) {
  * Query multiple models (legacy endpoint)
  */
 async function queryMultipleModels(prompt, modelIds, options = {}) {
-    // Check authentication
-    if (!isAuthenticated()) {
-        throw new Error('Authentication required. Please sign in to use AI models.');
-    }
-
-    // Ensure valid token before making authenticated request
-    const valid = await ensureValidToken();
-    if (!valid) {
-        throw new Error('Authentication required. Please sign in to use AI models.');
-    }
-
+    // No authentication required for this endpoint
     const body = {
         prompt,
         models: modelIds,
@@ -174,7 +231,7 @@ async function queryMultipleModels(prompt, modelIds, options = {}) {
         temperature: options.temperature || 0.7
     };
 
-    const result = await apiRequest('/api/query', 'POST', body, 3, true);
+    const result = await apiRequest('/api/query', 'POST', body, 3, false);
     if (result.success) {
         return result.data;
     }
@@ -185,17 +242,7 @@ async function queryMultipleModels(prompt, modelIds, options = {}) {
  * Query with smart routing
  */
 async function queryWithSmartRouting(prompt, config = {}) {
-    // Check authentication
-    if (!isAuthenticated()) {
-        throw new Error('Authentication required. Please sign in to use AI models.');
-    }
-
-    // Ensure valid token before making authenticated request
-    const valid = await ensureValidToken();
-    if (!valid) {
-        throw new Error('Authentication required. Please sign in to use AI models.');
-    }
-
+    // No authentication required for this endpoint
     const body = {
         prompt,
         strategy: config.strategy || 'free_only',
@@ -204,7 +251,7 @@ async function queryWithSmartRouting(prompt, config = {}) {
         temperature: config.temperature || 0.7
     };
 
-    const result = await apiRequest('/api/query/smart', 'POST', body, 3, true);
+    const result = await apiRequest('/api/query/smart', 'POST', body, 3, false);
     if (result.success) {
         return result.data;
     }
@@ -215,17 +262,7 @@ async function queryWithSmartRouting(prompt, config = {}) {
  * Query a specific model by ID
  */
 async function querySpecificModel(prompt, modelId, options = {}) {
-    // Check authentication
-    if (!isAuthenticated()) {
-        throw new Error('Authentication required. Please sign in to use AI models.');
-    }
-
-    // Ensure valid token before making authenticated request
-    const valid = await ensureValidToken();
-    if (!valid) {
-        throw new Error('Authentication required. Please sign in to use AI models.');
-    }
-
+    // No authentication required for this endpoint
     const body = {
         prompt,
         model_id: modelId,
@@ -233,7 +270,7 @@ async function querySpecificModel(prompt, modelId, options = {}) {
         temperature: options.temperature || 0.7
     };
 
-    const result = await apiRequest('/api/query/model', 'POST', body, 3, true);
+    const result = await apiRequest('/api/query/model', 'POST', body, 3, false);
     if (result.success) {
         return result.data;
     }
@@ -316,24 +353,43 @@ async function signOut() {
 
 /**
  * Get current session/user information
+ * Returns null if user is not authenticated (401), throws only on unexpected errors
  */
 async function getSession() {
-    const result = await apiRequest('/api/auth/session', 'GET', null, 1, true);
-    if (result.success) {
+    const result = await apiRequest('/api/auth/session', 'GET', null, 1, false); // Don't require auth, handle 401 gracefully
+    if (result && result.success) {
         return result.data;
     }
-    throw new Error(result.error || 'Failed to get session');
+    // If it's a 401 or 503 or any auth-related error, user is simply not logged in - return null instead of throwing
+    if (result && result.error) {
+        const errorMsg = result.error.toLowerCase();
+        if (errorMsg.includes('401') ||
+            errorMsg.includes('503') ||
+            errorMsg.includes('service unavailable') ||
+            errorMsg.includes('database not connected') ||
+            errorMsg.includes('unauthorized') ||
+            errorMsg.includes('authentication required') ||
+            errorMsg.includes('authentication service')) {
+            return null; // User is not logged in or auth service unavailable, which is fine
+        }
+    }
+    // Only throw on unexpected errors (network errors, 500, etc.)
+    // But if result is null or undefined, also return null (network issue, treat as not logged in)
+    if (!result) {
+        return null;
+    }
+    throw new Error((result && result.error) || 'Failed to get session');
 }
 
 /**
  * Get current user information
  */
 async function getCurrentUser() {
-    const result = await apiRequest('/api/auth/user', 'GET', null, 1, true);
-    if (result.success) {
+    const result = await apiRequest('/api/auth/user', 'GET', null, 1, false);
+    if (result && result.success) {
         return result.data.user;
     }
-    throw new Error(result.error || 'Failed to get user');
+    throw new Error((result && result.error) || 'Failed to get user');
 }
 
 /**
@@ -349,21 +405,24 @@ async function refreshAccessToken() {
         refresh_token: refreshToken
     };
 
-    const result = await apiRequest('/api/auth/refresh', 'POST', body);
-    if (result.success) {
+    const result = await apiRequest('/api/auth/refresh', 'POST', body, 1, false);
+    if (result && result.success) {
         // Update stored tokens
-        if (result.data.access_token) {
+        if (result.data && result.data.access_token) {
             setAccessToken(result.data.access_token);
         }
-        if (result.data.refresh_token) {
+        if (result.data && result.data.refresh_token) {
             setRefreshToken(result.data.refresh_token);
         }
         return result.data;
     }
 
-    // If refresh fails, clear tokens
-    clearTokens();
-    throw new Error(result.error || 'Token refresh failed');
+    // If refresh fails, clear tokens only if it's an auth error (not network error)
+    const errorMsg = (result && result.error) || 'Token refresh failed';
+    if (errorMsg.includes('Authentication') || errorMsg.includes('Invalid') || errorMsg.includes('expired')) {
+        clearTokens();
+    }
+    throw new Error(errorMsg);
 }
 
 /**
@@ -384,16 +443,27 @@ async function ensureValidToken() {
 
     // Try to use current token, refresh if needed
     try {
-        await getSession();
-        return true;
-    } catch (error) {
-        // Token might be expired, try to refresh
-        try {
-            await refreshAccessToken();
+        const session = await getSession();
+        if (session) {
             return true;
-        } catch (refreshError) {
-            clearTokens();
-            return false;
         }
+    } catch (error) {
+        // Only try refresh if it's an auth error, not a network error
+        if (error.message && (error.message.includes('Authentication') || error.message.includes('401'))) {
+            try {
+                await refreshAccessToken();
+                return true;
+            } catch (refreshError) {
+                // Only clear tokens if refresh token is invalid, not on network errors
+                if (refreshError.message && (refreshError.message.includes('Invalid') || refreshError.message.includes('expired') || refreshError.message.includes('Authentication'))) {
+                    clearTokens();
+                }
+                return false;
+            }
+        }
+        // Network or other errors - don't clear tokens, just return false
+        return false;
     }
+
+    return false;
 }

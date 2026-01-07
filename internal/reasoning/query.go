@@ -38,7 +38,12 @@ func NewQueryModel(router *models.ModelRouter) *QueryModel {
 
 // Query executes a simple model query using the specified model ID directly
 func (qm *QueryModel) Query(ctx context.Context, modelID string, prompt string) (string, error) {
-	resp, err := qm.QueryFull(ctx, modelID, prompt)
+	return qm.QueryWithTokens(ctx, modelID, prompt, 1000) // Default 1000 tokens
+}
+
+// QueryWithTokens executes a query with custom max_tokens
+func (qm *QueryModel) QueryWithTokens(ctx context.Context, modelID string, prompt string, maxTokens int) (string, error) {
+	resp, err := qm.QueryFullWithTokens(ctx, modelID, prompt, maxTokens)
 	if err != nil {
 		return "", err
 	}
@@ -47,6 +52,11 @@ func (qm *QueryModel) Query(ctx context.Context, modelID string, prompt string) 
 
 // QueryFull executes a model query and returns full usage/cost info
 func (qm *QueryModel) QueryFull(ctx context.Context, modelID string, prompt string) (QueryResponse, error) {
+	return qm.QueryFullWithTokens(ctx, modelID, prompt, 1000)
+}
+
+// QueryFullWithTokens executes a model query with custom max_tokens and returns full usage/cost info
+func (qm *QueryModel) QueryFullWithTokens(ctx context.Context, modelID string, prompt string, maxTokens int) (QueryResponse, error) {
 	// Convert to UAIP format
 	uaipReq := &uaip.UAIPRequest{
 		Payload: uaip.Payload{
@@ -55,7 +65,7 @@ func (qm *QueryModel) QueryFull(ctx context.Context, modelID string, prompt stri
 				Format: "text",
 			},
 			OutputRequirements: uaip.OutputRequirements{
-				MaxTokens:   1000,
+				MaxTokens:   maxTokens,
 				Temperature: 0.7,
 			},
 		},
@@ -78,6 +88,10 @@ func (qm *QueryModel) QueryFull(ctx context.Context, modelID string, prompt stri
 	resp, err := adapter.GenerateText(ctx, modelMeta.ModelName, uaipReq)
 	if err != nil {
 		return QueryResponse{}, fmt.Errorf("model execution failed: %w", err)
+	}
+
+	if !resp.Status.Success {
+		return QueryResponse{}, fmt.Errorf("model status fail: %s", resp.Status.Message)
 	}
 
 	result := QueryResponse{

@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joho/godotenv"
 	"gaiol/internal/auth"
 	"gaiol/internal/database"
 	"gaiol/internal/models"
@@ -20,16 +19,18 @@ import (
 	"gaiol/internal/monitoring"
 	"gaiol/internal/reasoning"
 	"gaiol/internal/uaip"
+
+	"github.com/joho/godotenv"
 )
 
 var (
-	registry      *models.Registry
-	router        *models.ModelRouter
-	dbClient      *database.Client
-	dbAvailable   bool
-	authAPI       *auth.AuthAPI
-	reasoningAPI  *reasoning.ReasoningAPI
-	metrics       *monitoring.MetricsService
+	registry     *models.Registry
+	router       *models.ModelRouter
+	dbClient     *database.Client
+	dbAvailable  bool
+	authAPI      *auth.AuthAPI
+	reasoningAPI *reasoning.ReasoningAPI
+	metrics      *monitoring.MetricsService
 )
 
 func main() {
@@ -64,7 +65,8 @@ func main() {
 
 	// Initialize database (optional)
 	var tracker *models.PerformanceTracker
-	dbClient, err := database.NewClient()
+	var err error
+	dbClient, err = database.NewClient()
 	if err != nil {
 		log.Printf("⚠️  Database not available: %v - authentication features disabled", err)
 		dbClient = nil
@@ -79,8 +81,15 @@ func main() {
 			log.Println("✅ Database client initialized")
 			authAPI = auth.NewAuthAPI(dbClient)
 			tracker = models.NewPerformanceTracker(dbClient)
-			tracker.RefreshCache(context.Background())
-			log.Println("✅ Performance tracker initialized")
+			// Refresh cache asynchronously to avoid blocking startup
+			go func() {
+				if err := tracker.RefreshCache(context.Background()); err != nil {
+					log.Printf("⚠️  Performance cache refresh failed (non-critical): %v", err)
+				} else {
+					log.Println("✅ Performance cache refreshed")
+				}
+			}()
+			log.Println("✅ Performance tracker initialized (cache refreshing in background)")
 			dbAvailable = true
 		}
 	} else {
@@ -163,15 +172,14 @@ func registerRoutes() {
 	http.HandleFunc("/api/models", cors(handleListModels))
 	http.HandleFunc("/api/models/", cors(handleModelsByProvider))
 
-	// 3. Authentication Routes (public, only if database available)
-	if dbAvailable && authAPI != nil {
-		http.HandleFunc("/api/auth/signup", cors(handleSignUp))
-		http.HandleFunc("/api/auth/signin", cors(handleSignIn))
-		http.HandleFunc("/api/auth/signout", cors(handleSignOut))
-		http.HandleFunc("/api/auth/session", cors(handleGetSession))
-		http.HandleFunc("/api/auth/refresh", cors(handleRefreshToken))
-		http.HandleFunc("/api/auth/user", cors(handleGetUser))
-	}
+	// 3. Authentication Routes (always available, but return 503 if database unavailable)
+	authMiddleware := auth.AuthMiddleware(dbClient)
+	http.Handle("/api/auth/signup", optionalAuthMiddleware(authMiddleware, cors(handleSignUp)))
+	http.Handle("/api/auth/signin", optionalAuthMiddleware(authMiddleware, cors(handleSignIn)))
+	http.Handle("/api/auth/signout", optionalAuthMiddleware(authMiddleware, cors(handleSignOut)))
+	http.Handle("/api/auth/session", optionalAuthMiddleware(authMiddleware, cors(handleGetSession)))
+	http.Handle("/api/auth/refresh", optionalAuthMiddleware(authMiddleware, cors(handleRefreshToken)))
+	http.Handle("/api/auth/user", optionalAuthMiddleware(authMiddleware, cors(handleGetUser)))
 
 	// 4. Query Routes (auth optional - works with or without database)
 	// If database is available, use auth middleware (but make it optional)
@@ -221,13 +229,18 @@ func optionalAuthMiddleware(authMiddleware func(http.Handler) http.Handler, next
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check if auth header is present
 		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			// No auth header - allow request to proceed without auth
+
+		// Also check for cookie-based auth
+		_, cookieErr := r.Cookie("sb-access-token")
+
+		// If NO auth header AND NO auth cookie, allow request without authentication
+		if authHeader == "" && cookieErr != nil {
+			// No authentication provided - proceed without auth
 			next(w, r)
 			return
 		}
 
-		// Auth header present - use auth middleware
+		// Auth credentials present - validate them using auth middleware
 		authMiddleware(next).ServeHTTP(w, r)
 	})
 }
@@ -250,7 +263,7 @@ func noCacheFileServer(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer file.Close()
-		
+
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		http.ServeContent(w, r, "index.html", time.Time{}, file)
 		return
@@ -468,7 +481,23 @@ func handleQuery(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleQuerySmart(w http.ResponseWriter, r *http.Request) {
+	// Add panic recovery with proper error response
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("❌ PANIC in handleQuerySmart: %v", err)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error":   fmt.Sprintf("Internal server error: %v", err),
+				"success": false,
+			})
+		}
+	}()
+
+	log.Printf("📥 handleQuerySmart called - using Reasoning Engine")
+
 	if r.Method != "POST" {
+		log.Printf("❌ Invalid method: %s", r.Method)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -482,110 +511,100 @@ func handleQuerySmart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("❌ Invalid JSON: %v", err)
 		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	log.Printf("📋 Query request - Prompt: %q, Strategy: %s, Task: %s", req.Prompt, req.Strategy, req.Task)
+
 	if req.Prompt == "" {
+		log.Printf("❌ Empty prompt")
 		http.Error(w, "prompt is required", http.StatusBadRequest)
 		return
 	}
 
-	if req.MaxTokens == 0 {
-		req.MaxTokens = 200
-	}
-	if req.Temperature == 0 {
-		req.Temperature = 0.7
-	}
-	if req.Strategy == "" {
-		req.Strategy = "free_only"
-	}
-	if req.Task == "" {
-		req.Task = "generate"
-	}
-
-	// Map strategy string to RoutingStrategy
-	var strategy models.RoutingStrategy
-	switch req.Strategy {
-	case "lowest_cost":
-		strategy = models.StrategyLowestCost
-	case "highest_quality":
-		strategy = models.StrategyHighestQuality
-	case "balanced":
-		strategy = models.StrategyBalanced
-	case "free_only":
-		strategy = models.StrategyFreeOnly
-	default:
-		strategy = models.StrategyFreeOnly
-	}
-
-	// Map task string to TaskType
-	var task models.TaskType
-	switch req.Task {
-	case "generate":
-		task = models.TaskGenerate
-	case "analyze":
-		task = models.TaskAnalyze
-	case "summarize":
-		task = models.TaskSummarize
-	case "code":
-		task = models.TaskCode
-	case "logic":
-		task = models.TaskLogic
-	default:
-		task = models.TaskGenerate
-	}
-
-	routeConfig := models.RoutingConfig{
-		Strategy: strategy,
-		Task:     task,
-		MaxCost:  0.001, // Default max cost
-	}
-
-	model, err := router.Route(routeConfig)
-	if err != nil {
-		http.Error(w, "Routing failed: "+err.Error(), http.StatusInternalServerError)
+	// Check if reasoning API is initialized
+	if reasoningAPI == nil || reasoningAPI.Engine == nil {
+		log.Printf("❌ Reasoning API or Engine is nil")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "Reasoning engine not initialized",
+			"success": false,
+		})
 		return
 	}
 
-	uaipReq := &uaip.UAIPRequest{
-		UAIP: uaip.UAIPHeader{
-			Version:   uaip.ProtocolVersion,
-			MessageID: fmt.Sprintf("smart-%d", time.Now().UnixNano()),
-			Timestamp: time.Now(),
-		},
-		Payload: uaip.Payload{
-			Input: uaip.PayloadInput{
-				Data:   req.Prompt,
-				Format: "text",
-			},
-			OutputRequirements: uaip.OutputRequirements{
-				MaxTokens:   req.MaxTokens,
-				Temperature: req.Temperature,
-			},
-		},
-	}
+	// Use reasoning engine for ALL queries now
+	// The reasoning engine will automatically use single-step fallback for simple queries
+	sessionID := reasoningAPI.Engine.InitSession(r.Context(), req.Prompt)
 
-	ctx := r.Context()
-	resp, err := router.RouteAndExecute(ctx, routeConfig, uaipReq)
+	log.Printf("🧠 Starting reasoning session: %s", sessionID)
+
+	// Execute reasoning with automatic fallback
+	sm, err := reasoningAPI.Engine.RunSession(r.Context(), sessionID, req.Prompt, []string{})
 	if err != nil {
-		http.Error(w, "Query execution failed: "+err.Error(), http.StatusInternalServerError)
+		log.Printf("❌ Reasoning failed: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "Reasoning failed: " + err.Error(),
+			"success": false,
+		})
 		return
 	}
 
+	// Extract the final result from the reasoning session
+	finalOutput := ""
+	if sm != nil && len(sm.SelectedPath) > 0 {
+		// Get the last output from the selected path
+		lastOutput := sm.SelectedPath[len(sm.SelectedPath)-1]
+		finalOutput = lastOutput.Response
+	}
+
+	if finalOutput == "" {
+		finalOutput = "The reasoning engine completed but produced no output."
+	}
+
+	log.Printf("✅ Reasoning completed successfully")
+
+	// Build response in the same format as before for frontend compatibility
 	response := map[string]interface{}{
-		"model_id":    string(model.ID),
-		"model_name":  model.DisplayName,
-		"response":    resp.Result.Data,
-		"tokens_used": resp.Result.TokensUsed,
-		"cost":        resp.Metadata.CostInfo.TotalCost,
-		"latency_ms":  resp.Result.ProcessingMs,
-		"quality":     resp.Result.Quality,
-		"strategy":    req.Strategy,
+		"uaip": true,
+		"status": map[string]interface{}{
+			"success": true,
+		},
+		"result": map[string]interface{}{
+			"data":          finalOutput,
+			"tokens_used":   0, // Could aggregate from sm if needed
+			"model_used":    "ReasoningEngine",
+			"processing_ms": 0,
+			"quality":       1.0,
+		},
+		"metadata": map[string]interface{}{
+			"cost_info": map[string]interface{}{
+				"total_cost": sm.TotalCost,
+			},
+			"session_id":     sessionID,
+			"steps_executed": len(sm.Steps),
+		},
+		// Legacy format for backward compatibility
+		"model_id":    "reasoning-engine",
+		"model_name":  "GAIOL Reasoning Engine",
+		"response":    finalOutput,
+		"tokens_used": 0,
+		"cost":        sm.TotalCost,
+		"latency_ms":  0,
+		"quality":     1.0,
+		"strategy":    "reasoning",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("❌ Failed to encode response: %v", err)
+	}
 }
 
 func handleQueryModel(w http.ResponseWriter, r *http.Request) {
@@ -682,6 +701,17 @@ func handleSignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if database is available
+	if !dbAvailable || authAPI == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "Authentication service is currently unavailable (database not connected)",
+			"success": false,
+		})
+		return
+	}
+
 	var req auth.SignUpRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
@@ -704,6 +734,17 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if database is available
+	if !dbAvailable || authAPI == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "Authentication service is currently unavailable (database not connected)",
+			"success": false,
+		})
+		return
+	}
+
 	var req auth.SignInRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
@@ -723,6 +764,17 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 func handleSignOut(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check if database is available
+	if !dbAvailable || authAPI == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "Authentication service is currently unavailable (database not connected)",
+			"success": false,
+		})
 		return
 	}
 
@@ -767,19 +819,68 @@ func handleGetSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if database is available FIRST - before checking auth
+	if !dbAvailable || authAPI == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "Authentication service is currently unavailable (database not connected)",
+			"success": false,
+		})
+		return
+	}
+
+	// Now check auth - only if database is available
 	user, err := auth.RequireAuth(r.Context())
 	if err != nil {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
+	// Try to get full user info from Supabase API
+	authHeader := r.Header.Get("Authorization")
+	var userInfo *auth.UserInfo
+	if authHeader != "" && authAPI != nil {
+		parts := strings.Split(authHeader, " ")
+		if len(parts) == 2 && parts[0] == "Bearer" {
+			// Fetch full user info from Supabase
+			if fullUser, err := authAPI.GetUser(r.Context(), parts[1]); err == nil {
+				userInfo = fullUser
+			}
+		}
+	}
+
+	// Build response with available data
+	responseUser := map[string]interface{}{
+		"id":        user.ID,
+		"email":     user.Email,
+		"tenant_id": user.TenantID,
+		"org_id":    user.OrgID,
+	}
+
+	// Add fields from full user info if available
+	if userInfo != nil {
+		responseUser["created_at"] = userInfo.CreatedAt
+		responseUser["user_metadata"] = userInfo.UserMetadata
+	} else {
+		// Fallback to JWT claims
+		userMetadata := make(map[string]interface{})
+		var createdAt string
+
+		if user.Claims != nil {
+			if metadata, ok := user.Claims["user_metadata"].(map[string]interface{}); ok {
+				userMetadata = metadata
+			}
+			if created, ok := user.Claims["created_at"].(string); ok {
+				createdAt = created
+			}
+		}
+		responseUser["created_at"] = createdAt
+		responseUser["user_metadata"] = userMetadata
+	}
+
 	response := map[string]interface{}{
-		"user": map[string]interface{}{
-			"id":        user.ID,
-			"email":     user.Email,
-			"tenant_id": user.TenantID,
-			"org_id":    user.OrgID,
-		},
+		"user": responseUser,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -789,6 +890,17 @@ func handleGetSession(w http.ResponseWriter, r *http.Request) {
 func handleRefreshToken(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check if database is available
+	if !dbAvailable || authAPI == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "Authentication service is currently unavailable (database not connected)",
+			"success": false,
+		})
 		return
 	}
 
@@ -824,19 +936,68 @@ func handleGetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if database is available FIRST - before checking auth
+	if !dbAvailable || authAPI == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "Authentication service is currently unavailable (database not connected)",
+			"success": false,
+		})
+		return
+	}
+
+	// Now check auth - only if database is available
 	user, err := auth.RequireAuth(r.Context())
 	if err != nil {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
+	// Try to get full user info from Supabase API
+	authHeader := r.Header.Get("Authorization")
+	var userInfo *auth.UserInfo
+	if authHeader != "" && authAPI != nil {
+		parts := strings.Split(authHeader, " ")
+		if len(parts) == 2 && parts[0] == "Bearer" {
+			// Fetch full user info from Supabase
+			if fullUser, err := authAPI.GetUser(r.Context(), parts[1]); err == nil {
+				userInfo = fullUser
+			}
+		}
+	}
+
+	// Build response with available data
+	responseUser := map[string]interface{}{
+		"id":        user.ID,
+		"email":     user.Email,
+		"tenant_id": user.TenantID,
+		"org_id":    user.OrgID,
+	}
+
+	// Add fields from full user info if available
+	if userInfo != nil {
+		responseUser["created_at"] = userInfo.CreatedAt
+		responseUser["user_metadata"] = userInfo.UserMetadata
+	} else {
+		// Fallback to JWT claims
+		userMetadata := make(map[string]interface{})
+		var createdAt string
+
+		if user.Claims != nil {
+			if metadata, ok := user.Claims["user_metadata"].(map[string]interface{}); ok {
+				userMetadata = metadata
+			}
+			if created, ok := user.Claims["created_at"].(string); ok {
+				createdAt = created
+			}
+		}
+		responseUser["created_at"] = createdAt
+		responseUser["user_metadata"] = userMetadata
+	}
+
 	response := map[string]interface{}{
-		"user": map[string]interface{}{
-			"id":        user.ID,
-			"email":     user.Email,
-			"tenant_id": user.TenantID,
-			"org_id":    user.OrgID,
-		},
+		"user": responseUser,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -869,10 +1030,10 @@ func handleMonitoringStats(w http.ResponseWriter, r *http.Request) {
 
 type DummyAdapter struct{}
 
-func (d *DummyAdapter) Name() string { return "dummy" }
-func (d *DummyAdapter) Provider() string { return "dummy" }
+func (d *DummyAdapter) Name() string                      { return "dummy" }
+func (d *DummyAdapter) Provider() string                  { return "dummy" }
 func (d *DummyAdapter) SupportedTasks() []models.TaskType { return []models.TaskType{} }
-func (d *DummyAdapter) RequiresAuth() bool { return false }
+func (d *DummyAdapter) RequiresAuth() bool                { return false }
 func (d *DummyAdapter) GetCapabilities() models.ModelCapabilities {
 	return models.ModelCapabilities{}
 }

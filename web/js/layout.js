@@ -18,10 +18,6 @@ function renderTopBar(currentPageName = 'Chat') {
                 </div>
             </div>
             <div class="top-bar-right">
-                <div class="status-indicator">
-                    <span id="healthStatus" class="health-status"></span>
-                    <span class="status-text">NETWORK ONLINE</span>
-                </div>
                 <button class="icon-btn tooltip" onclick="if(typeof openShortcutsModal==='function')openShortcutsModal()" aria-label="Keyboard Shortcuts" data-tooltip="Keyboard Shortcuts (⌘/ or Ctrl+/)">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -34,6 +30,12 @@ function renderTopBar(currentPageName = 'Chat') {
                         <path d="M12 2v2M12 20v2M22 12h-2M4 12H2M19.07 4.93l-1.41 1.41M6.34 17.66l-1.41 1.41M19.07 19.07l-1.41-1.41M6.34 6.34l-1.41-1.41"/>
                     </svg>
                 </button>
+                <button class="profile-btn-top" id="profileBtnTop" onclick="window.location.href='/profile.html'" aria-label="Profile" style="display: none;">
+                    <span class="profile-avatar-top" id="profileAvatarTop">U</span>
+                </button>
+                <a href="/login.html" class="profile-btn-top login-link-top" id="loginLinkTop" aria-label="Sign In" style="display: none;">
+                    <span class="login-text-top">Sign In</span>
+                </a>
             </div>
         </div>
     `;
@@ -61,17 +63,8 @@ function renderLeftSidebar(currentPage = 'chat') {
                 <a href="/index.html" class="nav-item ${currentPage === 'chat' ? 'active' : ''}" data-page="chat">
                     <span class="nav-text">Chat</span>
                 </a>
-                <a href="/models.html" class="nav-item ${currentPage === 'models' ? 'active' : ''}" data-page="models">
-                    <span class="nav-text">Models</span>
-                </a>
-                <a href="/compare.html" class="nav-item ${currentPage === 'compare' ? 'active' : ''}" data-page="compare">
-                    <span class="nav-text">Compare</span>
-                </a>
                 <a href="/history.html" class="nav-item ${currentPage === 'history' ? 'active' : ''}" data-page="history">
                     <span class="nav-text">History</span>
-                </a>
-                <a href="/observability.html" class="nav-item ${currentPage === 'observability' ? 'active' : ''}" data-page="observability">
-                    <span class="nav-text">Observability</span>
                 </a>
                 <a href="/settings.html" class="nav-item ${currentPage === 'settings' ? 'active' : ''}" data-page="settings">
                     <span class="nav-text">Settings</span>
@@ -149,9 +142,16 @@ function renderRightSidebar() {
     return `
         <div class="right-sidebar glass-panel" id="rightSidebar">
             <div class="sidebar-header-right">
-                <h3 style="font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.1em; color: var(--accent-primary);">SYSTEM INTEL</h3>
-                <button class="icon-btn-small sidebar-toggle-btn" id="rightSidebarToggle" onclick="toggleRightSidebar()" aria-label="Toggle sidebar">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sidebar-toggle-icon">
+                <div class="sidebar-header-content">
+                    <div class="sidebar-header-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <h3 class="sidebar-header-title">SYSTEM INTEL</h3>
+                </div>
+                <button class="sidebar-toggle-btn" id="rightSidebarToggle" onclick="toggleRightSidebar()" aria-label="Toggle sidebar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sidebar-toggle-icon">
                         <path d="M15 18l-6-6 6-6"/>
                     </svg>
                 </button>
@@ -262,41 +262,15 @@ function renderChatContextBar() {
     return `
         <div class="chat-context-bar glass-panel">
             <div class="context-left">
-                <div class="context-item context-item-clickable" onclick="toggleModelSelector()">
-                    <span class="context-label">ACTIVE MODELS</span>
+                <div class="context-item">
+                    <span class="context-label">AUTOMATIC MODE</span>
                     <div class="selected-models-preview">
-                        <span id="selectedModelsCount" class="models-count">0 selected</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-icon">
-                            <path d="M6 9l6 6 6-6"/>
-                        </svg>
-                    </div>
-                </div>
-                <!-- Dropdown overlay -->
-                <div id="modelSelectorDropdown" class="model-selector-dropdown" style="display: none;">
-                    <div class="model-selector-header">
-                        <span>Select Models</span>
-                        <button class="close-dropdown" onclick="toggleModelSelector()">×</button>
-                    </div>
-                    <div id="modelSelectorContent" class="model-selector-content">
-                        <!-- Model selection will be rendered here -->
+                        <span class="models-count">Models selected automatically</span>
                     </div>
                 </div>
             </div>
             <div class="context-right">
                 <div class="context-controls">
-                    <div class="control-group">
-                        <label title="Strategy">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                            </svg>
-                        </label>
-                        <select id="quickStrategy" onchange="updateQuickStrategy(this.value)" class="context-select">
-                            <option value="free_only">Free Only</option>
-                            <option value="lowest_cost">Lowest Cost</option>
-                            <option value="highest_quality">Highest Quality</option>
-                            <option value="balanced" selected>Balanced</option>
-                        </select>
-                    </div>
                     <div class="control-group">
                         <label title="Temperature">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -392,7 +366,42 @@ function initializeLayout(pageName, currentPageId) {
         if (typeof updateAuthNavItems === 'function') {
             updateAuthNavItems();
         }
+        // Update top bar profile button
+        updateTopBarProfile();
     }, 200);
+}
+
+/**
+ * Update top bar profile button based on auth state
+ */
+function updateTopBarProfile() {
+    const profileBtn = document.getElementById('profileBtnTop');
+    const loginLink = document.getElementById('loginLinkTop');
+    const profileAvatar = document.getElementById('profileAvatarTop');
+
+    if (!profileBtn || !loginLink) return;
+
+    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : false;
+
+    if (isAuth) {
+        // Show profile button, hide login link
+        profileBtn.style.display = 'flex';
+        loginLink.style.display = 'none';
+
+        // Update avatar with user initial if user is already loaded
+        if (profileAvatar && typeof window.currentUser !== 'undefined' && window.currentUser) {
+            const user = window.currentUser;
+            const initial = (user.email?.[0] || 'U').toUpperCase();
+            profileAvatar.textContent = initial;
+        } else if (profileAvatar) {
+            // User not loaded yet, show default
+            profileAvatar.textContent = 'U';
+        }
+    } else {
+        // Show login link, hide profile button
+        profileBtn.style.display = 'none';
+        loginLink.style.display = 'flex';
+    }
 }
 
 // Make functions globally available
@@ -404,3 +413,4 @@ window.renderAnalysisSection = renderAnalysisSection;
 window.renderChatContextBar = renderChatContextBar;
 window.renderCommonUI = renderCommonUI;
 window.initializeLayout = initializeLayout;
+window.updateTopBarProfile = updateTopBarProfile;

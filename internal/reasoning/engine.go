@@ -3,6 +3,8 @@ package reasoning
 import (
 	"context"
 	"fmt"
+	"strings"
+	"sync"
 	"time"
 
 	"gaiol/internal/database"
@@ -11,23 +13,17 @@ import (
 	"github.com/google/uuid"
 )
 
-// ReasoningEngine is the central coordinator for the multi-agent reasoning flow
+// ReasoningEngine is the central coordinator for beam search reasoning
 type ReasoningEngine struct {
-	MemoryManager    *MemoryManager
-	Decomposer       *Decomposer
-	Orchestrator     *Orchestrator
-	RAG              *RAGManager // NEW: RAG management
-	Scorer           *Scorer
-	Selector         *Selector
-	Composer         *Composer
-	Critic           *Critic                    // NEW: Quality validator
-	Refiner          *Refiner                   // NEW: Output improver
-	ReflectionConfig ReflectionConfig           // NEW: Reflection settings
-	BeamConfig       BeamConfig                 // NEW: Beam settings
-	ConsensusConfig  ConsensusConfig            // NEW: Consensus settings
-	ConsensusAgent   *ConsensusAgent            // NEW: Meta-reasoning agent
-	Tracker          *models.PerformanceTracker // NEW: Learning loop
-	OnEvent          EventCallback
+	MemoryManager   *MemoryManager
+	Decomposer      *Decomposer
+	Orchestrator    *Orchestrator
+	Scorer          *Scorer
+	Composer        *Composer
+	BeamConfig      BeamConfig      // Beam search settings
+	ConsensusConfig ConsensusConfig // Optional consensus
+	ConsensusAgent  *ConsensusAgent // Optional consensus agent
+	OnEvent         EventCallback
 }
 
 // BeamConfig contains settings for beam search reasoning
@@ -39,31 +35,29 @@ type BeamConfig struct {
 // DefaultBeamConfig returns the default beam search settings
 func DefaultBeamConfig() BeamConfig {
 	return BeamConfig{
-		Enabled:   false,
-		BeamWidth: 2,
+		Enabled:   true, // Enabled by default for better results
+		BeamWidth: 3,    // Keep top 3 paths for exploration
 	}
 }
 
-// NewReasoningEngine creates a new reasoning engine instance
+// NewReasoningEngine creates a new simplified reasoning engine focused on beam search
 func NewReasoningEngine(router *models.ModelRouter) *ReasoningEngine {
 	pb := NewPromptBuilder()
-	queryModel := NewQueryModel(router)
-	reflectionConfig := DefaultReflectionConfig()
-
 	orchestrator := NewOrchestrator(router, pb)
 
-	// Initialize RAG if database is available
-	var rag *RAGManager
+	// Optional: Initialize RAG if database is available (lazy initialization)
+	// RAG will be initialized on first use to avoid blocking startup
 	dbClient := database.GetClient()
 	if dbClient != nil {
+		// Initialize RAG lazily - don't block on startup
+		// The orchestrator will initialize RAG when needed
 		store := database.NewSupabaseVectorStore(dbClient)
-
-		// Find an adapter that supports embeddings (OpenRouter)
-		allModels := router.GetRegistry().ListModels()
-		for _, m := range allModels {
-			if m.Provider == "openrouter" && m.Adapter != nil {
+		// Find embedding model quickly (check only OpenRouter models)
+		openRouterModels := router.GetRegistry().FindModelsByProvider("openrouter")
+		for _, m := range openRouterModels {
+			if m.Adapter != nil {
 				if embedder, ok := m.Adapter.(models.EmbeddingProvider); ok {
-					rag = NewRAGManager(store, embedder)
+					rag := NewRAGManager(store, embedder)
 					orchestrator.RAG = rag
 					break
 				}
@@ -71,7 +65,7 @@ func NewReasoningEngine(router *models.ModelRouter) *ReasoningEngine {
 		}
 	}
 
-	// Initialize Performance Tracker
+	// Optional: Initialize Performance Tracker
 	var tracker *models.PerformanceTracker
 	if dbClient != nil {
 		tracker = models.NewPerformanceTracker(dbClient)
@@ -79,20 +73,14 @@ func NewReasoningEngine(router *models.ModelRouter) *ReasoningEngine {
 	}
 
 	return &ReasoningEngine{
-		MemoryManager:    NewMemoryManager(),
-		Decomposer:       NewDecomposer(router),
-		Orchestrator:     orchestrator,
-		RAG:              rag,
-		Scorer:           NewScorer(router, tracker),
-		Selector:         NewSelector("greedy"),
-		Composer:         NewComposer(),
-		Critic:           NewCritic(queryModel, reflectionConfig),
-		Refiner:          NewRefiner(queryModel),
-		ReflectionConfig: reflectionConfig,
-		BeamConfig:       DefaultBeamConfig(),
-		ConsensusConfig:  DefaultConsensusConfig(),
-		ConsensusAgent:   NewConsensusAgent(NewOrchestrator(router, pb)),
-		Tracker:          tracker,
+		MemoryManager:   NewMemoryManager(),
+		Decomposer:      NewDecomposer(router),
+		Orchestrator:    orchestrator,
+		Scorer:          NewScorer(router, tracker),
+		Composer:        NewComposer(),
+		BeamConfig:      DefaultBeamConfig(),
+		ConsensusConfig: DefaultConsensusConfig(),
+		ConsensusAgent:  NewConsensusAgent(NewOrchestrator(router, pb)),
 	}
 }
 
@@ -151,211 +139,41 @@ func (re *ReasoningEngine) RunSession(ctx context.Context, sessionID, prompt str
 
 	re.emitEvent(sessionID, EventDecomposeEnd, EventDecomposePayload{Steps: steps})
 
-	// 3. Process each step
-	for i := range steps {
-		re.Orchestrator.SessionID = sessionID
-		re.Orchestrator.OnEvent = re.OnEvent
+	// 3. Process each step with phase-based parallel execution
+	// Group steps by their parallel capability
+	for i := 0; i < len(steps); {
+		// Find steps that can run in parallel (marked with [P])
+		var group []int
+		group = append(group, i)
 
-		// Update status
-		sm.mu.Lock()
-		sm.Steps[i].Status = "processing"
-		sm.Steps[i].StartTime = time.Now()
-		sm.mu.Unlock()
-
-		re.emitEvent(sessionID, EventStepStart, EventStepPayload{
-			StepIndex: i,
-			Title:     sm.Steps[i].Title,
-			Objective: sm.Steps[i].Objective,
-			TaskType:  sm.Steps[i].TaskType,
-		})
-
-		var newPaths [][]ModelOutput
-
-		if re.BeamConfig.Enabled && i > 0 {
-			// BEAM SEARCH LOGIC
-			sm.mu.RLock()
-			activePaths := sm.ActivePaths
-			if len(activePaths) == 0 {
-				activePaths = [][]ModelOutput{sm.SelectedPath}
-			}
-			sm.mu.RUnlock()
-
-			for _, path := range activePaths {
-				// Build context for this specific path
-				contextStr, _ := re.MemoryManager.GetContextForPath(sessionID, path)
-
-				// Execute parallel models for this path
-				outputs, err := re.Orchestrator.ExecuteStep(ctx, sm.Steps[i], contextStr, modelIDs, sm.Config)
-				if err != nil {
-					continue
-				}
-
-				// Score outputs
-				scoredOutputs, err := re.Scorer.ScoreMultipleOutputs(ctx, sm.Steps[i].Objective, outputs, sm.Steps[i].TaskType, sm.Config.PriorityProfile)
-				if err != nil {
-					scoredOutputs = outputs
-				}
-
-				// Accumulate cost
-				sm.mu.Lock()
-				for _, out := range scoredOutputs {
-					sm.TotalCost += out.Cost
-				}
-				sm.mu.Unlock()
-
-				// Create new candidate paths
-				for _, out := range scoredOutputs {
-					newPath := make([]ModelOutput, len(path))
-					copy(newPath, path)
-					newPath = append(newPath, out)
-					newPaths = append(newPaths, newPath)
-				}
-			}
-
-			// Prune and update active paths
-			err = re.MemoryManager.UpdateBeamResults(sessionID, i, newPaths, re.BeamConfig.BeamWidth)
-			if err != nil {
-				return nil, fmt.Errorf("failed to update beam results for step %d: %v", i, err)
-			}
-
-			// Emit beam update event
-			re.emitEvent(sessionID, EventBeamUpdate, map[string]interface{}{
-				"step_index":   i,
-				"active_paths": len(sm.ActivePaths),
-				"best_score":   sm.Steps[i].SelectedOutput.Scores.Overall,
-				"total_cost":   sm.TotalCost,
-			})
-
-			// Persist beam outputs
-			for pathIdx, path := range newPaths {
-				output := path[len(path)-1]
-				isSelected := false
-				if len(sm.ActivePaths) > 0 && &sm.ActivePaths[0][len(sm.ActivePaths[0])-1] == &output {
-					isSelected = true
-				}
-				_ = re.MemoryManager.SaveOutput(sessionID, i, output, isSelected, pathIdx)
-			}
-			// Update step status in DB
-			_ = re.MemoryManager.SaveStep(sessionID, sm.Steps[i])
-
-		} else {
-			// GREEDY / INITIAL STEP LOGIC
-			// Build context from previous steps
-			contextStr, _ := re.MemoryManager.GetContextForStep(sessionID, i)
-
-			// Execute parallel models
-			outputs, err := re.Orchestrator.ExecuteStep(ctx, sm.Steps[i], contextStr, modelIDs, sm.Config)
-			if err != nil {
-				re.emitEvent(sessionID, EventError, err.Error())
-				return nil, fmt.Errorf("step %d execution failed: %v", i, err)
-			}
-
-			// Score outputs
-			scoredOutputs, err := re.Scorer.ScoreMultipleOutputs(ctx, sm.Steps[i].Objective, outputs, sm.Steps[i].TaskType, sm.Config.PriorityProfile)
-			if err != nil {
-				scoredOutputs = outputs
-			}
-
-			// 4. Consensus Reconciliation (NEW)
-			if re.ConsensusConfig.Enabled {
-				consensusResult, err := re.ConsensusAgent.Reconcile(ctx, sm.Steps[i].Objective, scoredOutputs, re.ConsensusConfig)
-				if err == nil {
-					sm.mu.Lock()
-					sm.Steps[i].Consensus = consensusResult
-					sm.mu.Unlock()
-
-					// Emit consensus event
-					re.emitEvent(sessionID, EventConsensus, consensusResult)
-
-					// If consensus reached a synthesized output, we can use it
-					if consensusResult.BestOutput != nil {
-						// Note: We still honor Scorer's ranking for consistency unless meta-agent synthesis happened
-						if consensusResult.Method == "meta_agent" {
-							// For meta-agent, we might override the selected winner
-							// In this implementation, we allow Reconcile to provide the best output
-						}
-					}
-				}
-			}
-
-			// Update results and Select winner (Greedy)
-			err = re.MemoryManager.UpdateStepResults(sessionID, i, scoredOutputs)
-			if err != nil {
-				return nil, fmt.Errorf("failed to update results for step %d: %v", i, err)
-			}
-
-			// If beam is enabled, initialize active paths
-			if re.BeamConfig.Enabled {
-				sm.mu.Lock()
-				sm.ActivePaths = [][]ModelOutput{sm.SelectedPath}
-				sm.mu.Unlock()
-			}
-
-			// Persist greedy outputs
-			for _, out := range scoredOutputs {
-				isSelected := false
-				if sm.Steps[i].SelectedOutput != nil && sm.Steps[i].SelectedOutput.ModelID == out.ModelID {
-					isSelected = true
-				}
-				_ = re.MemoryManager.SaveOutput(sessionID, i, out, isSelected, 0)
-			}
-			// Update step status in DB
-			_ = re.MemoryManager.SaveStep(sessionID, sm.Steps[i])
-		}
-
-		// Get the selected output for potential reflection
-		selectedOutput := sm.SelectedPath[len(sm.SelectedPath)-1]
-
-		// SELF-REFLECTION LOOP
-		if re.ReflectionConfig.Enabled {
-			// ... (Reflection logic remains same, but applies to the selected path winner)
-			// (Truncated for readability, keeping implementation as is)
-			attempts := 0
-			accepted := false
-
-			for !accepted && attempts < re.ReflectionConfig.MaxRetries {
-				feedback, err := re.Critic.ValidateOutput(ctx, sm.Steps[i], selectedOutput, sm)
-				if err != nil {
-					feedback = CriticFeedback{IsAcceptable: true, QualityScore: 0.8}
-				}
-
-				re.emitEvent(sessionID, EventReflection, map[string]interface{}{
-					"step_index":  i,
-					"accepted":    feedback.IsAcceptable,
-					"quality":     feedback.QualityScore,
-					"issues":      feedback.Issues,
-					"suggestions": feedback.Suggestions,
-					"attempt":     attempts + 1,
-				})
-
-				if feedback.IsAcceptable {
-					accepted = true
+		// If current step is parallel, look ahead for more parallel steps
+		if strings.Contains(steps[i].Title, "[P]") {
+			for j := i + 1; j < len(steps); j++ {
+				if strings.Contains(steps[j].Title, "[P]") {
+					group = append(group, j)
+				} else {
 					break
 				}
-
-				attempts++
-				if attempts < re.ReflectionConfig.MaxRetries {
-					re.emitEvent(sessionID, EventRefinement, map[string]interface{}{
-						"step_index": i,
-						"attempt":    attempts,
-					})
-
-					improved, err := re.Refiner.ImproveOutput(ctx, selectedOutput, feedback, sm.Steps[i], sm)
-					if err == nil {
-						sm.mu.Lock()
-						sm.SelectedPath[len(sm.SelectedPath)-1] = improved
-						// Also update in ActivePaths[0] if it's the same
-						if len(sm.ActivePaths) > 0 && len(sm.ActivePaths[0]) == len(sm.SelectedPath) {
-							sm.ActivePaths[0][len(sm.ActivePaths[0])-1] = improved
-						}
-						sm.mu.Unlock()
-						selectedOutput = improved
-					}
-				}
 			}
 		}
 
-		re.emitEvent(sessionID, EventStepEnd, sm.Steps[i])
+		if len(group) > 1 {
+			// Execute group in parallel
+			var wg sync.WaitGroup
+			for _, stepIdx := range group {
+				wg.Add(1)
+				go func(idx int) {
+					defer wg.Done()
+					re.executeStep(ctx, sm, sessionID, idx, modelIDs)
+				}(stepIdx)
+			}
+			wg.Wait()
+			i += len(group)
+		} else {
+			// Execute single sequential step
+			re.executeStep(ctx, sm, sessionID, i, modelIDs)
+			i++
+		}
 	}
 
 	// 4. Assemble Final Output
@@ -365,14 +183,138 @@ func (re *ReasoningEngine) RunSession(ctx context.Context, sessionID, prompt str
 	return sm, nil
 }
 
-// EnableReflection turns on self-reflection with custom config
-func (re *ReasoningEngine) EnableReflection(config ReflectionConfig) {
-	re.ReflectionConfig = config
-}
+// executeStep runs a single reasoning step and updates the shared memory
+func (re *ReasoningEngine) executeStep(ctx context.Context, sm *SharedMemory, sessionID string, i int, modelIDs []string) {
+	re.Orchestrator.SessionID = sessionID
+	re.Orchestrator.OnEvent = re.OnEvent
 
-// DisableReflection turns off self-reflection
-func (re *ReasoningEngine) DisableReflection() {
-	re.ReflectionConfig.Enabled = false
+	// Update status
+	sm.mu.Lock()
+	sm.Steps[i].Status = "processing"
+	sm.Steps[i].StartTime = time.Now()
+	sm.mu.Unlock()
+
+	re.emitEvent(sessionID, EventStepStart, EventStepPayload{
+		StepIndex: i,
+		Title:     sm.Steps[i].Title,
+		Objective: sm.Steps[i].Objective,
+		TaskType:  sm.Steps[i].TaskType,
+	})
+
+	var newPaths [][]ModelOutput
+
+	// Get active paths for beam search (or start with empty path for first step)
+	sm.mu.RLock()
+	activePaths := sm.ActivePaths
+	if len(activePaths) == 0 {
+		// First step: start with empty path
+		activePaths = [][]ModelOutput{{}}
+	}
+	sm.mu.RUnlock()
+
+	// Execute beam search: explore paths in parallel
+	for _, path := range activePaths {
+		// Build context for this specific path
+		contextStr, _ := re.MemoryManager.GetContextForPath(sessionID, path)
+
+		// Execute parallel models for this path
+		outputs, err := re.Orchestrator.ExecuteStep(ctx, sm.Steps[i], contextStr, modelIDs, sm.Config)
+		if err != nil {
+			re.emitEvent(sessionID, EventError, fmt.Sprintf("Step %d execution failed: %v", i, err))
+			continue
+		}
+
+		// Score all outputs
+		scoredOutputs, err := re.Scorer.ScoreMultipleOutputs(ctx, sm.Steps[i].Objective, outputs, sm.Steps[i].TaskType, sm.Config.PriorityProfile)
+		if err != nil {
+			scoredOutputs = outputs
+		}
+
+		// Optional: Apply consensus if enabled
+		if re.ConsensusConfig.Enabled && len(scoredOutputs) > 1 {
+			consensusResult, err := re.ConsensusAgent.Reconcile(ctx, sm.Steps[i].Objective, scoredOutputs, re.ConsensusConfig)
+			if err == nil && consensusResult.BestOutput != nil {
+				sm.mu.Lock()
+				sm.Steps[i].Consensus = consensusResult
+				sm.mu.Unlock()
+				re.emitEvent(sessionID, EventConsensus, consensusResult)
+			}
+		}
+
+		// Accumulate cost
+		sm.mu.Lock()
+		for _, out := range scoredOutputs {
+			sm.TotalCost += out.Cost
+		}
+		sm.mu.Unlock()
+
+		// Create new candidate paths by extending current path with each output
+		for _, out := range scoredOutputs {
+			newPath := make([]ModelOutput, len(path))
+			copy(newPath, path)
+			newPath = append(newPath, out)
+			newPaths = append(newPaths, newPath)
+		}
+	}
+
+	// Update step with all model outputs for display
+	sm.mu.Lock()
+	if len(newPaths) > 0 {
+		// Collect all unique outputs from all paths
+		allOutputs := make([]ModelOutput, 0)
+		seen := make(map[string]bool)
+		for _, path := range newPaths {
+			if len(path) > 0 {
+				lastOutput := path[len(path)-1]
+				if !seen[lastOutput.ModelID+lastOutput.Response] {
+					allOutputs = append(allOutputs, lastOutput)
+					seen[lastOutput.ModelID+lastOutput.Response] = true
+				}
+			}
+		}
+		sm.Steps[i].ModelOutputs = allOutputs
+	}
+	sm.mu.Unlock()
+
+	// Prune paths using beam search: keep only top N paths
+	err := re.MemoryManager.UpdateBeamResults(sessionID, i, newPaths, re.BeamConfig.BeamWidth)
+	if err != nil {
+		re.emitEvent(sessionID, EventError, fmt.Sprintf("failed to update beam results for step %d: %v", i, err))
+	}
+
+	// Emit beam update event
+	sm.mu.RLock()
+	bestScore := 0.0
+	if sm.Steps[i].SelectedOutput != nil {
+		bestScore = sm.Steps[i].SelectedOutput.Scores.Overall
+	}
+	re.emitEvent(sessionID, EventBeamUpdate, map[string]interface{}{
+		"step_index":   i,
+		"active_paths": len(sm.ActivePaths),
+		"best_score":   bestScore,
+		"total_cost":   sm.TotalCost,
+	})
+	sm.mu.RUnlock()
+
+	// Persist outputs
+	for pathIdx, path := range newPaths {
+		if len(path) > 0 {
+			output := path[len(path)-1]
+			isSelected := false
+			sm.mu.RLock()
+			if len(sm.ActivePaths) > 0 && len(sm.ActivePaths[0]) > 0 {
+				bestOutput := sm.ActivePaths[0][len(sm.ActivePaths[0])-1]
+				if output.ModelID == bestOutput.ModelID && output.Response == bestOutput.Response {
+					isSelected = true
+				}
+			}
+			sm.mu.RUnlock()
+			_ = re.MemoryManager.SaveOutput(sessionID, i, output, isSelected, pathIdx)
+		}
+	}
+	_ = re.MemoryManager.SaveStep(sessionID, sm.Steps[i])
+
+	re.emitEvent(sessionID, EventStepEnd, sm.Steps[i])
 }
 
 // EnableBeamSearch turns on beam search with custom config
@@ -380,7 +322,7 @@ func (re *ReasoningEngine) EnableBeamSearch(config BeamConfig) {
 	re.BeamConfig = config
 }
 
-// DisableBeamSearch turns off beam search
+// DisableBeamSearch turns off beam search (falls back to greedy)
 func (re *ReasoningEngine) DisableBeamSearch() {
 	re.BeamConfig.Enabled = false
 }

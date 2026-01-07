@@ -3,6 +3,7 @@
 
 let currentUser = null;
 let authCheckInterval = null;
+let isLoadingProfile = false; // Prevent concurrent profile loads
 
 /**
  * Initialize authentication on page load
@@ -13,14 +14,33 @@ async function initAuth() {
         try {
             await loadUserProfile();
             updateAuthUI();
+            // Update top bar profile after profile is loaded
+            if (typeof updateTopBarProfile === 'function') {
+                updateTopBarProfile();
+            }
         } catch (error) {
-            console.error('Failed to load user profile:', error);
-            // Clear invalid tokens
-            clearTokens();
+            console.warn('Failed to load user profile:', error);
+            // Only clear tokens if it's a definitive auth error (not network error)
+            const errorMsg = error.message || '';
+            if (errorMsg.includes('Authentication required') ||
+                errorMsg.includes('Invalid') ||
+                errorMsg.includes('expired') ||
+                errorMsg.includes('401')) {
+                clearTokens();
+            }
+            // Always update UI regardless of error
             updateAuthUI();
+            // Update top bar profile even on error
+            if (typeof updateTopBarProfile === 'function') {
+                updateTopBarProfile();
+            }
         }
     } else {
         updateAuthUI();
+        // Update top bar profile for non-authenticated state
+        if (typeof updateTopBarProfile === 'function') {
+            updateTopBarProfile();
+        }
     }
 
     // Set up periodic session check
@@ -33,8 +53,17 @@ async function initAuth() {
                 await refreshAccessToken();
             } catch (error) {
                 console.warn('Token refresh failed:', error);
-                // If refresh fails, user needs to sign in again
-                handleLogout();
+                // Only sign out if refresh token is definitively invalid
+                // Don't sign out on network errors or temporary issues
+                const errorMsg = error.message || '';
+                if (errorMsg.includes('Invalid') ||
+                    errorMsg.includes('expired') ||
+                    errorMsg.includes('refresh token') ||
+                    (errorMsg.includes('Authentication') && !errorMsg.includes('network'))) {
+                    // Only clear tokens, don't force logout - let user continue working
+                    clearTokens();
+                    updateAuthUI();
+                }
             }
         }
     }, 5 * 60 * 1000); // Check every 5 minutes
@@ -45,7 +74,7 @@ async function initAuth() {
  */
 async function handleLogin(event) {
     event.preventDefault();
-    
+
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     const loginBtn = document.getElementById('loginBtn');
@@ -62,11 +91,12 @@ async function handleLogin(event) {
     try {
         const result = await signIn(email, password);
         currentUser = result.user;
-        
+        window.currentUser = currentUser; // Expose globally
+
         // Update UI
         updateAuthUI();
         showToast('success', 'Signed in successfully', `Welcome back, ${result.user?.email || 'User'}!`);
-        
+
         // Redirect to chat page
         switchPage('chat');
     } catch (error) {
@@ -85,7 +115,7 @@ async function handleLogin(event) {
  */
 async function handleSignup(event) {
     event.preventDefault();
-    
+
     const email = document.getElementById('signupEmail').value;
     const password = document.getElementById('signupPassword').value;
     const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
@@ -117,11 +147,12 @@ async function handleSignup(event) {
     try {
         const result = await signUp(email, password);
         currentUser = result.user;
-        
+        window.currentUser = currentUser; // Expose globally
+
         // Update UI
         updateAuthUI();
         showToast('success', 'Account created', 'Welcome to GAIOL!');
-        
+
         // Redirect to chat page
         window.location.href = '/index.html';
     } catch (error) {
@@ -144,6 +175,7 @@ async function handleLogout() {
     try {
         await signOut();
         currentUser = null;
+        window.currentUser = null; // Clear global reference
         updateAuthUI();
         showToast('success', 'Signed out', 'You have been signed out successfully');
         switchPage('login');
@@ -152,6 +184,7 @@ async function handleLogout() {
         // Clear tokens even if request fails
         clearTokens();
         currentUser = null;
+        window.currentUser = null; // Clear global reference
         updateAuthUI();
         switchPage('login');
     }
@@ -161,20 +194,52 @@ async function handleLogout() {
  * Load user profile information
  */
 async function loadUserProfile() {
+    // Don't make API calls if user is not authenticated
+    if (!isAuthenticated()) {
+        currentUser = null;
+        window.currentUser = null;
+        return null;
+    }
+
+    // Prevent concurrent profile loads
+    if (isLoadingProfile) {
+        return currentUser;
+    }
+
+    isLoadingProfile = true;
+
     try {
         const session = await getSession();
         if (session && session.user) {
             currentUser = session.user;
+            window.currentUser = currentUser; // Expose globally
             return currentUser;
         }
-        
+
         // Fallback: try to get user directly
         const user = await getCurrentUser();
         currentUser = user;
+        window.currentUser = currentUser; // Expose globally
         return currentUser;
     } catch (error) {
+        // Silently handle auth errors (not logged in) - this is expected
+        const errorMsg = (error.message || '').toLowerCase();
+        if (errorMsg.includes('401') ||
+            errorMsg.includes('unauthorized') ||
+            errorMsg.includes('authentication required')) {
+            // Don't clear tokens here - let initAuth handle that decision
+            // This allows the user to still interact with the app even if profile load fails
+            currentUser = null;
+            window.currentUser = null;
+            return null; // User is not logged in, which is fine
+        }
+        // Only log unexpected errors (network issues, 500, etc.)
         console.error('Failed to load user profile:', error);
-        throw error;
+        currentUser = null;
+        window.currentUser = null;
+        return null; // Return null instead of throwing
+    } finally {
+        isLoadingProfile = false;
     }
 }
 
@@ -198,6 +263,11 @@ function updateAuthUI() {
 
     if (profileNavItem) {
         profileNavItem.style.display = isAuth ? 'block' : 'none';
+    }
+
+    // Update top bar profile button
+    if (typeof updateTopBarProfile === 'function') {
+        updateTopBarProfile();
     }
 
     // Update profile page if it's active
@@ -260,7 +330,7 @@ function updateProfilePage() {
     // Update session status
     const sessionStatusBadge = document.getElementById('sessionStatusBadge');
     const tokenExpires = document.getElementById('tokenExpires');
-    
+
     if (sessionStatusBadge) {
         sessionStatusBadge.textContent = 'Active';
         sessionStatusBadge.className = 'status-badge status-active';
@@ -331,11 +401,11 @@ function updateNavigationPageNames() {
         'login': 'Sign In',
         'signup': 'Sign Up'
     };
-    
+
     // Update navigation.js switchPage function if needed
     if (typeof switchPage === 'function') {
         const originalSwitchPage = window.switchPage;
-        window.switchPage = function(pageId) {
+        window.switchPage = function (pageId) {
             originalSwitchPage(pageId);
             const currentPageEl = document.getElementById('currentPage');
             if (currentPageEl) {
@@ -346,22 +416,22 @@ function updateNavigationPageNames() {
 }
 
 // Initialize auth when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initAuth();
     updateNavigationPageNames();
-    
+
     // Update auth UI when page changes
     if (typeof switchPage === 'function') {
         const originalSwitchPage = window.switchPage;
-        window.switchPage = function(pageId) {
+        window.switchPage = function (pageId) {
             originalSwitchPage(pageId);
-            
+
             // Check if page requires auth
             const protectedPages = ['profile'];
             if (protectedPages.includes(pageId) && !requireAuth()) {
                 return;
             }
-            
+
             // Load profile if on profile page
             if (pageId === 'profile' && isAuthenticated()) {
                 loadUserProfile().then(() => {

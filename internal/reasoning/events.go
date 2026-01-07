@@ -15,8 +15,6 @@ const (
 	EventModelStart     EventType = "model_start"
 	EventModelResponse  EventType = "model_response"
 	EventStepEnd        EventType = "step_end"
-	EventReflection     EventType = "reflection" // NEW: Critic feedback
-	EventRefinement     EventType = "refinement" // NEW: Refinement attempt
 	EventReasoningEnd   EventType = "reasoning_end"
 	EventBeamUpdate     EventType = "beam_update"
 	EventConsensus      EventType = "consensus" // NEW: Meta-reasoning consensus

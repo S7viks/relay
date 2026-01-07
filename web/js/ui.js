@@ -36,6 +36,15 @@ function setupEventListeners() {
             updateCharCount();
             autoResizeTextarea(promptInput);
         });
+        promptInput.addEventListener('keydown', (e) => {
+            const uiState = getUIState();
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!uiState.loading) {
+                    handleQuerySubmit();
+                }
+            }
+        });
         // Initial resize
         autoResizeTextarea(promptInput);
     }
@@ -93,21 +102,21 @@ function renderQueryModeSelector() {
     if (!container) return;
 
     const modes = [
-        { 
-            id: 'compare', 
-            label: 'Compare Models', 
+        {
+            id: 'compare',
+            label: 'Compare Models',
             icon: '⚡',
             description: 'Query multiple selected models and compare their responses side-by-side'
         },
-        { 
-            id: 'smart', 
-            label: 'Smart Query', 
+        {
+            id: 'smart',
+            label: 'Smart Query',
             icon: '🤖',
             description: 'Let the system automatically select the best model for your query'
         },
-        { 
-            id: 'single', 
-            label: 'Single Model', 
+        {
+            id: 'single',
+            label: 'Single Model',
             icon: '🎯',
             description: 'Query a single specific model for focused results'
         }
@@ -277,7 +286,7 @@ function clearFilters() {
         search: '',
         task: 'all'
     });
-    
+
     // Clear search input
     const searchInput = document.getElementById('modelsSearchInput');
     const clearBtn = document.getElementById('searchClearBtn');
@@ -287,7 +296,7 @@ function clearFilters() {
     if (clearBtn) {
         clearBtn.style.display = 'none';
     }
-    
+
     renderFilterControls();
     renderModelSelection();
     showToast('info', 'Filters cleared');
@@ -324,7 +333,7 @@ function renderModelSelection() {
     if (selectedCountEl) selectedCountEl.textContent = selectedModelIds.length;
     if (providersCountEl) providersCountEl.textContent = new Set(models.map(m => m.provider || m.Provider || 'unknown')).size;
     if (filteredCountEl) filteredCountEl.textContent = `${filteredModels.length} model${filteredModels.length !== 1 ? 's' : ''}`;
-    
+
     // Show/hide bulk actions
     if (bulkActionsEl) {
         if (selectedModelIds.length > 0) {
@@ -447,7 +456,7 @@ function renderQuerySettings() {
     const queryMode = getUIState().queryMode;
 
     container.className = 'query-settings-redesigned';
-    
+
     let html = `
         <div class="setting-group-redesigned">
             <label class="setting-group-label">
@@ -515,13 +524,13 @@ function renderQuerySettings() {
     container.innerHTML = html;
     updateMaxTokensDisplay();
     updateTemperatureDisplay();
-    
+
     // Add event listeners
     const maxTokensSlider = document.getElementById('maxTokensSlider');
     const maxTokensInput = document.getElementById('maxTokensInput');
     const tempSlider = document.getElementById('temperatureSlider');
     const tempInput = document.getElementById('temperatureInput');
-    
+
     if (maxTokensSlider && maxTokensInput) {
         maxTokensSlider.addEventListener('input', () => {
             maxTokensInput.value = maxTokensSlider.value;
@@ -532,7 +541,7 @@ function renderQuerySettings() {
             updateMaxTokensDisplay();
         });
     }
-    
+
     if (tempSlider && tempInput) {
         tempSlider.addEventListener('input', () => {
             tempInput.value = tempSlider.value;
@@ -599,12 +608,24 @@ function autoResizeTextarea(textarea) {
     textarea.style.height = 'auto';
 
     // Calculate new height based on content
-    const minHeight = 80; // min-height from CSS
-    const maxHeight = 300; // max-height from CSS
+    const minHeight = 48; // Reduced min-height for compact default
+    const maxHeight = 240; // max-height from CSS
     const scrollHeight = textarea.scrollHeight;
 
     // Set height, respecting min and max constraints
-    const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+    // Only expand if content is more than single line
+    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 24;
+    const singleLineHeight = lineHeight + 24; // line height + padding
+
+    let newHeight;
+    if (scrollHeight <= singleLineHeight) {
+        // Single line or less - use min height
+        newHeight = minHeight;
+    } else {
+        // Multiple lines - expand to fit content
+        newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+    }
+
     textarea.style.height = `${newHeight}px`;
 
     // Show scrollbar if content exceeds max height
@@ -651,15 +672,123 @@ function renderResultsHeader() {
 }
 
 /**
+ * Normalize response payloads so chat rendering can always display text/metrics.
+ * Supports array responses (e.g., {results:[...]}) and various UAIP/legacy shapes.
+ */
+function normalizeResponsesForChat(responses) {
+    if (!responses) return {};
+
+    const normalizeEntry = (resp, fallbackKey) => {
+        if (!resp || typeof resp !== 'object') {
+            return {
+                model: fallbackKey || 'Assistant',
+                response: String(resp ?? ''),
+                success: resp !== undefined && resp !== null,
+                time: 0,
+                tokens: 0
+            };
+        }
+
+        const responseText =
+            resp.response ||
+            resp.data ||
+            resp.text ||
+            resp.output ||
+            (resp.result && resp.result.data) ||
+            '';
+
+        const tokens =
+            resp.tokens ||
+            resp.tokens_used ||
+            (resp.result && resp.result.tokens_used) ||
+            (resp.metadata && resp.metadata.tokens_used) ||
+            0;
+
+        const time =
+            resp.time ||
+            resp.processing_ms ||
+            resp.latency_ms ||
+            (resp.result && resp.result.processing_ms) ||
+            0;
+
+        const model =
+            resp.model ||
+            resp.model_id ||
+            resp.model_name ||
+            (resp.result && resp.result.model_used) ||
+            fallbackKey ||
+            'Assistant';
+
+        const cost =
+            resp.cost ??
+            (resp.metadata && resp.metadata.cost_info && resp.metadata.cost_info.total_cost) ??
+            (resp.result && resp.result.cost);
+
+        const error = resp.error || (resp.result && resp.result.error);
+        const success = error ? false : resp.success !== false;
+
+        return {
+            ...resp,
+            model,
+            response: responseText,
+            tokens,
+            time,
+            cost,
+            success,
+            error
+        };
+    };
+
+    if (Array.isArray(responses.results)) {
+        const normalized = {};
+        responses.results.forEach((item, idx) => {
+            const key =
+                item.model_id ||
+                item.model ||
+                item.model_name ||
+                (item.result && item.result.model_used) ||
+                `result-${idx}`;
+            normalized[key] = normalizeEntry(item, key);
+        });
+        return normalized;
+    }
+
+    if (Array.isArray(responses)) {
+        const normalized = {};
+        responses.forEach((item, idx) => {
+            const key =
+                item.model_id ||
+                item.model ||
+                item.model_name ||
+                (item.result && item.result.model_used) ||
+                `result-${idx}`;
+            normalized[key] = normalizeEntry(item, key);
+        });
+        return normalized;
+    }
+
+    const normalized = {};
+    Object.entries(responses).forEach(([key, value]) => {
+        normalized[key] = normalizeEntry(value, key);
+    });
+    return normalized;
+}
+
+/**
  * Render results as chat messages
  */
 function renderResults(responses, queryInfo) {
     const chatMessages = document.getElementById('chatMessages');
     const welcomeSection = document.getElementById('welcomeSection');
 
+    // Normalize responses to avoid runtime errors and guarantee text/tokens/time
+    const normalizedResponses = normalizeResponsesForChat(responses);
+    const responseEntries = Object.entries(normalizedResponses);
+
     // Hide welcome section
     if (welcomeSection) {
         welcomeSection.style.display = 'none';
+        if (chatMessages) chatMessages.style.display = 'flex';
     }
 
     if (!chatMessages) {
@@ -671,7 +800,7 @@ function renderResults(responses, queryInfo) {
     }
 
     // Show empty state if no messages and no responses
-    if (chatMessages.children.length === 0 && (!responses || Object.keys(responses).length === 0)) {
+    if (chatMessages.children.length === 0 && responseEntries.length === 0) {
         if (typeof renderEmptyState === 'function') {
             renderEmptyState(chatMessages, {
                 icon: '💬',
@@ -684,21 +813,25 @@ function renderResults(responses, queryInfo) {
         return;
     }
 
-    // Add user message
-    const userMessage = document.createElement('div');
-    userMessage.className = 'chat-message user';
-    userMessage.innerHTML = `
-        <div class="chat-message-header">You</div>
-        <div class="chat-message-content">${escapeHtml(queryInfo.prompt || '')}</div>
-    `;
-    chatMessages.appendChild(userMessage);
+    // Add user message if not skipped
+    if (!queryInfo || queryInfo.skipUser !== true) {
+        const userMessage = document.createElement('div');
+        userMessage.className = 'chat-message user';
+        userMessage.innerHTML = `
+            <div class="chat-message-header">You</div>
+            <div class="chat-message-bubble">
+                <div class="chat-message-content">${escapeHtml(queryInfo.prompt || '')}</div>
+            </div>
+        `;
+        chatMessages.appendChild(userMessage);
+    }
 
     // Determine if UAIP format
-    const isUAIP = Object.values(responses)[0]?.uaip || false;
+    const isUAIP = responseEntries[0]?.[1]?.uaip || false;
 
     // Add assistant messages for each model - all collapsed by default
     let messageIndex = 0;
-    for (const [modelKey, response] of Object.entries(responses)) {
+    for (const [modelKey, response] of responseEntries) {
         const model = getModels().find(m => (m.id || m.ID) === modelKey || (m.model_name || m.ModelName) === modelKey);
         const modelInfo = model || {
             display_name: modelKey,
@@ -712,13 +845,33 @@ function renderResults(responses, queryInfo) {
             'AI Assistant';
 
         const assistantMessage = document.createElement('div');
-        assistantMessage.className = 'chat-message assistant glass-panel collapsed';
+        assistantMessage.className = 'chat-message assistant';
         assistantMessage.dataset.messageIndex = messageIndex;
 
-        const responseText = response.response || response.data || '';
         const success = response.success !== false;
-        const time = response.time || response.processing_ms || 0;
-        const tokens = response.tokens || response.tokens_used || 0;
+        let responseText =
+            response.response ||
+            response.data ||
+            (response.result && response.result.data) ||
+            response.output ||
+            response.text ||
+            '';
+
+        if (success && !responseText.trim()) {
+            responseText = '_The model returned an empty response. This can occasionally happen with free tier models or specific prompt constraints. Please try again or switch to a different model._';
+        }
+        const time =
+            response.time ||
+            response.processing_ms ||
+            (response.result && response.result.processing_ms) ||
+            response.latency_ms ||
+            0;
+        const tokens =
+            response.tokens ||
+            response.tokens_used ||
+            (response.result && response.result.tokens_used) ||
+            (response.metadata && response.metadata.tokens_used) ||
+            0;
         const previewText = responseText.length > 150
             ? escapeHtml(responseText.substring(0, 150)) + '...'
             : escapeHtml(responseText);
@@ -728,21 +881,20 @@ function renderResults(responses, queryInfo) {
         assistantMessage.innerHTML = `
             <div class="chat-message-header" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="toggleChatMessage('${messageId}')">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 12px; font-weight: 500;">${escapeHtml(modelName)}</span>
-                    ${success ? '<span style="color: var(--success-color); font-size: 14px;">✓</span>' : '<span style="color: var(--error-color); font-size: 14px;">✗</span>'}
-                    <span style="font-size:11px;color:var(--text-tertiary);">
+                    <span style="font-size: 11px; font-weight: 600; font-family: var(--font-mono);">${escapeHtml(modelName)}</span>
+                    ${success ? '<span style="color: var(--success-color); font-size: 12px;">✓</span>' : '<span style="color: var(--error-color); font-size: 12px;">✗</span>'}
+                    <span style="font-size:10px;color:var(--text-tertiary);font-family:var(--font-mono);">
                         ${formatResponseTime(time)} • ${formatTokenCount(tokens)} tokens
                     </span>
                 </div>
-                <button class="expand-toggle-btn" onclick="event.stopPropagation(); toggleChatMessage('${messageId}')" style="background: none; border: none; color: var(--text-tertiary); cursor: pointer; padding: 4px; font-size: 14px; display: flex; align-items: center;">
+                <button class="expand-toggle-btn" onclick="event.stopPropagation(); toggleChatMessage('${messageId}')" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-tertiary); cursor: pointer; padding: 4px 8px; font-size: 11px; display: flex; align-items: center; transition: all 0.2s ease;">
                     ▼
                 </button>
             </div>
-            <div class="chat-message-preview" style="font-size: 13px; color: var(--text-secondary); margin-top: 8px; line-height: 1.5;">
-                ${success ? previewText : `<span style="color:var(--error-color);">Error: ${escapeHtml(response.error || 'Unknown error')}</span>`}
-            </div>
-            <div class="chat-message-content" style="display: none; margin-top: 12px;">
-                ${success ? escapeHtml(responseText) : `<span style="color:var(--error-color);">Error: ${escapeHtml(response.error || 'Unknown error')}</span>`}
+            <div class="chat-message-bubble">
+                <div class="chat-message-content" style="display: block; margin-top: 0; line-height: 1.75;">
+                    ${success ? escapeHtml(responseText).replace(/\n/g, '<br>') : `<span style="color:var(--error-color);">Error: ${escapeHtml(response.error || 'Unknown error')}</span>`}
+                </div>
             </div>
         `;
         chatMessages.appendChild(assistantMessage);
@@ -750,7 +902,7 @@ function renderResults(responses, queryInfo) {
     }
 
     // Scroll to bottom
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    scrollChatToBottom(chatMessages);
 }
 
 /**
@@ -904,6 +1056,66 @@ function toggleChatMessage(messageId) {
     }
 }
 
+// Track inline status message node
+let chatStatusMessage = null;
+
+/**
+ * Show inline chat status (loading/error) inside the transcript
+ */
+function showChatStatus(status = 'loading', message = '') {
+    const chatMessages = document.getElementById('chatMessages');
+    const welcomeSection = document.getElementById('welcomeSection');
+    if (!chatMessages) return;
+
+    if (welcomeSection) {
+        welcomeSection.style.display = 'none';
+    }
+
+    // Remove existing status bubble
+    clearChatStatus();
+
+    const statusNode = document.createElement('div');
+    const isError = status === 'error';
+    statusNode.className = `chat-message assistant status ${isError ? 'status-error' : 'status-loading'}`;
+    statusNode.innerHTML = `
+        <div class="chat-message-header">
+            ${isError ? 'Error' : 'Working'}
+        </div>
+        <div class="chat-message-bubble">
+            <div class="chat-message-content">
+                ${isError ? escapeHtml(message || 'Something went wrong') : `<span class="typing-indicator"><span></span><span></span><span></span></span> ${escapeHtml(message || 'Processing your request...')}`}
+            </div>
+        </div>
+    `;
+
+    chatMessages.appendChild(statusNode);
+    chatStatusMessage = statusNode;
+    scrollChatToBottom(chatMessages);
+}
+
+/**
+ * Clear inline chat status bubble
+ */
+function clearChatStatus() {
+    if (chatStatusMessage && chatStatusMessage.remove) {
+        chatStatusMessage.remove();
+    }
+    chatStatusMessage = null;
+}
+
+/**
+ * Smoothly scroll chat container to bottom
+ */
+function scrollChatToBottom(chatContainer) {
+    if (!chatContainer) return;
+    requestAnimationFrame(() => {
+        chatContainer.scrollTo({
+            top: chatContainer.scrollHeight,
+            behavior: 'smooth'
+        });
+    });
+}
+
 /**
  * Show loading state
  */
@@ -920,6 +1132,7 @@ function showLoading(message = 'Querying AI Models...') {
     }
 
     setUIState({ loading: true });
+    setInputDisabled(true);
 }
 
 /**
@@ -931,6 +1144,7 @@ function hideLoading() {
         loadingOverlay.classList.remove('active');
     }
     setUIState({ loading: false });
+    setInputDisabled(false);
 }
 
 /**
@@ -948,6 +1162,31 @@ function showError(message, details = null) {
     }
     hideLoading();
     showToast('error', 'Error', message);
+}
+
+/**
+ * Enable/disable chat input controls while loading
+ */
+function setInputDisabled(disabled) {
+    const promptInput = document.getElementById('promptInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const actionButtons = document.querySelectorAll('.input-action-btn, .toggle-reasoning-btn');
+
+    if (promptInput) {
+        promptInput.disabled = disabled;
+    }
+    if (sendBtn) {
+        sendBtn.disabled = disabled;
+        sendBtn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    }
+    actionButtons.forEach(btn => {
+        btn.disabled = disabled;
+        if (disabled) {
+            btn.classList.add('is-disabled');
+        } else {
+            btn.classList.remove('is-disabled');
+        }
+    });
 }
 
 /**
@@ -1090,16 +1329,16 @@ function setModelView(view) {
     const container = document.getElementById('modelGridContainer');
     const gridBtn = document.querySelector('[data-view="grid"]');
     const listBtn = document.querySelector('[data-view="list"]');
-    
+
     if (!container) return;
-    
+
     // Update container class
     if (view === 'list') {
         container.classList.add('list-view');
     } else {
         container.classList.remove('list-view');
     }
-    
+
     // Update button states
     if (gridBtn && listBtn) {
         if (view === 'list') {
@@ -1110,7 +1349,7 @@ function setModelView(view) {
             listBtn.classList.remove('active');
         }
     }
-    
+
     // Save preference
     localStorage.setItem('gaiol_modelView', view);
 }
@@ -1121,19 +1360,86 @@ function setModelView(view) {
 function clearSearchInput() {
     const searchInput = document.getElementById('modelsSearchInput');
     const clearBtn = document.getElementById('searchClearBtn');
-    
+
     if (searchInput) {
         searchInput.value = '';
         const filters = getFilters();
         setFilters({ ...filters, search: '' });
         renderModelSelection();
     }
-    
+
     if (clearBtn) {
         clearBtn.style.display = 'none';
     }
 }
 
+/**
+ * Set prompt and submit query (from action cards)
+ */
+function setPromptAndSubmit(text) {
+    const promptInput = document.getElementById('promptInput');
+    if (promptInput) {
+        promptInput.value = text;
+        autoResizeTextarea(promptInput);
+        handleQuerySubmit();
+    }
+}
+
+/**
+ * Handle quick action chip click
+ */
+function handleChipClick(text) {
+    const promptInput = document.getElementById('promptInput');
+    if (promptInput) {
+        // If there's already text, append with a newline
+        if (promptInput.value.trim()) {
+            promptInput.value += '\n' + text;
+        } else {
+            promptInput.value = text;
+        }
+        autoResizeTextarea(promptInput);
+        promptInput.focus();
+    }
+}
+
+/**
+ * Add an inline status row to the chat (inspired by Image 0)
+ */
+function addChatStatusRow(text, iconType = 'info') {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+
+    const statusRow = document.createElement('div');
+    statusRow.className = 'chat-status-row';
+
+    // Choose icon based on type
+    let iconSvg = '';
+    if (iconType === 'loading') {
+        iconSvg = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+    } else {
+        iconSvg = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+        `;
+    }
+
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    statusRow.innerHTML = `
+        <div class="chat-status-content">
+            <div class="chat-status-icon">${iconSvg}</div>
+            <div class="chat-status-text">${escapeHtml(text)}</div>
+        </div>
+        <div class="chat-status-time">${time}</div>
+    `;
+
+    chatMessages.appendChild(statusRow);
+    scrollChatToBottom(chatMessages);
+    return statusRow;
+}
 /**
  * Handle model sorting
  */
@@ -1141,9 +1447,9 @@ function handleModelSort(sortBy) {
     const models = getModels();
     const filters = getFilters();
     const filteredModels = filterModels(models, filters);
-    
+
     let sortedModels = [...filteredModels];
-    
+
     switch (sortBy) {
         case 'name':
             sortedModels = sortModels(sortedModels, 'name');
@@ -1158,11 +1464,11 @@ function handleModelSort(sortBy) {
             sortedModels = sortModels(sortedModels, 'quality');
             break;
     }
-    
+
     // Re-render with sorted models
     const container = document.getElementById('modelGridContainer');
     if (!container) return;
-    
+
     // Temporarily store sorted models
     const originalModels = getModels();
     setModels(sortedModels);
@@ -1183,35 +1489,35 @@ function toggleFilterSidebar() {
 }
 
 // Initialize models page enhancements
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Setup search input
     const searchInput = document.getElementById('modelsSearchInput');
     if (searchInput) {
         const clearBtn = document.getElementById('searchClearBtn');
-        
+
         searchInput.addEventListener('input', debounce(() => {
             const value = searchInput.value.trim();
             if (clearBtn) {
                 clearBtn.style.display = value ? 'flex' : 'none';
             }
-            
+
             const filters = getFilters();
             setFilters({ ...filters, search: value });
             renderModelSelection();
         }, 300));
-        
+
         // Show clear button if input has value on load
         if (searchInput.value.trim() && clearBtn) {
             clearBtn.style.display = 'flex';
         }
     }
-    
+
     // Load saved view preference
     const savedView = localStorage.getItem('gaiol_modelView') || 'grid';
     if (savedView) {
         setModelView(savedView);
     }
-    
+
     // Update bulk actions visibility
     const selectedModels = getSelectedModels();
     const bulkActions = document.getElementById('modelsBulkActions');
@@ -1250,9 +1556,9 @@ function clearPromptInput() {
 function sortCompareResults(criteria) {
     const container = document.getElementById('resultsSection');
     if (!container) return;
-    
+
     const cards = Array.from(container.querySelectorAll('.result-card-compare, .result-card'));
-    
+
     cards.sort((a, b) => {
         if (criteria === 'quality') {
             const qualityA = parseFloat(a.querySelector('.result-metric-value')?.textContent) || 0;
@@ -1266,7 +1572,7 @@ function sortCompareResults(criteria) {
         }
         return 0;
     });
-    
+
     cards.forEach(card => container.appendChild(card));
     showToast('info', `Results sorted by ${criteria}`);
 }
