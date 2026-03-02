@@ -62,14 +62,26 @@ func AuthMiddleware(db *database.Client) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Create tenant context
-			tenantCtx := database.TenantContext{
-				TenantID: user.TenantID,
-				UserID:   user.ID,
-				OrgID:    user.OrgID,
+			// Resolve tenant from DB when available (Phase 3: every protected request has DB-backed tenant)
+			var tenantCtx database.TenantContext
+			if db != nil {
+				tc, err := db.GetTenantInfo(r.Context(), user.ID)
+				if err != nil || tc == nil {
+					tenantCtx = database.TenantContext{TenantID: user.ID, UserID: user.ID, OrgID: user.OrgID}
+				} else {
+					tenantCtx = *tc
+					if tenantCtx.TenantID == "" {
+						tenantCtx.TenantID = user.ID
+					}
+				}
+			} else {
+				tenantCtx = database.TenantContext{TenantID: user.TenantID, UserID: user.ID, OrgID: user.OrgID}
+				if tenantCtx.TenantID == "" {
+					tenantCtx.TenantID = user.ID
+				}
 			}
 
-			// Add user and tenant to request context
+			// Add user and tenant to request context. Downstream code must read tenant via database.GetTenantFromContext.
 			ctx := context.WithValue(r.Context(), "user", user)
 			ctx = database.WithTenant(ctx, tenantCtx)
 

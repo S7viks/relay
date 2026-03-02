@@ -12,20 +12,28 @@ This guide explains how to set up Supabase database connection with multitenancy
 Create a `.env` file in the project root with your Supabase credentials:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://tftegavokjubehogcnhj.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=sb_publishable_8bM3gAhZKcYP6uL7inwVdA_1pxtO475
+# Replace with your own Supabase project URL and anon key (from Supabase Dashboard → Settings → API)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your-anon-key-here
 
 # Optional: Alternative variable names
-SUPABASE_URL=https://tftegavokjubehogcnhj.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_8bM3gAhZKcYP6uL7inwVdA_1pxtO475
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
 ## Step 2: Database Schema Setup
 
 1. Open your Supabase Dashboard
 2. Navigate to **SQL Editor**
-3. Copy and paste the contents of `migrations/001_initial_schema.sql`
-4. Click **Run** to execute the migration
+3. Run the migrations (see below for timeout workaround)
+
+**If you get "Connection terminated due to connection timeout":**
+- Run the schema in **chunks** (see [Troubleshooting: Connection timeout](#connection-timeout-when-running-migrations)).
+- Or use the split files under `migrations/chunks/`: run `001_part1_tables.sql`, then `001_part2_indexes_rls.sql`, then `001_part3_policies.sql`, then `001_part4_trigger.sql`, then (from `migrations/`) `007_api_keys_multitenant.sql`.
+
+Full migration in one go (if no timeout):
+- Copy and paste the contents of `migrations/001_initial_schema.sql`, click **Run**
+- Then run `migrations/007_api_keys_multitenant.sql`
 
 This will create:
 - `organizations` table for multi-tenant organizations
@@ -143,6 +151,20 @@ Tracks all API queries for analytics and billing:
 - **Automatic Filtering**: Database queries are automatically filtered by tenant_id
 
 ## Troubleshooting
+
+### Connection timeout when running migrations
+
+If the SQL Editor shows **"Connection terminated due to connection timeout"**:
+
+1. **Run in chunks** – Don’t run the whole migration at once. Run one block at a time in the SQL Editor:
+   - **Chunk 1:** Extension + tables (`CREATE EXTENSION` through `CREATE TABLE api_queries`)
+   - **Chunk 2:** Indexes + RLS (`CREATE INDEX` and `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`)
+   - **Chunk 3:** Policies (`CREATE POLICY` statements)
+   - **Chunk 4:** Function + trigger (`handle_new_user`, `on_auth_user_created`)
+   - **Chunk 5:** `get_tenant_context` function
+2. **Use the chunk files** – In `migrations/chunks/` run in order: `001_part1_tables.sql`, `001_part2_indexes_rls.sql`, `001_part3_policies.sql`, `001_part4_trigger.sql`. Then run `migrations/007_api_keys_multitenant.sql`.
+3. **Retry** – Sometimes the project is cold; run the same query again after a few seconds.
+4. **Network** – Prefer a stable connection; avoid VPNs that might drop long-running requests.
 
 ### Database Connection Fails
 

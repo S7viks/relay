@@ -68,10 +68,10 @@ try {
     # Server is not running, continue
 }
 
-# Check if binary exists, build if needed or if -Build flag is set
+# Build from repo root (single codebase: cmd/web-server, internal/, web/)
 if ($Build -or -not (Test-Path "web-server.exe")) {
     Write-Host "Building web server..." -ForegroundColor Cyan
-    go build -o web-server.exe ./cmd/web-server/main.go
+    go build -o web-server.exe ./cmd/web-server/
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Build failed!" -ForegroundColor Red
         exit 1
@@ -80,7 +80,7 @@ if ($Build -or -not (Test-Path "web-server.exe")) {
     Write-Host ""
 }
 
-# Start the server
+# Start the server (run from repo root so ./web resolves to root web/)
 Write-Host "Starting web server..." -ForegroundColor Cyan
 Write-Host ""
 

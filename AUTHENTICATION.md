@@ -353,7 +353,7 @@ curl -X POST http://localhost:8080/api/query/smart \
 
 ## Next Steps
 
-- Add password reset functionality
+- Password reset (optional per implementation plan Phase 2.8): "Forgot password?" on login shows a placeholder; Supabase Auth recovery can be wired later.
 - Implement OAuth providers (Google, GitHub, etc.)
 - Add email verification
 - Implement role-based access control (RBAC)

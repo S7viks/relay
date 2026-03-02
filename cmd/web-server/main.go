@@ -14,6 +14,7 @@ import (
 
 	"gaiol/internal/auth"
 	"gaiol/internal/database"
+	"gaiol/internal/keys"
 	"gaiol/internal/models"
 	"gaiol/internal/models/adapters"
 	"gaiol/internal/monitoring"
@@ -26,11 +27,12 @@ import (
 var (
 	registry     *models.Registry
 	router       *models.ModelRouter
+	tracker      *models.PerformanceTracker
 	dbClient     *database.Client
 	dbAvailable  bool
 	authAPI      *auth.AuthAPI
 	reasoningAPI *reasoning.ReasoningAPI
-	worldModel   *reasoning.WorldModel // NEW
+	worldModel   *reasoning.WorldModel
 	metrics      *monitoring.MetricsService
 )
 
@@ -55,22 +57,17 @@ func main() {
 		ollamaAdapter = nil
 	}
 
-	// 2. HuggingFace (free API, backup)
-	hfAPIKey := os.Getenv("HUGGINGFACE_API_KEY")
-	hfAdapter := adapters.NewHuggingFaceAdapter("", hfAPIKey)
-	fmt.Println("✅ HuggingFace adapter initialized (backup provider)")
-
-	// 3. OpenRouter (last resort due to rate limits)
-	openRouterAPIKey := os.Getenv("OPENROUTER_API_KEY")
-	openRouterAdapter := adapters.NewOpenRouterAdapter("", openRouterAPIKey)
-	fmt.Println("✅ OpenRouter adapter initialized (fallback only)")
+	// 2. HuggingFace and 3. OpenRouter: no env keys for tenant-facing API (Phase 4).
+	// Tenant inference uses provider keys from DB only. Empty adapters here for fallback when DB/keys unavailable.
+	hfAdapter := adapters.NewHuggingFaceAdapter("", "")
+	openRouterAdapter := adapters.NewOpenRouterAdapter("", "")
+	fmt.Println("✅ HuggingFace and OpenRouter adapters initialized (tenant keys from DB)")
 
 	// Create registry with priority: Ollama > HF > OpenRouter
 	registry = models.NewRegistry(openRouterAdapter, hfAdapter, ollamaAdapter)
 	fmt.Printf("📋 Registry initialized with %d models\n", registry.Count())
 
 	// Initialize database (optional)
-	var tracker *models.PerformanceTracker
 	var err error
 	dbClient, err = database.NewClient()
 	if err != nil {
@@ -174,8 +171,12 @@ func registerRoutes() {
 	cors := corsMiddleware
 
 	// 1. Root and System Routes (public)
-	http.HandleFunc("/", noCacheFileServer)
 	http.HandleFunc("/health", handleHealth)
+	// Auth and app pages (exact paths so they take precedence over file server)
+	http.HandleFunc("/login", serveStaticPage("login.html"))
+	http.HandleFunc("/signup", serveStaticPage("signup.html"))
+	http.HandleFunc("/dashboard", serveStaticPage("dashboard.html"))
+	http.HandleFunc("/", noCacheFileServer)
 
 	// 2. Model Routes (public, specific first)
 	http.HandleFunc("/api/models/free", cors(handleListFreeModels))
@@ -191,43 +192,68 @@ func registerRoutes() {
 	http.Handle("/api/auth/refresh", optionalAuthMiddleware(authMiddleware, cors(handleRefreshToken)))
 	http.Handle("/api/auth/user", optionalAuthMiddleware(authMiddleware, cors(handleGetUser)))
 
-	// 4. Query Routes (auth optional - works with or without database)
-	// If database is available, use auth middleware (but make it optional)
-	// If database is not available, allow queries without auth
+	// 4. Query Routes (protected when DB available; require auth for Phase 2)
 	if dbAvailable && authAPI != nil {
-		// Use auth middleware but make it optional (allow requests without auth)
 		authMiddleware := auth.AuthMiddleware(dbClient)
-		http.Handle("/api/query", optionalAuthMiddleware(authMiddleware, cors(handleQuery)))
-		http.Handle("/api/query/smart", optionalAuthMiddleware(authMiddleware, cors(handleQuerySmart)))
-		http.Handle("/api/query/model", optionalAuthMiddleware(authMiddleware, cors(handleQueryModel)))
+		http.Handle("/api/query", authMiddleware(cors(handleQuery)))
+		http.Handle("/api/query/smart", authMiddleware(cors(handleQuerySmart)))
+		http.Handle("/api/query/model", authMiddleware(cors(handleQueryModel)))
 	} else {
-		// No database: allow queries without auth
 		http.HandleFunc("/api/query", cors(handleQuery))
 		http.HandleFunc("/api/query/smart", cors(handleQuerySmart))
 		http.HandleFunc("/api/query/model", cors(handleQueryModel))
 	}
 
-	// 5. Reasoning Routes
-	http.HandleFunc("/api/reasoning/start", cors(handleReasoningStart))
-	http.HandleFunc("/api/reasoning/status/", cors(handleReasoningStatus))
-	http.HandleFunc("/api/reasoning/ws", cors(handleReasoningWebSocket))
+	// 5. Reasoning Routes (protected when DB available)
+	if dbAvailable && authAPI != nil {
+		reqAuth := auth.AuthMiddleware(dbClient)
+		http.Handle("/api/reasoning/start", reqAuth(cors(handleReasoningStart)))
+		http.Handle("/api/reasoning/status/", reqAuth(cors(handleReasoningStatus)))
+		http.Handle("/api/reasoning/ws", reqAuth(cors(handleReasoningWebSocket)))
+	} else {
+		http.HandleFunc("/api/reasoning/start", cors(handleReasoningStart))
+		http.HandleFunc("/api/reasoning/status/", cors(handleReasoningStatus))
+		http.HandleFunc("/api/reasoning/ws", cors(handleReasoningWebSocket))
+	}
 	http.HandleFunc("/api/monitoring/stats", cors(handleMonitoringStats))
 
-	// 6. World Model Routes (NEW)
-	http.HandleFunc("/api/world-model/facts", cors(func(w http.ResponseWriter, r *http.Request) {
-		handleWorldModelFacts(w, r)
-	}))
-	http.HandleFunc("/api/world-model/store", cors(func(w http.ResponseWriter, r *http.Request) {
-		handleWorldModelStore(w, r)
-	}))
-	http.HandleFunc("/api/world-model/search", cors(func(w http.ResponseWriter, r *http.Request) {
-		handleWorldModelSearch(w, r)
-	}))
+	// 6. World Model Routes (protected when DB available)
+	if dbAvailable && authAPI != nil {
+		reqAuth := auth.AuthMiddleware(dbClient)
+		http.Handle("/api/world-model/facts", reqAuth(cors(func(w http.ResponseWriter, r *http.Request) {
+			handleWorldModelFacts(w, r)
+		})))
+		http.Handle("/api/world-model/store", reqAuth(cors(func(w http.ResponseWriter, r *http.Request) {
+			handleWorldModelStore(w, r)
+		})))
+		http.Handle("/api/world-model/search", reqAuth(cors(func(w http.ResponseWriter, r *http.Request) {
+			handleWorldModelSearch(w, r)
+		})))
+	} else {
+		http.HandleFunc("/api/world-model/facts", cors(handleWorldModelFacts))
+		http.HandleFunc("/api/world-model/store", cors(handleWorldModelStore))
+		http.HandleFunc("/api/world-model/search", cors(handleWorldModelSearch))
+	}
 
-	// 7. Multi-Agent Workflow Route (updated to use world model)
-	http.HandleFunc("/api/agent/workflow", cors(func(w http.ResponseWriter, r *http.Request) {
-		handleAgentWorkflow(w, r)
-	}))
+	// 7. Multi-Agent Workflow Route (protected when DB available)
+	if dbAvailable && authAPI != nil {
+		reqAuth := auth.AuthMiddleware(dbClient)
+		http.Handle("/api/agent/workflow", reqAuth(cors(func(w http.ResponseWriter, r *http.Request) {
+			handleAgentWorkflow(w, r)
+		})))
+	} else {
+		http.HandleFunc("/api/agent/workflow", cors(handleAgentWorkflow))
+	}
+
+	// 8. Provider keys and GAIOL keys (Phase 4; protected when DB available)
+	if dbAvailable && authAPI != nil {
+		reqAuth := auth.AuthMiddleware(dbClient)
+		http.Handle("/api/settings/provider-keys", reqAuth(cors(handleProviderKeys)))
+		http.Handle("/api/gaiol-keys", reqAuth(cors(handleGAIOLKeys)))
+		http.Handle("/api/gaiol-keys/", reqAuth(cors(handleGAIOLKeysID)))
+	}
+	// 9. Unified inference by GAIOL key only (no JWT)
+	http.Handle("/v1/chat", cors(handleV1Chat))
 }
 
 // ============================================================================
@@ -269,6 +295,24 @@ func optionalAuthMiddleware(authMiddleware func(http.Handler) http.Handler, next
 		// Auth credentials present - validate them using auth middleware
 		authMiddleware(next).ServeHTTP(w, r)
 	})
+}
+
+// ============================================================================
+// Static page server (for /login, /signup, /dashboard)
+// ============================================================================
+
+func serveStaticPage(filename string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		file, err := os.Open("./web/" + filename)
+		if err != nil {
+			http.Error(w, filename+" not found", http.StatusNotFound)
+			return
+		}
+		defer file.Close()
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		http.ServeContent(w, r, filename, time.Time{}, file)
+	}
 }
 
 // ============================================================================
@@ -406,6 +450,52 @@ func convertModelsToJSON(models []models.ModelMetadata) []map[string]interface{}
 		}
 	}
 	return result
+}
+
+// logUsageToAPIQueries inserts a row into api_queries for usage/billing. Best-effort; errors are logged only.
+func logUsageToAPIQueries(db *database.Client, tenant database.TenantContext, modelID string, tokensUsed int, cost float64, processingMs int, success bool, errMsg string) error {
+	if db == nil || db.Client == nil {
+		return nil
+	}
+	row := map[string]interface{}{
+		"tenant_id":          tenant.TenantID,
+		"organization_id":   tenant.OrgID,
+		"user_id":           tenant.UserID,
+		"model_id":          modelID,
+		"tokens_used":       tokensUsed,
+		"cost":               cost,
+		"processing_time_ms": processingMs,
+		"success":           success,
+		"error_message":     errMsg,
+	}
+	_, _, err := db.From("api_queries").Insert(row, false, "", "", "").Execute()
+	if err != nil {
+		log.Printf("⚠️ Failed to log usage to api_queries: %v", err)
+		return err
+	}
+	return nil
+}
+
+// buildRegistryFromKeys builds a model registry and router from tenant provider keys (openrouter, huggingface, google).
+// Returns (nil, nil) if no keys are present. Caller must not use env provider keys for tenant inference.
+func buildRegistryFromKeys(providerKeys map[string]string, tracker *models.PerformanceTracker) (*models.Registry, *models.ModelRouter) {
+	var openRouter, hf, ollama models.ModelAdapter
+	if k := providerKeys["openrouter"]; k != "" {
+		openRouter = adapters.NewOpenRouterAdapter("", k)
+	}
+	if k := providerKeys["huggingface"]; k != "" {
+		hf = adapters.NewHuggingFaceAdapter("", k)
+	}
+	// Ollama: optional local; skip when building from tenant keys (tenant uses cloud keys only unless we add local later)
+	ollama = nil
+	reg := models.NewRegistry(openRouter, hf, ollama)
+	if k := providerKeys["google"]; k != "" {
+		reg.AddGeminiModels(adapters.NewGeminiAdapter(k))
+	}
+	if reg.Count() == 0 {
+		return nil, nil
+	}
+	return reg, models.NewModelRouter(reg, tracker)
 }
 
 // ============================================================================
@@ -550,26 +640,45 @@ func handleQuerySmart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if reasoning API is initialized
-	if reasoningAPI == nil || reasoningAPI.Engine == nil {
-		log.Printf("❌ Reasoning API or Engine is nil")
+	// Tenant-scoped inference: use provider keys from DB only (Phase 4)
+	var tenantCtx database.TenantContext
+	var engine *reasoning.ReasoningEngine
+	if dbAvailable && dbClient != nil {
+		tenantCtx, _ = database.GetTenantFromContext(r.Context())
+		providerKeys, loadErr := keys.LoadProviderKeysForTenant(r.Context(), dbClient, tenantCtx.TenantID)
+		if loadErr != nil {
+			log.Printf("❌ Load provider keys: %v", loadErr)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{"error": "Failed to load provider keys", "success": false})
+			return
+		}
+		tenantReg, tenantRouter := buildRegistryFromKeys(providerKeys, tracker)
+		if tenantReg == nil || tenantRouter == nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error":   "Add provider API keys in Dashboard Settings (OpenRouter, Google, or HuggingFace) to use the reasoning engine.",
+				"success": false,
+			})
+			return
+		}
+		engine = reasoning.NewReasoningEngine(tenantRouter)
+	} else {
+		tenantCtx, _ = database.GetTenantFromContext(r.Context())
+		engine = reasoningAPI.Engine
+	}
+	if engine == nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error":   "Reasoning engine not initialized",
-			"success": false,
-		})
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "Reasoning engine not initialized", "success": false})
 		return
 	}
 
-	// Use reasoning engine for ALL queries now
-	// The reasoning engine will automatically use single-step fallback for simple queries
-	sessionID := reasoningAPI.Engine.InitSession(r.Context(), req.Prompt)
-
+	sessionID := engine.InitSession(r.Context(), req.Prompt)
 	log.Printf("🧠 Starting reasoning session: %s", sessionID)
 
-	// Execute reasoning with automatic fallback
-	sm, err := reasoningAPI.Engine.RunSession(r.Context(), sessionID, req.Prompt, []string{})
+	sm, err := engine.RunSession(r.Context(), sessionID, req.Prompt, []string{})
 	if err != nil {
 		log.Printf("❌ Reasoning failed: %v", err)
 		w.Header().Set("Content-Type", "application/json")
@@ -619,6 +728,15 @@ func handleQuerySmart(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("✅ Reasoning completed successfully")
 
+	// Usage logging (Phase 4)
+	if dbClient != nil && tenantCtx.TenantID != "" {
+		cost := 0.0
+		if sm != nil {
+			cost = sm.TotalCost
+		}
+		_ = logUsageToAPIQueries(dbClient, tenantCtx, "reasoning-engine", 0, cost, 0, true, "")
+	}
+
 	// Build response in the same format as before for frontend compatibility
 	response := map[string]interface{}{
 		"uaip": true,
@@ -655,6 +773,191 @@ func handleQuerySmart(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("❌ Failed to encode response: %v", err)
 	}
+}
+
+func handleProviderKeys(w http.ResponseWriter, r *http.Request) {
+	tenantCtx, err := database.EnsureTenantContext(r.Context())
+	if err != nil || dbClient == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		list, err := keys.ListProviderKeys(r.Context(), dbClient, tenantCtx.TenantID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(list)
+	case http.MethodPost:
+		var body struct {
+			Provider string `json:"provider"`
+			APIKey   string `json:"api_key"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+		hint, err := keys.StoreProviderKey(r.Context(), dbClient, tenantCtx.TenantID, body.Provider, body.APIKey)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"key_hint": hint})
+	case http.MethodDelete:
+		provider := r.URL.Query().Get("provider")
+		if provider == "" {
+			http.Error(w, "provider query required", http.StatusBadRequest)
+			return
+		}
+		if err := keys.DeleteProviderKey(r.Context(), dbClient, tenantCtx.TenantID, provider); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func handleGAIOLKeys(w http.ResponseWriter, r *http.Request) {
+	tenantCtx, err := database.EnsureTenantContext(r.Context())
+	if err != nil || dbClient == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		list, err := keys.ListGAIOLKeys(r.Context(), dbClient, tenantCtx.TenantID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(list)
+	case http.MethodPost:
+		var body struct {
+			Name string `json:"name"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		rawKey, err := keys.CreateGAIOLKey(r.Context(), dbClient, tenantCtx.TenantID, body.Name)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"api_key": rawKey, "message": "Show once; store securely"})
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func handleGAIOLKeysID(w http.ResponseWriter, r *http.Request) {
+	tenantCtx, err := database.EnsureTenantContext(r.Context())
+	if err != nil || dbClient == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	id := strings.TrimPrefix(r.URL.Path, "/api/gaiol-keys/")
+	if id == "" {
+		http.Error(w, "key id required", http.StatusBadRequest)
+		return
+	}
+	if err := keys.RevokeGAIOLKey(r.Context(), dbClient, tenantCtx.TenantID, id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func handleV1Chat(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Authorization required", http.StatusUnauthorized)
+		return
+	}
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		http.Error(w, "Invalid Authorization header", http.StatusUnauthorized)
+		return
+	}
+	rawToken := strings.TrimSpace(parts[1])
+	tenantID, err := keys.ValidateGAIOLKey(r.Context(), dbClient, rawToken)
+	if err != nil || dbClient == nil {
+		http.Error(w, "Invalid or expired API key", http.StatusUnauthorized)
+		return
+	}
+	providerKeys, loadErr := keys.LoadProviderKeysForTenant(r.Context(), dbClient, tenantID)
+	if loadErr != nil {
+		http.Error(w, "Failed to load provider keys", http.StatusInternalServerError)
+		return
+	}
+	tenantReg, tenantRouter := buildRegistryFromKeys(providerKeys, tracker)
+	if tenantReg == nil || tenantRouter == nil {
+		http.Error(w, "No provider keys configured for this tenant", http.StatusBadRequest)
+		return
+	}
+	engine := reasoning.NewReasoningEngine(tenantRouter)
+	var body struct {
+		Prompt      string  `json:"prompt"`
+		Strategy    string  `json:"strategy"`
+		Task        string  `json:"task"`
+		MaxTokens   int     `json:"max_tokens"`
+		Temperature float64 `json:"temperature"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+	if body.Prompt == "" {
+		http.Error(w, "prompt is required", http.StatusBadRequest)
+		return
+	}
+	sessionID := engine.InitSession(r.Context(), body.Prompt)
+	sm, err := engine.RunSession(r.Context(), sessionID, body.Prompt, []string{})
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": err.Error(), "success": false})
+		return
+	}
+	finalOutput := ""
+	if sm != nil && len(sm.SelectedPath) > 0 {
+		composer := reasoning.NewComposer()
+		finalOutput = composer.AssembleFinalOutput(sm.SelectedPath)
+	} else if sm != nil && len(sm.Steps) > 0 {
+		for i := len(sm.Steps) - 1; i >= 0; i-- {
+			if sm.Steps[i].SelectedOutput != nil && sm.Steps[i].SelectedOutput.Response != "" {
+				finalOutput = sm.Steps[i].SelectedOutput.Response
+				break
+			}
+		}
+	}
+	tenantCtx := database.TenantContext{TenantID: tenantID, UserID: "", OrgID: ""}
+	cost := 0.0
+	if sm != nil {
+		cost = sm.TotalCost
+	}
+	_ = logUsageToAPIQueries(dbClient, tenantCtx, "reasoning-engine", 0, cost, 0, true, "")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"result":  finalOutput,
+		"cost":    cost,
+		"session_id": sessionID,
+	})
 }
 
 func handleQueryModel(w http.ResponseWriter, r *http.Request) {

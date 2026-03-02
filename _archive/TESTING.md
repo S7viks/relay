@@ -193,8 +193,8 @@ $env:GAIOL_ENV = "test"
 $env:GAIOL_LOG_LEVEL = "debug"
 
 # Optional: Real API keys for integration tests
-$env:OPENAI_API_KEY = "sk-..."
-$env:ANTHROPIC_API_KEY = "sk-ant-..."
+$env:OPENAI_API_KEY = "your-openai-key-here"
+$env:ANTHROPIC_API_KEY = "your-anthropic-key-here"
 ```
 
 ## Quick Test Commands

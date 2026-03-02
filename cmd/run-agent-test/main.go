@@ -13,7 +13,7 @@ func main() {
 	defer cancel()
 
 	router := reasoning.NewMockRouter()
-	workflow := reasoning.NewSimpleAgentWorkflow(router, "test-session")
+	workflow := reasoning.NewSimpleAgentWorkflow(router, "test-session", nil)
 
 	workflow.OnEvent = func(evt reasoning.ReasoningEvent) {
 		fmt.Printf("EVENT: %s - %v\n", evt.Type, evt.Payload)
