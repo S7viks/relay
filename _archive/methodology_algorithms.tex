@@ -1,0 +1,187 @@
+% ============================================================================
+% SECTION 4: ALGORITHMIC FRAMEWORK
+% Usage: \input{methodology_algorithms} inside your main.tex
+% Dependencies: \usepackage{algorithm}, \usepackage{algpseudocode}, \usepackage{amsmath}
+% ============================================================================
+
+\section{Algorithmic Framework}
+\label{sec:algorithms}
+
+Task decomposition, model selection, parallel inference, and consensus are handled by a collection of coordinated algorithms that make up the GAIOL reasoning and orchestration pipeline. This section describes how these elements work together to transform a single user query into an organized series of steps, investigate several lines of reasoning simultaneously, and provide a final response that balances dependability, quality, and cost.
+
+\subsection{Phase Overview}
+
+The reasoning process is divided into five phases that run in a fixed order but can adapt their internal behavior based on the query and context:
+
+\begin{enumerate}
+    \item \textbf{Decomposition}: The input query $Q$ is decomposed into a set of dependent sub-tasks $T = \{t_1, t_2, \ldots, t_n\}$ using a few-shot reasoning template.
+    \item \textbf{Smart Orchestration}: Each sub-task $t_i$ is mapped to a subset of models $\mathcal{M} \subset \mathcal{R}$ (Model Registry) based on capability and cost-efficiency.
+    \item \textbf{Heterogeneous Inference}: Models $m \in \mathcal{M}$ generate parallel candidate responses $C_i = \{c_{i,1}, c_{i,2}, \ldots\}$.
+    \item \textbf{Consensus Aggregation}: A scoring function $f_{\text{score}}(C_i)$ evaluates internal consistency and cross-model agreement to select or synthesize the optimal path.
+    \item \textbf{Verification}: The final synthesis is validated against retrieved ground-truth from the Persistent Storage layer.
+\end{enumerate}
+
+% ----------------------------------------------------------------------------
+% Algorithm 1: Orchestration
+% ----------------------------------------------------------------------------
+\subsection{Multi-Agent Beam Search Orchestration}
+
+Algorithm~\ref{alg:orchestration} presents the core orchestration logic, which employs a beam search strategy to explore multiple reasoning paths simultaneously while pruning suboptimal candidates at each step.
+
+\begin{algorithm}[!ht]
+\caption{GAIOL Intelligent Orchestration (Multi-Agent Beam Search)}
+\label{alg:orchestration}
+\begin{algorithmic}[1]
+\Require Query $Q$, Beam Width $k$, Model Registry $\mathcal{R}$
+\Ensure Optimized Response $S$
+
+\State $T \gets \text{Decompose}(Q)$ \Comment{$T = \{t_1, t_2, \ldots, t_n\}$}
+\State $B \gets \{ \emptyset \}$ \Comment{Initialize beams with empty paths}
+
+\For{each step $t_i \in T$}
+    \State $C \gets \emptyset$ \Comment{Candidate list for current step}
+    \For{each path $p \in B$}
+        \State $\mathcal{M} \gets \text{SelectModels}(t_i, \mathcal{R})$
+        \State $O \gets \text{ParallelExecute}(\mathcal{M}, t_i, \text{Context}(p))$
+        \State $O' \gets \text{ScoreAndRank}(O, \text{Objective}(t_i))$
+        
+        \If{ConsensusEnabled}
+            \State $O' \gets \text{ApplyConsensus}(O')$
+        \EndIf
+        
+        \For{each candidate $o \in O'$}
+            \State $C \gets C \cup \{ p \parallel o \}$ \Comment{Extend path}
+        \EndFor
+    \EndFor
+    \State $B \gets \text{TopK}(C, k)$ \Comment{Prune to best $k$ paths}
+\EndFor
+
+\State $bestPath \gets \text{Top1}(B)$
+\State $S \gets \text{Assemble}(bestPath)$
+\State \Return $S$
+\end{algorithmic}
+\end{algorithm}
+
+% ----------------------------------------------------------------------------
+% Algorithm 2: Decomposition
+% ----------------------------------------------------------------------------
+\subsection{Dynamic Task Decomposition}
+
+Algorithm~\ref{alg:decomposition} describes the decomposition process that transforms complex queries into structured sub-tasks with dependency tracking.
+
+\begin{algorithm}[!ht]
+\caption{Dynamic Task Decomposition}
+\label{alg:decomposition}
+\begin{algorithmic}[1]
+\Require Query $Q$, Decomposition Template $\mathcal{T}$
+\Ensure Ordered task list $T = \{t_1, t_2, \ldots, t_n\}$
+
+\State $prompt \gets \text{FormatTemplate}(\mathcal{T}, Q)$
+\State $response \gets \text{LLMInference}(prompt)$
+\State $steps \gets \text{ParseJSON}(response)$
+
+\If{$steps = \emptyset$ \textbf{or} $\neg\text{ValidateSteps}(steps)$}
+    \State $steps \gets \text{FallbackDecomposition}(Q)$ \Comment{7-step default}
+\EndIf
+
+\For{$i \gets 1$ \textbf{to} $|steps|$}
+    \State $t_i.\textit{id} \gets i$
+    \State $t_i.\textit{dependencies} \gets \text{InferDependencies}(steps, i)$
+    \State $t_i.\textit{objective} \gets steps[i].\textit{objective}$
+    \State $t_i.\textit{taskType} \gets \text{ClassifyTask}(steps[i])$
+\EndFor
+
+\State $T \gets \text{TopologicalSort}(\{t_1, \ldots, t_n\})$
+\State \Return $T$
+\end{algorithmic}
+\end{algorithm}
+
+% ----------------------------------------------------------------------------
+% Algorithm 3: Consensus
+% ----------------------------------------------------------------------------
+\subsection{Consensus Evaluation}
+
+Algorithm~\ref{alg:consensus} implements the consensus mechanism that evaluates and aggregates responses from multiple models.
+
+\begin{algorithm}[!ht]
+\caption{Weighted Consensus Evaluation}
+\label{alg:consensus}
+\begin{algorithmic}[1]
+\Require Candidate responses $C = \{c_1, c_2, \ldots, c_m\}$, Model weights $W$
+\Ensure Selected response $c^*$ with confidence $\sigma$
+
+\For{each candidate $c_i \in C$}
+    \State $s_i^{\text{quality}} \gets \text{EvaluateQuality}(c_i)$
+    \State $s_i^{\text{consistency}} \gets \text{CrossModelAgreement}(c_i, C \setminus \{c_i\})$
+    \State $s_i^{\text{model}} \gets W[\text{source}(c_i)]$ \Comment{Model reliability}
+    \State $s_i \gets \alpha \cdot s_i^{\text{quality}} + \beta \cdot s_i^{\text{consistency}} + \gamma \cdot s_i^{\text{model}}$
+\EndFor
+
+\State $C' \gets \text{SortDescending}(C, s)$
+\State $c^* \gets C'[1]$ \Comment{Highest scoring candidate}
+\State $\sigma \gets s_1 / \sum_{j=1}^{m} s_j$ \Comment{Confidence score}
+
+\If{$\sigma < \theta_{\min}$} \Comment{Low confidence threshold}
+    \State $c^* \gets \text{SynthesizeResponse}(C'[1:3])$ \Comment{Merge top 3}
+\EndIf
+
+\State \Return $c^*, \sigma$
+\end{algorithmic}
+\end{algorithm}
+
+% ----------------------------------------------------------------------------
+% Algorithm 4: Model Selection
+% ----------------------------------------------------------------------------
+\subsection{Intelligent Model Selection}
+
+Algorithm~\ref{alg:selection} describes the strategy-based model selection that routes tasks to appropriate models based on task characteristics and model capabilities.
+
+\begin{algorithm}[!ht]
+\caption{Strategy-Based Model Selection}
+\label{alg:selection}
+\begin{algorithmic}[1]
+\Require Task $t$, Model Registry $\mathcal{R}$, Budget $b$
+\Ensure Selected models $\mathcal{M} \subseteq \mathcal{R}$
+
+\State $taskType \gets \text{ClassifyTask}(t)$
+\State $complexity \gets \text{EstimateComplexity}(t)$
+\State $candidates \gets \emptyset$
+
+\For{each model $m \in \mathcal{R}$}
+    \If{$m.\textit{capabilities} \cap taskType \neq \emptyset$}
+        \State $score \gets \text{ComputeFitness}(m, t, complexity)$
+        \State $cost \gets \text{EstimateCost}(m, t)$
+        \If{$cost \leq b$}
+            \State $candidates \gets candidates \cup \{(m, score, cost)\}$
+        \EndIf
+    \EndIf
+\EndFor
+
+\State $\mathcal{M} \gets \text{SelectDiverseTop}(candidates, k_{\text{models}})$
+\State \Return $\mathcal{M}$
+\end{algorithmic}
+\end{algorithm}
+
+% ----------------------------------------------------------------------------
+% Complexity Analysis
+% ----------------------------------------------------------------------------
+\subsection{Complexity Analysis}
+
+The time complexity of the GAIOL orchestration algorithm is $O(n \cdot k \cdot m \cdot T_{\text{inference}})$, where $n$ is the number of decomposed steps, $k$ is the beam width, $m$ is the number of models per step, and $T_{\text{inference}}$ is the average model inference time. The parallel execution of models reduces the effective latency to $O(n \cdot T_{\max})$ where $T_{\max}$ is the maximum inference time among parallel models.
+
+Space complexity is $O(k \cdot n \cdot L)$ where $L$ is the average response length, representing the storage required for beam paths.
+
+\begin{table}[h]
+\centering
+\caption{Complexity Summary}
+\label{tab:complexity}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Metric} & \textbf{Sequential} & \textbf{Parallel} \\
+\hline
+Time & $O(n \cdot k \cdot m \cdot T_{\text{inf}})$ & $O(n \cdot T_{\max})$ \\
+\hline
+Space & \multicolumn{2}{c|}{$O(k \cdot n \cdot L)$} \\
+\hline
+\end{tabular}
+\end{table}

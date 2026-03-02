@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - GAIOL</title>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Create an account on GAIOL - Unified AI Model Orchestration Platform">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192x192.png">
+    
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <!-- Signup Page -->
+    <div id="signupPage" class="page active auth-page">
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <h1>Create Account</h1>
+                    <p>Join GAIOL to start using AI models</p>
+                </div>
+                <form id="signupForm" class="auth-form" onsubmit="handleSignup(event)">
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input 
+                            type="email" 
+                            id="signupEmail" 
+                            name="email" 
+                            placeholder="your@email.com" 
+                            required
+                            autocomplete="email"
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input 
+                            type="password" 
+                            id="signupPassword" 
+                            name="password" 
+                            placeholder="Create a password" 
+                            required
+                            autocomplete="new-password"
+                            minlength="6"
+                        >
+                        <small class="form-hint">At least 6 characters</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPasswordConfirm">Confirm Password</label>
+                        <input 
+                            type="password" 
+                            id="signupPasswordConfirm" 
+                            name="passwordConfirm" 
+                            placeholder="Confirm your password" 
+                            required
+                            autocomplete="new-password"
+                        >
+                    </div>
+                    <div class="form-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="agreeTerms" required>
+                            <span>I agree to the <a href="#" class="link-text">Terms of Service</a></span>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn-primary btn-full" id="signupBtn">
+                        <span id="signupBtnText">Create Account</span>
+                        <span id="signupBtnSpinner" class="spinner-small" style="display: none;"></span>
+                    </button>
+                    <div class="auth-divider">
+                        <span>or</span>
+                    </div>
+                    <button type="button" class="btn-secondary btn-full" onclick="window.location.href='/login.html'">
+                        Already have an account? Sign in
+                    </button>
+                </form>
+                <div id="signupError" class="error-message" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/state.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/models.js"></script>
+    <script src="/js/history.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/layout.js"></script>
+    <script src="/js/main.js"></script>
+    <script src="/js/navigation.js"></script>
+    <script src="/js/features.js"></script>
+    <script src="/js/sidebar-features.js"></script>
+    <script src="/js/design-enhancements.js"></script>
+    
+    <script>
+        // Signup page - no layout needed, it's a standalone auth page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Enable scrolling on body for auth pages
+            document.body.style.overflowY = 'auto';
+            
+            // If already authenticated, redirect to chat
+            if (typeof isAuthenticated === 'function' && isAuthenticated()) {
+                window.location.href = '/index.html';
+                return;
+            }
+            
+            // Initialize auth
+            if (typeof initAuth === 'function') {
+                initAuth();
+            }
+        });
+    </script>
+</body>
+</html>

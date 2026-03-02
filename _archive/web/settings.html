@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - GAIOL</title>
+
+    <!-- Meta Tags -->
+    <meta name="description" content="Configure your GAIOL settings and preferences">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192x192.png">
+
+    <link rel="stylesheet" href="/css/styles.css">
+    <script>
+        // Immediate auth check - redirect to login if not authenticated
+        (function () {
+            try {
+                const token = localStorage.getItem('gaiol_access_token');
+                if (!token) {
+                    window.location.href = '/login.html';
+                }
+            } catch (e) {
+                window.location.href = '/login.html';
+            }
+        })();
+    </script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Settings Page -->
+            <div id="settingsPage" class="page active">
+                <div class="page-header">
+                    <h1>Settings</h1>
+                </div>
+                <div class="settings-content">
+                    <div class="settings-section">
+                        <h3>Default Query Settings</h3>
+                        <div class="settings-grid">
+                            <div class="setting-item">
+                                <label>Default Strategy</label>
+                                <select id="defaultStrategy">
+                                    <option value="free_only">Free Only</option>
+                                    <option value="lowest_cost">Lowest Cost</option>
+                                    <option value="highest_quality">Highest Quality</option>
+                                    <option value="balanced">Balanced</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label>Default Max Tokens</label>
+                                <input type="number" id="defaultMaxTokens" min="50" max="4096" value="200">
+                            </div>
+                            <div class="setting-item">
+                                <label>Default Temperature</label>
+                                <input type="number" id="defaultTemperature" min="0" max="2" step="0.1" value="0.7">
+                            </div>
+                        </div>
+                        <div class="settings-actions">
+                            <button class="btn-primary" id="saveSettingsBtn" onclick="saveSettings()">Save</button>
+                            <button class="btn-secondary" id="resetSettingsBtn"
+                                onclick="resetSettingsToDefaults()">Reset</button>
+                        </div>
+                        <div class="settings-section">
+                            <h3>Keyboard Interaction Map</h3>
+                            <p class="section-description">Available shortcuts for rapid navigation and control.</p>
+                            <div id="keyboardShortcutsList" class="settings-shortcuts-grid">
+                                <!-- Shortcuts will be rendered here -->
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>Data Export Hub</h3>
+                            <p class="section-description">Export your chat history and settings for backup or analysis.
+                            </p>
+                            <div class="export-controls-settings">
+                                <button class="btn-secondary" onclick="exportAsJSON()">Export as JSON</button>
+                                <button class="btn-secondary" onclick="exportAsMarkdown()">Export as Markdown</button>
+                                <button class="btn-secondary" onclick="exportAsCSV()">Export as CSV</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scripts -->
+        <script src="/js/utils.js"></script>
+        <script src="/js/api.js"></script>
+        <script src="/js/state.js"></script>
+        <script src="/js/auth.js"></script>
+        <script src="/js/models.js"></script>
+        <script src="/js/history.js"></script>
+        <script src="/js/ui.js"></script>
+        <script src="/js/layout.js"></script>
+        <script src="/js/main.js"></script>
+        <script src="/js/navigation.js"></script>
+        <script src="/js/features.js"></script>
+        <script src="/js/sidebar-features.js"></script>
+        <script src="/js/design-enhancements.js"></script>
+
+        <script>
+            // Initialize layout for settings page
+            document.addEventListener('DOMContentLoaded', async function () {
+                // Check authentication first
+                if (typeof isAuthenticated === 'function' && !isAuthenticated()) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                initializeLayout('Settings', 'settings');
+                if (typeof renderKeyboardShortcuts === 'function') {
+                    renderKeyboardShortcuts('keyboardShortcutsList');
+                }
+            });
+        </script>
+</body>
+
+</html>
