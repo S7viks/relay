@@ -25,17 +25,32 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
     <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192x192.png">
+
+    <!-- Mono font (terminal UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
     <!-- Login Page -->
-    <div id="loginPage" class="page active auth-page">
+    <div id="loginPage" class="page active auth-page auth-terminal">
         <div class="auth-container">
             <div class="auth-card">
+                <div class="term-bar" aria-hidden="true">
+                    <span class="term-dot"></span>
+                    <span class="term-dot"></span>
+                    <span class="term-dot"></span>
+                    <span class="term-title">gaiol://auth/signin</span>
+                </div>
                 <div class="auth-header">
-                    <h1>Welcome to GAIOL</h1>
-                    <p>Sign in to access AI model orchestration</p>
+                    <h1>GAIOL Access Terminal</h1>
+                    <p>Authenticate to access AI model orchestration.</p>
+                </div>
+                <div class="term-screen" aria-hidden="true">
+                    <div class="line comment">session: unauthenticated</div>
+                    <div class="line"><span class="prompt"></span><span class="out">gaiol auth signin --email &lt;email&gt;</span><span class="blink">█</span></div>
                 </div>
                 <form id="loginForm" class="auth-form" onsubmit="handleLogin(event)">
                     <div class="form-group">
@@ -67,14 +82,14 @@
                         </label>
                         <a href="#" class="link-text" id="forgotPasswordLink">Forgot password?</a>
                     </div>
-                    <div id="forgotPasswordForm" class="form-group" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--surface, #1a1a1f); border-radius: 8px;">
+                    <div id="forgotPasswordForm" class="form-group term-inline-box" style="display: none;">
                         <label for="forgotEmail">Enter your email to receive a reset link</label>
-                        <input type="email" id="forgotEmail" placeholder="your@email.com" style="margin-top: 0.5rem;">
-                        <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+                        <input type="email" id="forgotEmail" placeholder="your@email.com">
+                        <div class="term-actions">
                             <button type="button" class="btn-primary" id="forgotSubmitBtn">Send reset link</button>
                             <button type="button" class="btn-secondary" id="forgotCancelBtn">Cancel</button>
                         </div>
-                        <p id="forgotMessage" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--muted, #888); display: none;"></p>
+                        <p id="forgotMessage" class="term-message" style="display: none;"></p>
                     </div>
                     <button type="submit" class="btn-primary btn-full" id="loginBtn">
                         <span id="loginBtnText">Sign In</span>
@@ -84,7 +99,7 @@
                         <span>or</span>
                     </div>
                     <button type="button" class="btn-secondary btn-full" onclick="window.location.href='/signup'">
-                        Create new account
+                        Create new account (signup)
                     </button>
                 </form>
                 <div id="loginError" class="error-message" style="display: none;"></div>

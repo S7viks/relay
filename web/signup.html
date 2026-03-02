@@ -13,17 +13,32 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
     <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192x192.png">
+
+    <!-- Mono font (terminal UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
     <!-- Signup Page -->
-    <div id="signupPage" class="page active auth-page">
+    <div id="signupPage" class="page active auth-page auth-terminal">
         <div class="auth-container">
             <div class="auth-card">
+                <div class="term-bar" aria-hidden="true">
+                    <span class="term-dot"></span>
+                    <span class="term-dot"></span>
+                    <span class="term-dot"></span>
+                    <span class="term-title">gaiol://auth/signup</span>
+                </div>
                 <div class="auth-header">
-                    <h1>Create Account</h1>
-                    <p>Join GAIOL to start using AI models</p>
+                    <h1>Provision Access</h1>
+                    <p>Create credentials to start using GAIOL.</p>
+                </div>
+                <div class="term-screen" aria-hidden="true">
+                    <div class="line comment">mode: account provisioning</div>
+                    <div class="line"><span class="prompt"></span><span class="out">gaiol auth signup --email &lt;email&gt;</span><span class="blink">█</span></div>
                 </div>
                 <form id="signupForm" class="auth-form" onsubmit="handleSignup(event)">
                     <div class="form-group">

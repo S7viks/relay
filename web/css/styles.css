@@ -3633,6 +3633,266 @@ body::before {
     font-size: var(--font-size-sm);
 }
 
+
+/* ==========================================================================
+   Terminal Auth (Command Prompt UI)
+   Scoped to standalone auth pages only.
+   ========================================================================== */
+
+.auth-page.auth-terminal {
+    --term-bg: #0c0c0e;
+    --term-surface: #131316;
+    --term-text: #e4e4e7;
+    --term-muted: #71717a;
+    --term-green: #22c55e;
+    --term-amber: #f59e0b;
+    --term-cyan: #06b6d4;
+    --term-border: #27272a;
+    --term-accent: #6366f1;
+    --term-accent-hover: #818cf8;
+
+    background: var(--term-bg);
+    color: var(--term-text);
+    font-family: var(--font-mono);
+}
+
+.auth-page.auth-terminal .auth-container {
+    max-width: 720px;
+}
+
+.auth-page.auth-terminal .auth-card {
+    background: var(--term-surface);
+    border: 1px solid var(--term-border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.auth-page.auth-terminal .auth-header {
+    text-align: left;
+    margin-bottom: var(--space-lg);
+}
+
+.auth-page.auth-terminal .auth-header h1 {
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--term-text);
+}
+
+.auth-page.auth-terminal .auth-header p {
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--term-muted);
+}
+
+.auth-page.auth-terminal .term-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--term-border);
+}
+
+.auth-page.auth-terminal .term-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.auth-page.auth-terminal .term-dot:nth-child(1) {
+    background: #ef4444;
+}
+
+.auth-page.auth-terminal .term-dot:nth-child(2) {
+    background: #f59e0b;
+}
+
+.auth-page.auth-terminal .term-dot:nth-child(3) {
+    background: #22c55e;
+}
+
+.auth-page.auth-terminal .term-title {
+    margin-left: 10px;
+    font-size: 12px;
+    color: var(--term-muted);
+}
+
+.auth-page.auth-terminal .line {
+    margin: 0.35em 0;
+    font-size: 13px;
+}
+
+.auth-page.auth-terminal .prompt {
+    color: var(--term-green);
+}
+
+.auth-page.auth-terminal .prompt::before {
+    content: "$ ";
+}
+
+.auth-page.auth-terminal .comment {
+    color: var(--term-muted);
+}
+
+.auth-page.auth-terminal .comment::before {
+    content: "# ";
+}
+
+.auth-page.auth-terminal .out em {
+    color: var(--term-cyan);
+    font-style: normal;
+}
+
+.auth-page.auth-terminal .highlight {
+    color: var(--term-amber);
+}
+
+.auth-page.auth-terminal .blink {
+    animation: term-blink 1s step-end infinite;
+}
+
+@keyframes term-blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+.auth-page.auth-terminal .form-group label {
+    color: var(--term-muted);
+    font-size: 12px;
+    font-family: inherit;
+}
+
+.auth-page.auth-terminal .form-hint {
+    color: var(--term-muted);
+    font-size: 12px;
+}
+
+.auth-page.auth-terminal input[type="email"],
+.auth-page.auth-terminal input[type="password"],
+.auth-page.auth-terminal input[type="text"] {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--term-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--term-text);
+    font-family: inherit;
+    outline: none;
+}
+
+.auth-page.auth-terminal input[type="email"]::placeholder,
+.auth-page.auth-terminal input[type="password"]::placeholder,
+.auth-page.auth-terminal input[type="text"]::placeholder {
+    color: rgba(113, 117, 122, 0.75);
+}
+
+.auth-page.auth-terminal input:focus {
+    border-color: var(--term-cyan);
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.12);
+}
+
+.auth-page.auth-terminal .checkbox-label span,
+.auth-page.auth-terminal .checkbox-label a {
+    color: var(--term-muted);
+    font-size: 12px;
+    font-family: inherit;
+}
+
+.auth-page.auth-terminal .checkbox-label a:hover,
+.auth-page.auth-terminal .link-text:hover {
+    color: var(--term-cyan);
+}
+
+.auth-page.auth-terminal .link-text {
+    color: var(--term-cyan);
+    font-family: inherit;
+}
+
+.auth-page.auth-terminal .btn-primary,
+.auth-page.auth-terminal .btn-secondary {
+    font-family: inherit;
+    border-radius: 8px;
+    border: 1px solid var(--term-border);
+    background: transparent;
+    color: var(--term-text);
+}
+
+.auth-page.auth-terminal .btn-primary {
+    background: var(--term-accent);
+    border-color: transparent;
+    color: #fff;
+}
+
+.auth-page.auth-terminal .btn-primary:hover {
+    background: var(--term-accent-hover);
+}
+
+.auth-page.auth-terminal .btn-secondary:hover {
+    border-color: rgba(6, 182, 212, 0.6);
+    color: var(--term-cyan);
+}
+
+.auth-page.auth-terminal .btn-primary::before,
+.auth-page.auth-terminal .btn-secondary::before {
+    content: "$ ";
+    color: rgba(255, 255, 255, 0.85);
+    margin-right: 2px;
+}
+
+.auth-page.auth-terminal .auth-divider {
+    color: var(--term-muted);
+}
+
+.auth-page.auth-terminal .auth-divider::before,
+.auth-page.auth-terminal .auth-divider::after {
+    background: var(--term-border);
+}
+
+.auth-page.auth-terminal .error-message {
+    background: rgba(245, 158, 11, 0.10);
+    border-color: rgba(245, 158, 11, 0.60);
+    color: var(--term-amber);
+}
+
+.auth-page.auth-terminal .term-inline-box {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--term-border);
+    border-radius: 10px;
+}
+
+.auth-page.auth-terminal .term-inline-box input[type="email"],
+.auth-page.auth-terminal .term-inline-box input[type="text"],
+.auth-page.auth-terminal .term-inline-box input[type="password"] {
+    margin-top: 0.5rem;
+}
+
+.auth-page.auth-terminal .term-actions {
+    margin-top: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.auth-page.auth-terminal .term-message {
+    margin-top: 0.5rem;
+    font-size: 12px;
+    color: var(--term-muted);
+}
+
+.auth-page.auth-terminal .term-message.error {
+    color: var(--term-amber);
+}
+
+.auth-page.auth-terminal .term-message.success {
+    color: var(--term-green);
+}
+
 /* Profile Page */
 .profile-content {
     display: flex;

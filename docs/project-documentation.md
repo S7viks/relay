@@ -550,6 +550,8 @@ GAIOL/
 - **Purpose**: User login page
 - **Features**:
   - Email/password login form
+  - Terminal-style command prompt UI (`auth-terminal`)
+  - Password recovery ("Forgot password?") → `/api/auth/recover` → `/reset-password`
   - Sign up link
   - Error handling
 - **JavaScript Modules Used**:
@@ -559,11 +561,19 @@ GAIOL/
 - **Purpose**: User registration page
 - **Features**:
   - Registration form
+  - Terminal-style command prompt UI (`auth-terminal`)
   - Email validation
   - Password requirements
   - Login link
 - **JavaScript Modules Used**:
   - `auth.js` - Registration logic
+
+##### `reset-password.html`
+- **Purpose**: Password recovery completion page
+- **Features**:
+  - Set new password from Supabase recovery link (`#access_token=...`)
+  - Terminal-style command prompt UI (`auth-terminal`)
+  - Calls `POST /api/auth/update-password`
 
 ---
 
