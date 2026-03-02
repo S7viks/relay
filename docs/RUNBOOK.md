@@ -4,6 +4,22 @@ Operations procedures for deploying and running the GAIOL web server.
 
 ---
 
+## Get it online (recommended path)
+
+Deploy the **full app** (API + frontend) on one host. No need to split frontend (e.g. Vercel) and backend unless you want that setup.
+
+1. **Supabase** — Create a project at [supabase.com](https://supabase.com). In SQL Editor, run migrations in order: see [Database migrations](#database-migrations) and [database-setup.md](database-setup.md). In Authentication > URL configuration, set Site URL and Redirect URLs to your app URL (e.g. `https://your-app.up.railway.app`).
+2. **Env** — Generate `GAIOL_ENCRYPTION_KEY` with `openssl rand -hex 32`. You need: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, `GAIOL_ENCRYPTION_KEY`. Optionally `ALLOWED_ORIGINS` (your app URL) and `PORT` (often set by the host).
+3. **Host** — Pick one:
+   - **Railway** — New project > Deploy from GitHub repo. Add Dockerfile (repo has one). Set env vars in Variables. Railway assigns a public URL and HTTPS.
+   - **Fly.io** — `fly launch` in repo root (detects Dockerfile), then `fly secrets set NEXT_PUBLIC_SUPABASE_URL=...` (and the other two required vars). `fly deploy`.
+   - **Render** — New Web Service > Connect repo. Use Docker. Set env vars. Render assigns URL and HTTPS.
+4. **Verify** — Open the app URL: sign up, add a provider key in Dashboard > Models, create a GAIOL key in Dashboard > API keys, then call `POST /v1/chat` with the key (see [API.md](../API.md)).
+
+If your repo is in another GitHub account than the one you use for the host: fork the repo into the account connected to Railway/Fly/Render, then deploy from the fork.
+
+---
+
 ## Deployment
 
 ### Build (binary)
