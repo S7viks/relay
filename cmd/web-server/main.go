@@ -27,17 +27,19 @@ import (
 )
 
 var (
-	registry       *models.Registry
-	router         *models.ModelRouter
-	tracker        *models.PerformanceTracker
-	dbClient       *database.Client
-	dbAvailable    bool
-	authAPI        *auth.AuthAPI
-	reasoningAPI   *reasoning.ReasoningAPI
-	worldModel     *reasoning.WorldModel
-	metrics        *monitoring.MetricsService
-	rateLimitMu    sync.Mutex
-	rateLimitCount map[string][]time.Time // key (tenantID) -> timestamps in last minute
+	registry         *models.Registry
+	router           *models.ModelRouter
+	tracker          *models.PerformanceTracker
+	dbClient         *database.Client
+	dbAvailable      bool
+	authAPI          *auth.AuthAPI
+	reasoningAPI     *reasoning.ReasoningAPI
+	worldModel       *reasoning.WorldModel
+	metrics          *monitoring.MetricsService
+	rateLimitMu      sync.Mutex
+	rateLimitCount   map[string][]time.Time // key (tenantID) -> timestamps in last minute
+	allowedOrigins   map[string]struct{}    // CORS: non-empty means restrict; empty means allow *
+	logLevel         string                 // "debug" | "info" | "warn" | "error"
 )
 
 const rateLimitPerMin = 60
@@ -47,6 +49,8 @@ func main() {
 	if err := loadEnv(); err != nil {
 		log.Printf("Warning: Failed to load .env file: %v", err)
 	}
+	initCORS()
+	initLogLevel()
 
 	// Initialize model adapters
 	fmt.Println("🔧 Initializing model adapters...")
@@ -131,8 +135,10 @@ func main() {
 		port = "8080"
 	}
 
+	handler := requestLogMiddleware(http.DefaultServeMux)
 	server := &http.Server{
 		Addr:         ":" + port,
+		Handler:      handler,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  120 * time.Second,
@@ -278,12 +284,42 @@ func registerRoutes() {
 }
 
 // ============================================================================
-// CORS Middleware
+// CORS and logging init
 // ============================================================================
+
+func initCORS() {
+	s := os.Getenv("ALLOWED_ORIGINS")
+	if s == "" {
+		allowedOrigins = nil
+		return
+	}
+	allowedOrigins = make(map[string]struct{})
+	for _, o := range strings.Split(s, ",") {
+		o = strings.TrimSpace(o)
+		if o != "" {
+			allowedOrigins[o] = struct{}{}
+		}
+	}
+}
+
+func initLogLevel() {
+	logLevel = strings.ToLower(strings.TrimSpace(os.Getenv("LOG_LEVEL")))
+	if logLevel == "" {
+		logLevel = "info"
+	}
+}
 
 func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+		if allowedOrigins != nil {
+			if _, ok := allowedOrigins[origin]; ok {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			}
+			// If origin not in list, do not set Allow-Origin (browser will block cross-origin)
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.Header().Set("Access-Control-Max-Age", "3600")
@@ -295,6 +331,39 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		next(w, r)
 	}
+}
+
+// responseRecorder wraps ResponseWriter to capture status and size for logging.
+type responseRecorder struct {
+	http.ResponseWriter
+	status int
+	size   int
+}
+
+func (r *responseRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+func (r *responseRecorder) Write(b []byte) (int, error) {
+	n, err := r.ResponseWriter.Write(b)
+	r.size += n
+	return n, err
+}
+
+// requestLogMiddleware logs one line per request for log aggregators.
+func requestLogMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rec := &responseRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+		dur := time.Since(start).Milliseconds()
+		if logLevel == "debug" {
+			log.Printf("request method=%s path=%s status=%d duration_ms=%d size=%d", r.Method, r.URL.Path, rec.status, dur, rec.size)
+		} else if rec.status >= 500 || (rec.status >= 400 && r.URL.Path != "/health") {
+			log.Printf("request method=%s path=%s status=%d duration_ms=%d", r.Method, r.URL.Path, rec.status, dur)
+		}
+	})
 }
 
 // optionalAuthMiddleware wraps auth middleware but allows requests without auth to pass through

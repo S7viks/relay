@@ -1,0 +1,33 @@
+# Git and IDE
+.git
+.gitignore
+.idea
+.vscode
+
+# Env (never bake into image)
+.env
+.env.*
+!.env.example
+
+# Docs and scripts (not needed in image)
+docs
+scripts
+_archive
+*.md
+!README.md
+
+# Test and build artifacts
+*.exe
+*.test
+*.out
+build_error.txt
+test_results.txt
+TEST_LOG.txt
+coverage.out
+
+# Misc
+Dockerfile
+.dockerignore
+*.bat
+*.ps1
+*.sh

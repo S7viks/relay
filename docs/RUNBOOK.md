@@ -6,13 +6,13 @@ Operations procedures for deploying and running the GAIOL web server.
 
 ## Deployment
 
-### Build
+### Build (binary)
 
 ```bash
 go build -o gaiol-web ./cmd/web-server/
 ```
 
-### Run
+### Run (binary)
 
 ```bash
 ./gaiol-web
@@ -22,6 +22,26 @@ go run cmd/web-server/main.go
 
 Optional: set `PORT` (default 8080). The server listens on all interfaces.
 
+### Build and run (Docker)
+
+From the repo root:
+
+```bash
+docker build -t gaiol .
+docker run --env-file .env -p 8080:8080 gaiol
+```
+
+Or pass env vars explicitly:
+
+```bash
+docker run -e NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co \
+  -e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your-anon-key \
+  -e GAIOL_ENCRYPTION_KEY=your-32-byte-hex \
+  -p 8080:8080 gaiol
+```
+
+The image includes the `web/` static files and runs as non-root. No `.env` file is baked into the image; set env at runtime.
+
 ### Environment variables (required)
 
 | Variable | Description |
@@ -30,7 +50,13 @@ Optional: set `PORT` (default 8080). The server listens on all interfaces.
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` or `SUPABASE_ANON_KEY` | Supabase anon key |
 | `GAIOL_ENCRYPTION_KEY` | 32-byte hex key for encrypting provider keys (generate with `openssl rand -hex 32`) |
 
-Optional: `PORT` (default 8080).
+### Environment variables (optional)
+
+| Variable | Description |
+|----------|-------------|
+| `PORT` | Listen port (default 8080). |
+| `ALLOWED_ORIGINS` | Comma-separated list of CORS origins (e.g. `https://app.example.com,https://www.example.com`). If unset, `*` is used (allow all). Set in production to restrict browser access. |
+| `LOG_LEVEL` | `debug`, `info`, `warn`, or `error` (default `info`). At `info`, only 4xx/5xx requests are logged (except health); at `debug`, every request is logged. |
 
 See `.env.example` for a full template. Provider API keys (OpenRouter, etc.) are **not** set in the app environment; tenants add them in the dashboard.
 
@@ -78,13 +104,19 @@ Sign-in and dashboard access still work until auth is changed; revoking keys sto
 
 ## Logs
 
-The server logs to stdout/stderr. Typical lines:
+The server logs to stdout/stderr. Capture this stream in your deployment (e.g. Docker logs, systemd journal, or a log aggregator).
+
+**Request log lines** (when `LOG_LEVEL=debug`, or for 4xx/5xx at `info`):
+
+- `request method=GET path=/health status=200 duration_ms=0 size=...` — One line per request; parseable for aggregators.
+
+**Other lines:**
 
 - `v1/chat tenant_id=... latency_ms=... success=true|false` — Per-request inference log.
 - `Failed to log usage to api_queries` — Non-fatal; usage logging failed.
 - Auth and startup errors are also written to the same stream.
 
-Redirect stdout/stderr to a file or log aggregator in your deployment (e.g. systemd, Docker, or cloud logging).
+Set `LOG_LEVEL=debug` for full request logging; use `info` (default) in production to reduce noise.
 
 ---
 
@@ -99,4 +131,5 @@ Redirect stdout/stderr to a file or log aggregator in your deployment (e.g. syst
 
 - Keep `GAIOL_ENCRYPTION_KEY` secret and rotate if compromised (existing encrypted provider keys would need re-entry by tenants).
 - Use HTTPS in production; the app does not enforce TLS.
+- Set `ALLOWED_ORIGINS` in production to your frontend origin(s); otherwise CORS allows any origin (`*`).
 - Supabase anon key is safe for client-side use; for server-only admin operations use a service role key only in a secure backend (not in the open-source app by default).
