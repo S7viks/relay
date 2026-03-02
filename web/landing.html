@@ -100,9 +100,100 @@
     }
     .footer a { color: var(--term-cyan); text-decoration: none; }
     .footer a:hover { text-decoration: underline; }
+
+    /* Nav bar */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(12, 12, 14, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--term-border);
+      padding: 0.75rem 1.5rem;
+    }
+    .nav-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .nav-brand {
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--term-text);
+      text-decoration: none;
+    }
+    .nav-brand span { color: var(--term-green); }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .nav-links a {
+      color: var(--term-muted);
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .nav-links a:hover { color: var(--term-cyan); }
+    .nav-cta {
+      background: var(--accent);
+      color: #fff;
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .nav-cta:hover { background: var(--accent-hover); }
+
+    /* Features section */
+    .features {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+    .features { scroll-margin-top: 3.5rem; }
+    .features h2 {
+      font-size: 1rem;
+      color: var(--term-muted);
+      margin: 0 0 1.25rem;
+      font-weight: 500;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .feature {
+      background: var(--term-surface);
+      border: 1px solid var(--term-border);
+      border-radius: 6px;
+      padding: 1rem;
+    }
+    .feature strong { color: var(--term-cyan); }
+    .feature p { margin: 0.35em 0 0; font-size: 12px; color: var(--term-muted); line-height: 1.5; }
   </style>
 </head>
 <body>
+  <nav class="nav" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">gaiol<span>_</span></a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="/dashboard">Docs</a>
+        <a href="/dashboard">API</a>
+        <a href="/login">Login</a>
+        <a href="/dashboard">Dashboard</a>
+      </div>
+      <a href="/signup" class="nav-cta">Get your key</a>
+    </div>
+  </nav>
+
   <div class="terminal">
     <div class="terminal-window">
       <div class="term-bar" aria-hidden="true">
@@ -119,21 +210,47 @@
       <div class="line out"><em>Get one GAIOL key.</em> Use it everywhere in your apps.</div>
       <div class="line out">We optimize cost and quality across your models.</div>
       <div class="line out">&nbsp;</div>
-      <div class="line comment">How it works:</div>
-      <div class="line out">  1. Connect your providers in the dashboard.</div>
-      <div class="line out">  2. Create one GAIOL API key.</div>
-      <div class="line out">  3. Call GAIOL from your app with that key; we route and log usage.</div>
-      <div class="line out">&nbsp;</div>
 
       <div class="line prompt cta-line">get-gaiol-key<span class="blink">_</span></div>
       <a class="cta-cmd" href="/signup">get-gaiol-key</a>
       <div class="line out" style="margin-top: 0.75rem;"><a href="/login" style="color: var(--term-muted); text-decoration: none;">Already have an account? Log in</a></div>
     </div>
 
+    <section id="features" class="features">
+      <h2># Get the best out of all your models</h2>
+      <div class="feature-grid">
+        <div class="feature">
+          <strong>Smart routing</strong>
+          <p>We pick the right model for each task — cost, quality, and latency balanced for you.</p>
+        </div>
+        <div class="feature">
+          <strong>One key, all providers</strong>
+          <p>Add OpenRouter, Gemini, HuggingFace once. Use a single GAIOL key everywhere.</p>
+        </div>
+        <div class="feature">
+          <strong>Usage & billing</strong>
+          <p>Track requests, tokens, and cost per provider. Export CSV. No surprises.</p>
+        </div>
+        <div class="feature">
+          <strong>Reasoning engine</strong>
+          <p>Multi-step reasoning with beam search. Decompose hard questions, get better answers.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="how" class="features" style="padding-top: 0;">
+      <h2># How it works</h2>
+      <div class="line out">  1. Connect your providers in the dashboard.</div>
+      <div class="line out">  2. Create one GAIOL API key.</div>
+      <div class="line out">  3. Call <code style="color: var(--term-cyan);">POST /v1/chat</code> from your app; we route and log usage.</div>
+    </section>
+
     <footer class="footer">
-      <a href="/login">login</a>
+      <a href="/login">Login</a>
       &middot;
-      <a href="/dashboard">dashboard</a>
+      <a href="/dashboard">Dashboard</a>
+      &middot;
+      <a href="/signup">Get your key</a>
     </footer>
   </div>
 </body>
