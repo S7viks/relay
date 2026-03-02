@@ -188,6 +188,7 @@ func registerRoutes() {
 	http.HandleFunc("/login", serveStaticPage("login.html"))
 	http.HandleFunc("/signup", serveStaticPage("signup.html"))
 	http.HandleFunc("/reset-password", serveStaticPage("reset-password.html"))
+	http.HandleFunc("/terms", serveStaticPage("terms.html"))
 	http.HandleFunc("/dashboard", serveDashboard)
 	http.HandleFunc("/dashboard/", serveDashboard)
 	http.HandleFunc("/", noCacheFileServer)

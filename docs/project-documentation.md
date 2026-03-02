@@ -575,6 +575,12 @@ GAIOL/
   - Terminal-style command prompt UI (`auth-terminal`)
   - Calls `POST /api/auth/update-password`
 
+##### `terms.html`
+- **Purpose**: Terms of Service (legal) page
+- **Features**:
+  - Terminal-style readable document layout
+  - Linked from `signup.html` "Terms of Service"
+
 ---
 
 ### `web/css/` Directory
