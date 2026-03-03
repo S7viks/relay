@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"gaiol/internal/models"
-	"gaiol/internal/uaip"
+	"relay/internal/models"
+	"relay/internal/uaip"
 )
 
 // OllamaAdapter provides local LLM inference via Ollama

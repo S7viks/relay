@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"gaiol/internal/database"
+	"relay/internal/database"
 )
 
 // ProviderKeyRow is a row from provider_api_keys (list response: no raw key).

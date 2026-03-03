@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"gaiol/internal/database"
+	"relay/internal/database"
 )
 
 // SystemStats represents aggregated system performance metrics

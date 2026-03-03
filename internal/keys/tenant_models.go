@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"gaiol/internal/database"
+	"relay/internal/database"
 )
 
 type TenantModelRow struct {

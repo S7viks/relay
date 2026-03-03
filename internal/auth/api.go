@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"gaiol/internal/database"
+	"relay/internal/database"
 )
 
 // AuthAPI handles Supabase Auth API integration

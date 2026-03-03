@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"gaiol/internal/database"
+	"relay/internal/database"
 )
 
 // WorldModel maintains persistent shared knowledge across sessions

@@ -1,7 +1,7 @@
 package reasoning
 
 import (
-	"gaiol/internal/models"
+	"relay/internal/models"
 	"sync"
 	"time"
 )

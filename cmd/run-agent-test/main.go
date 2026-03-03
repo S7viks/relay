@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"gaiol/internal/reasoning"
+	"relay/internal/reasoning"
 )
 
 func main() {

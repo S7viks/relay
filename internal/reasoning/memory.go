@@ -2,7 +2,7 @@ package reasoning
 
 import (
 	"fmt"
-	"gaiol/internal/database"
+	"relay/internal/database"
 	"sort"
 	"strings"
 	"sync"

@@ -1,4 +1,4 @@
-module gaiol
+module relay
 
 go 1.21.1
 

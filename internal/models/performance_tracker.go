@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"gaiol/internal/database"
+	"relay/internal/database"
 )
 
 // ModelPerformance represents a single performance record

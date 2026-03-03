@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gaiol/internal/uaip"
+	"relay/internal/uaip"
 )
 
 // SupabaseVectorStore implements VectorStore using Supabase pgvector

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"gaiol/internal/database"
-	"gaiol/internal/models"
+	"relay/internal/database"
+	"relay/internal/models"
 
 	"github.com/google/uuid"
 )

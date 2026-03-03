@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"gaiol/internal/models"
-	"gaiol/internal/uaip"
+	"relay/internal/models"
+	"relay/internal/uaip"
 )
 
 // Ensure OpenRouterAdapter implements ModelWithEmbeddings
@@ -321,8 +321,8 @@ func (o *OpenRouterAdapter) callOpenRouterAPI(ctx context.Context, req *OpenRout
 
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", o.apiKey))
-	httpReq.Header.Set("HTTP-Referer", "https://gaiol.ai")
-	httpReq.Header.Set("X-Title", "GAIOL Universal AI Interoperability")
+	httpReq.Header.Set("HTTP-Referer", "https://relay.dev")
+	httpReq.Header.Set("X-Title", "Relay Universal AI Interoperability")
 
 	resp, err := o.client.Do(httpReq)
 	if err != nil {

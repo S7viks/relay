@@ -31,7 +31,9 @@ type Registry struct {
 	mu     sync.RWMutex
 }
 
-// NewRegistry creates and initializes a new model registry
+// NewRegistry creates and initializes a new model registry with predefined models
+// for providers that have adapters configured. This is primarily used in tests
+// and legacy flows that still rely on a curated catalog.
 func NewRegistry(openRouterAdapter, hfAdapter, ollamaAdapter ModelAdapter) *Registry {
 	r := &Registry{
 		models: make(map[ModelID]ModelMetadata),
@@ -50,6 +52,15 @@ func NewRegistry(openRouterAdapter, hfAdapter, ollamaAdapter ModelAdapter) *Regi
 	}
 
 	return r
+}
+
+// NewEmptyRegistry creates an empty registry without registering any predefined models.
+// This is the preferred constructor for tenant-facing flows where models are defined
+// explicitly via tenant configuration (tenant_models, preferences, etc.).
+func NewEmptyRegistry() *Registry {
+	return &Registry{
+		models: make(map[ModelID]ModelMetadata),
+	}
 }
 
 // AddGeminiModels registers Gemini models when a Google API key is provided (e.g. from tenant keys).

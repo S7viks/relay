@@ -1226,8 +1226,15 @@ function showToast(type, title, message = '') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerHTML = `
-        <div class="toast-header">${title}</div>
-        ${message ? `<div class="toast-message">${escapeHtml(message)}</div>` : ''}
+        <div class="toast-inner">
+            <div class="toast-icon">
+                ${type === 'success' ? '✔' : type === 'error' ? '✖' : type === 'warning' ? '!' : 'i'}
+            </div>
+            <div class="toast-content">
+                <div class="toast-header"><span class="toast-prefix">$</span>${escapeHtml(title)}</div>
+                ${message ? `<div class="toast-message">${escapeHtml(message)}</div>` : ''}
+            </div>
+        </div>
     `;
 
     container.appendChild(toast);

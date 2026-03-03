@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"gaiol/internal/models"
+	"relay/internal/models"
 )
 
 // Scorer handles output evaluation using a critic model

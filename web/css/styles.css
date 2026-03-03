@@ -2821,38 +2821,65 @@ body::before {
 }
 
 .toast {
-    background: var(--bg-primary);
+    background: rgba(12, 12, 14, 0.98);
     padding: var(--space-md) var(--space-lg);
-    border-radius: var(--radius-md);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     min-width: 280px;
-    animation: slideIn 0.2s ease-out;
-    border: 1px solid var(--border-color);
+    max-width: 360px;
+    border: 1px solid rgba(39, 39, 42, 0.9);
+    font-family: var(--font-mono);
+    color: #e4e4e7;
+    animation: slideInRight 0.3s ease-out;
 }
 
 .toast.success {
-    border-left: 3px solid var(--success-color);
+    border-left: 3px solid #22c55e;
 }
 
 .toast.error {
-    border-left: 3px solid var(--error-color);
+    border-left: 3px solid #ef4444;
 }
 
 .toast.info {
-    border-left: 3px solid var(--accent-color);
+    border-left: 3px solid #06b6d4;
+}
+
+.toast.warning {
+    border-left: 3px solid #f59e0b;
+}
+
+.toast-inner {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-md);
+    align-items: flex-start;
 }
 
 .toast-header {
-    font-weight: 600;
-    margin-bottom: var(--space-xs);
-    font-size: var(--font-size-sm);
-    color: var(--text-primary);
+    font-weight: 500;
+    margin-bottom: 2px;
+    font-size: 12px;
+    color: #e4e4e7;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 
 .toast-message {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
+    font-size: 12px;
+    color: #a1a1aa;
     line-height: 1.5;
+}
+
+.toast-icon {
+    font-size: 14px;
+    line-height: 1;
+    margin-top: 2px;
+}
+
+.toast-prefix {
+    color: #71717a;
+    margin-right: 4px;
 }
 
 /* Model Grid - Nexus Grid */
@@ -4440,18 +4467,6 @@ kbd {
 .toast {
     animation: slideInRight 0.3s ease-out;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-}
-
-.toast.success {
-    border-left: 4px solid var(--success-color);
-}
-
-.toast.error {
-    border-left: 4px solid var(--error-color);
-}
-
-.toast.info {
-    border-left: 4px solid var(--accent-primary);
 }
 
 @keyframes slideInRight {

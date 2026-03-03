@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"gaiol/internal/models"
-	"gaiol/internal/uaip"
+	"relay/internal/models"
+	"relay/internal/uaip"
 )
 
 // VectorStore is now an alias or we use uaip.VectorStore directly

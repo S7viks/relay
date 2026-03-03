@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"gaiol/internal/models"
-	"gaiol/internal/uaip"
+	"relay/internal/models"
+	"relay/internal/uaip"
 )
 
 // OpenAICompatibleAdapter implements ModelAdapter for OpenAI-compatible chat completion APIs.

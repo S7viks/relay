@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"gaiol/internal/models"
-	"gaiol/internal/uaip"
+	"relay/internal/models"
+	"relay/internal/uaip"
 )
 
 // QueryRequest is a simplified request format for reasoning components

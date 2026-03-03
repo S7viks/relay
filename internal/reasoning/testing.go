@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"gaiol/internal/models"
-	"gaiol/internal/uaip"
+	"relay/internal/models"
+	"relay/internal/uaip"
 )
 
 // NewMockRouter creates a mock router that returns a real *models.ModelRouter

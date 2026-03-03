@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"gaiol/internal/database"
+	"relay/internal/database"
 )
 
 var providerKeyRe = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)

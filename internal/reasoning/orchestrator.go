@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"gaiol/internal/models"
-	"gaiol/internal/models/adapters"
-	"gaiol/internal/uaip"
+	"relay/internal/models"
+	"relay/internal/models/adapters"
+	"relay/internal/uaip"
 )
 
 // Orchestrator handles parallel execution of multiple LLMs

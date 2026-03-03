@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"gaiol/internal/database"
+	"relay/internal/database"
 
 	"github.com/golang-jwt/jwt/v5"
 )

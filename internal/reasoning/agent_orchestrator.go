@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"gaiol/internal/models"
+	"relay/internal/models"
 )
 
 // SimpleAgentWorkflow runs a 3-agent workflow: Planner → Executor → Critic

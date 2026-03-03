@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"gaiol/internal/models"
+	"relay/internal/models"
 )
 
 // DecomposedStep represents a raw step from the LLM

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"gaiol/internal/models"
+	"relay/internal/models"
 )
 
 // TestOrchestratorCreation tests orchestrator initialization

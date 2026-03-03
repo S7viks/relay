@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"gaiol/internal/models"
-	"gaiol/internal/uaip"
+	"relay/internal/models"
+	"relay/internal/uaip"
 )
 
 // FIXED: Better rate limiter
@@ -213,7 +213,7 @@ func (g *GeminiAdapter) callGeminiAPIWithModel(ctx context.Context, req *GeminiR
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("User-Agent", "GAIOL/1.0")
+	httpReq.Header.Set("User-Agent", "Relay/1.0")
 
 	resp, err := g.client.Do(httpReq)
 	if err != nil {

@@ -2,7 +2,7 @@ package models
 
 import (
 	"context"
-	"gaiol/internal/uaip"
+	"relay/internal/uaip"
 )
 
 // ModelProvider represents different AI service providers

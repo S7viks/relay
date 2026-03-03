@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"gaiol/internal/uaip"
+	"relay/internal/uaip"
 )
 
 type RoutingStrategy string

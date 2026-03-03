@@ -14,14 +14,14 @@ import (
 	"syscall"
 	"time"
 
-	"gaiol/internal/auth"
-	"gaiol/internal/database"
-	"gaiol/internal/keys"
-	"gaiol/internal/models"
-	"gaiol/internal/models/adapters"
-	"gaiol/internal/monitoring"
-	"gaiol/internal/reasoning"
-	"gaiol/internal/uaip"
+	"relay/internal/auth"
+	"relay/internal/database"
+	"relay/internal/keys"
+	"relay/internal/models"
+	"relay/internal/models/adapters"
+	"relay/internal/monitoring"
+	"relay/internal/reasoning"
+	"relay/internal/uaip"
 
 	"github.com/joho/godotenv"
 )
@@ -67,15 +67,10 @@ func main() {
 		ollamaAdapter = nil
 	}
 
-	// 2. HuggingFace and 3. OpenRouter: no env keys for tenant-facing API (Phase 4).
-	// Tenant inference uses provider keys from DB only. Empty adapters here for fallback when DB/keys unavailable.
-	hfAdapter := adapters.NewHuggingFaceAdapter("", "")
-	openRouterAdapter := adapters.NewOpenRouterAdapter("", "")
-	fmt.Println("✅ HuggingFace and OpenRouter adapters initialized (tenant keys from DB)")
-
-	// Create registry with priority: Ollama > HF > OpenRouter
-	registry = models.NewRegistry(openRouterAdapter, hfAdapter, ollamaAdapter)
-	fmt.Printf("📋 Registry initialized with %d models\n", registry.Count())
+	// 2. Global registry: keep it empty for the tenant-facing API.
+	// All real model definitions come from tenant configuration (tenant_models).
+	registry = models.NewEmptyRegistry()
+	fmt.Printf("📋 Global registry initialized empty (tenant-defined models only at runtime)\n")
 
 	// Initialize database (optional)
 	var err error
@@ -632,12 +627,11 @@ func buildTenantRegistry(ctx context.Context, db *database.Client, tenantID stri
 	if k := legacyKeys["huggingface"]; k != "" {
 		hfAdapter = adapters.NewHuggingFaceAdapter("", k)
 	}
-
-	reg := models.NewRegistry(openRouterAdapter, hfAdapter, nil)
 	if k := legacyKeys["google"]; k != "" {
 		geminiAdapter = adapters.NewGeminiAdapter(k)
-		reg.AddGeminiModels(geminiAdapter)
 	}
+
+	reg := models.NewEmptyRegistry()
 
 	adapterByProvider := map[string]models.ModelAdapter{}
 	if openRouterAdapter != nil {
@@ -1632,6 +1626,10 @@ func handleV1Chat(w http.ResponseWriter, r *http.Request) {
 	}
 	rateLimitMu.Unlock()
 
+	// Attach TenantContext so downstream code (buildTenantRegistry, GetTenantSettings, engine) uses unified tenant resolution (Layer 1).
+	tenantCtx := database.TenantContext{TenantID: tenantID, UserID: "", OrgID: ""}
+	r = r.WithContext(database.WithTenant(r.Context(), tenantCtx))
+
 	v1Start := time.Now()
 	var body struct {
 		Prompt      string  `json:"prompt"`
@@ -1699,7 +1697,6 @@ func handleV1Chat(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(map[string]interface{}{"error": err.Error(), "success": false})
 			return
 		}
-		tenantCtx := database.TenantContext{TenantID: tenantID, UserID: "", OrgID: ""}
 		_ = logUsageToAPIQueries(dbClient, tenantCtx, requestedModel, resp.Result.TokensUsed, 0.0, resp.Result.ProcessingMs, true, "", gaiolKeyID)
 		log.Printf("v1/chat tenant_id=%s model=%s latency_ms=%d success=true", tenantID, requestedModel, time.Since(v1Start).Milliseconds())
 		w.Header().Set("Content-Type", "application/json")
@@ -1742,7 +1739,6 @@ func handleV1Chat(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	tenantCtx := database.TenantContext{TenantID: tenantID, UserID: "", OrgID: ""}
 	cost := 0.0
 	if sm != nil {
 		cost = sm.TotalCost

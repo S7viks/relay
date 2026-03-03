@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"gaiol/internal/models"
-	"gaiol/internal/monitoring"
+	"relay/internal/models"
+	"relay/internal/monitoring"
 
 	"github.com/gorilla/websocket"
 )
