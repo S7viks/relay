@@ -643,6 +643,7 @@ func buildTenantRegistry(ctx context.Context, db *database.Client, tenantID stri
 	if geminiAdapter != nil {
 		adapterByProvider["google"] = geminiAdapter
 		adapterByProvider["gemini"] = geminiAdapter
+		reg.AddGeminiModels(geminiAdapter)
 	}
 
 	customProviders, err := keys.LoadCustomProvidersForTenant(ctx, db, tenantID)
