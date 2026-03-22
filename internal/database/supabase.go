@@ -40,17 +40,18 @@ func NewClient() (*Client, error) {
 	// Load .env file if it exists
 	_ = godotenv.Load()
 
-	url := os.Getenv("NEXT_PUBLIC_SUPABASE_URL")
+	url := strings.TrimSpace(os.Getenv("NEXT_PUBLIC_SUPABASE_URL"))
 	if url == "" {
-		url = os.Getenv("SUPABASE_URL")
+		url = strings.TrimSpace(os.Getenv("SUPABASE_URL"))
 	}
 	if url == "" {
 		return nil, fmt.Errorf("SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL environment variable is required")
 	}
+	url = strings.TrimRight(url, "/")
 
-	apiKey := os.Getenv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY")
+	apiKey := strings.TrimSpace(os.Getenv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY"))
 	if apiKey == "" {
-		apiKey = os.Getenv("SUPABASE_ANON_KEY")
+		apiKey = strings.TrimSpace(os.Getenv("SUPABASE_ANON_KEY"))
 	}
 	if apiKey == "" {
 		return nil, fmt.Errorf("SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY environment variable is required")

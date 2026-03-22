@@ -50,15 +50,27 @@ func clampTemperature(t float64) float64 {
 func (d *Deps) corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
-		if d.AllowedOrigins != nil {
-			if _, ok := d.AllowedOrigins[origin]; ok {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
+		// fetch() uses credentials: 'include' in web/js/api.js. Browsers reject
+		// Access-Control-Allow-Origin: * together with credentialed requests.
+		// Echo a specific origin and set Allow-Credentials when Origin is present.
+		allowOrigin := ""
+		if origin != "" {
+			if d.AllowedOrigins != nil {
+				if _, ok := d.AllowedOrigins[origin]; ok {
+					allowOrigin = origin
+				}
+			} else {
+				// Dev / single-app: reflect caller origin. For strict production, set ALLOWED_ORIGINS.
+				allowOrigin = origin
 			}
-			// If origin not in list, do not set Allow-Origin (browser will block cross-origin)
-		} else {
+		}
+		if allowOrigin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", allowOrigin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+		} else if d.AllowedOrigins == nil && origin == "" {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 		}
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.Header().Set("Access-Control-Max-Age", "3600")
 
@@ -2128,10 +2140,14 @@ func (d *Deps) handleGetSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Now check auth - only if database is available
-	user, err := auth.RequireAuth(r.Context())
-	if err != nil {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+	// No credentials => not logged in (optionalAuth passed through without user in context).
+	user, userOK := auth.GetUserFromContext(r.Context())
+	if !userOK || user == nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"user":           nil,
+			"authenticated":  false,
+		})
 		return
 	}
 
@@ -2178,7 +2194,8 @@ func (d *Deps) handleGetSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := map[string]interface{}{
-		"user": responseUser,
+		"user":          responseUser,
+		"authenticated": true,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -2245,10 +2262,13 @@ func (d *Deps) handleGetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Now check auth - only if database is available
-	user, err := auth.RequireAuth(r.Context())
-	if err != nil {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+	user, userOK := auth.GetUserFromContext(r.Context())
+	if !userOK || user == nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"user":          nil,
+			"authenticated": false,
+		})
 		return
 	}
 
@@ -2295,7 +2315,8 @@ func (d *Deps) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := map[string]interface{}{
-		"user": responseUser,
+		"user":          responseUser,
+		"authenticated": true,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

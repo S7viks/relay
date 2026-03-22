@@ -9,6 +9,18 @@ This document explains the authentication system implemented in GAIOL.
 
 Integration tests in `scripts/test/integration.ps1` expect **401** on protected routes only when `auth_disabled` is false **and** `database.connected` is true (see health JSON).
 
+### CORS and split domains (e.g. Vercel UI + API elsewhere)
+
+The web client uses `fetch(..., { credentials: 'include' })`. Browsers **do not** allow `Access-Control-Allow-Origin: *` with credentialed requests. The server therefore echoes the request `Origin` and sets `Access-Control-Allow-Credentials: true` when an `Origin` header is present (unless `ALLOWED_ORIGINS` is set, in which case only listed origins are allowed). For production, set **`ALLOWED_ORIGINS`** to your exact site URLs (comma-separated), e.g. `https://gaiol.vercel.app,https://www.yourdomain.com`.
+
+### Supabase Auth URL configuration
+
+In Supabase Dashboard → **Authentication** → **URL configuration**, set **Site URL** and **Redirect URLs** to your real app origin (e.g. `https://your-api.fly.dev` or `https://gaiol.vercel.app`). Mismatched URLs break email confirmation and password recovery redirects.
+
+### Env hygiene
+
+Use the **anon (public) key** for `SUPABASE_ANON_KEY` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, not the service_role key. Trim trailing spaces in `.env`; the server normalizes URL (no trailing slash) and trims keys when connecting.
+
 ## Overview
 
 GAIOL uses Supabase Auth for user authentication. The system provides:

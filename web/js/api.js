@@ -82,8 +82,10 @@ async function apiRequest(endpoint, method = 'GET', body = null, retries = 3, re
     // Add authentication token ONLY if required OR if endpoint needs auth
     // Don't send tokens for public endpoints to avoid 401 errors on invalid/expired tokens.
     // Signin/signup must never receive a stale token or the server validates it and returns 401 before handling login.
+    // Never send a stale access token to /api/auth/refresh — optionalAuth would validate it and fail before refresh runs.
     const isPublicEndpoint = endpoint === '/api/auth/signin' || endpoint === '/api/auth/signup' ||
-        endpoint.startsWith('/api/models') || endpoint.startsWith('/api/query') || endpoint.startsWith('/health');
+        endpoint === '/api/auth/refresh' ||
+        endpoint.startsWith('/api/models') || endpoint.startsWith('/health');
 
     const token = getAccessToken();
     if (requireAuth || (token && !isPublicEndpoint)) {
@@ -378,7 +380,11 @@ async function signOut() {
 async function getSession() {
     const result = await apiRequest('/api/auth/session', 'GET', null, 1, false); // Don't require auth, handle 401 gracefully
     if (result && result.success) {
-        return result.data;
+        const d = result.data;
+        if (d && d.authenticated === false) {
+            return null;
+        }
+        return d;
     }
     // If it's a 401 or 503 or any auth-related error, user is simply not logged in - return null instead of throwing
     if (result && result.error) {
@@ -407,7 +413,23 @@ async function getSession() {
 async function getCurrentUser() {
     const result = await apiRequest('/api/auth/user', 'GET', null, 1, false);
     if (result && result.success) {
-        return result.data.user;
+        const d = result.data;
+        if (d && d.authenticated === false) {
+            return null;
+        }
+        if (d && d.user) {
+            return d.user;
+        }
+        return null;
+    }
+    if (result && result.error) {
+        const errorMsg = result.error.toLowerCase();
+        if (errorMsg.includes('401') ||
+            errorMsg.includes('unauthorized') ||
+            errorMsg.includes('authentication required') ||
+            errorMsg.includes('invalid or expired token')) {
+            return null;
+        }
     }
     throw new Error((result && result.error) || 'Failed to get user');
 }
