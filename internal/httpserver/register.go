@@ -12,7 +12,9 @@ func Register(mux *http.ServeMux, d *Deps) {
 	cors := d.corsMiddleware
 
 	// 1. Root and System Routes (public)
-	mux.HandleFunc("/health", d.handleHealth)
+	// /health must use CORS: the Vercel-hosted UI calls it cross-origin; api.js sends
+	// Content-Type on GET which triggers a preflight OPTIONS.
+	mux.HandleFunc("/health", cors(d.handleHealth))
 	if d.AuthDisabled {
 		redirect := func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/", http.StatusFound) }
 		mux.HandleFunc("/login", redirect)
