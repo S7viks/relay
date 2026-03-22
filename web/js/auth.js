@@ -5,6 +5,14 @@ let currentUser = null;
 let authCheckInterval = null;
 let isLoadingProfile = false; // Prevent concurrent profile loads
 
+/** Stops the periodic refresh timer so it cannot clear tokens during sign-in/sign-up. */
+function stopAuthBackgroundJobs() {
+    if (authCheckInterval) {
+        clearInterval(authCheckInterval);
+        authCheckInterval = null;
+    }
+}
+
 /**
  * Initialize authentication on page load
  */
@@ -67,9 +75,12 @@ async function initAuth() {
                 await refreshAccessToken();
             } catch (error) {
                 console.warn('Token refresh failed:', error);
+                const errorMsg = error.message || '';
+                if (errorMsg.includes('auth_exchange_in_progress')) {
+                    return;
+                }
                 // Only sign out if refresh token is definitively invalid
                 // Don't sign out on network errors or temporary issues
-                const errorMsg = error.message || '';
                 if (errorMsg.includes('Invalid') ||
                     errorMsg.includes('expired') ||
                     errorMsg.includes('refresh token') ||
@@ -88,6 +99,8 @@ async function initAuth() {
  */
 async function handleLogin(event) {
     event.preventDefault();
+
+    stopAuthBackgroundJobs();
 
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
@@ -117,6 +130,9 @@ async function handleLogin(event) {
         errorDiv.textContent = error.message || 'Sign in failed. Please check your credentials.';
         errorDiv.style.display = 'block';
         showToast('error', 'Sign in failed', error.message);
+        if (typeof initAuth === 'function') {
+            void initAuth();
+        }
     } finally {
         loginBtn.disabled = false;
         loginBtnText.style.display = 'inline';
@@ -129,6 +145,8 @@ async function handleLogin(event) {
  */
 async function handleSignup(event) {
     event.preventDefault();
+
+    stopAuthBackgroundJobs();
 
     const email = document.getElementById('signupEmail').value;
     const password = document.getElementById('signupPassword').value;
@@ -165,9 +183,13 @@ async function handleSignup(event) {
 
         // Update UI
         updateAuthUI();
-        showToast('success', 'Account created', 'Welcome to GAIOL!');
 
-        // Redirect to dashboard
+        if (typeof getAccessToken === 'function' && !getAccessToken()) {
+            showToast('info', 'Check your email', 'Confirm your account from the link we sent, then sign in.');
+            return;
+        }
+
+        showToast('success', 'Account created', 'Welcome to GAIOL!');
         window.location.href = '/dashboard';
     } catch (error) {
         const errorMessage = error.message || 'Sign up failed. Please try again.';
@@ -175,6 +197,9 @@ async function handleSignup(event) {
         errorDiv.style.display = 'block';
         showToast('error', 'Sign up failed', errorMessage);
         console.error('Signup error:', error);
+        if (typeof initAuth === 'function') {
+            void initAuth();
+        }
     } finally {
         signupBtn.disabled = false;
         signupBtnText.style.display = 'inline';
@@ -527,6 +552,7 @@ function updateAuthNavItems() {
 
 // Make functions globally available
 window.initAuth = initAuth;
+window.stopAuthBackgroundJobs = stopAuthBackgroundJobs;
 window.handleLogin = handleLogin;
 window.handleSignup = handleSignup;
 window.handleLogout = handleLogout;

@@ -70,6 +70,9 @@ const REFRESH_TOKEN_KEY = 'gaiol_refresh_token';
 // Server-side auth mode (populated by fetchAuthMode on startup)
 let _authDisabled = false;
 
+/** When true, ignore / fail background refresh so it cannot clear tokens mid sign-in/sign-up. */
+let _credentialExchangeInFlight = false;
+
 async function fetchAuthMode() {
     try {
         const r = await fetch(apiUrl('/health'));
@@ -124,6 +127,22 @@ function setRefreshToken(token) {
 function clearTokens() {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+/** Persist access/refresh tokens from Supabase-shaped JSON (top-level or nested session). */
+function applyAuthTokensFromPayload(data) {
+    if (!data || typeof data !== 'object') return;
+    const session = data.session;
+    const access =
+        data.access_token ||
+        (session && (session.access_token || session.accessToken)) ||
+        '';
+    const refresh =
+        data.refresh_token ||
+        (session && (session.refresh_token || session.refreshToken)) ||
+        '';
+    if (access) setAccessToken(access);
+    if (refresh) setRefreshToken(refresh);
 }
 
 /**
@@ -376,47 +395,50 @@ async function checkHealth() {
  * Sign up a new user
  */
 async function signUp(email, password, metadata = {}) {
+    _credentialExchangeInFlight = true;
+    clearTokens();
     const body = {
         email,
         password,
         data: metadata
     };
 
-    const result = await apiRequest('/api/auth/signup', 'POST', body);
-    if (result.success) {
-        // Store tokens if provided
-        if (result.data.access_token) {
-            setAccessToken(result.data.access_token);
+    try {
+        const result = await apiRequest('/api/auth/signup', 'POST', body);
+        if (result.success) {
+            applyAuthTokensFromPayload(result.data);
+            return result.data;
         }
-        if (result.data.refresh_token) {
-            setRefreshToken(result.data.refresh_token);
-        }
-        return result.data;
+        throw new Error(result.error || 'Signup failed');
+    } finally {
+        _credentialExchangeInFlight = false;
     }
-    throw new Error(result.error || 'Signup failed');
 }
 
 /**
  * Sign in a user
  */
 async function signIn(email, password) {
+    _credentialExchangeInFlight = true;
+    clearTokens();
     const body = {
         email,
         password
     };
 
-    const result = await apiRequest('/api/auth/signin', 'POST', body);
-    if (result.success) {
-        // Store tokens
-        if (result.data.access_token) {
-            setAccessToken(result.data.access_token);
+    try {
+        const result = await apiRequest('/api/auth/signin', 'POST', body);
+        if (result.success) {
+            applyAuthTokensFromPayload(result.data);
+            if (!getAccessToken()) {
+                throw new Error('Sign-in succeeded but no access token was returned. Confirm your email if required, then try again.');
+            }
+            return result.data;
         }
-        if (result.data.refresh_token) {
-            setRefreshToken(result.data.refresh_token);
-        }
-        return result.data;
+        throw new Error(result.error || 'Sign in failed');
+    } finally {
+        _credentialExchangeInFlight = false;
     }
-    throw new Error(result.error || 'Sign in failed');
 }
 
 /**
@@ -498,6 +520,9 @@ async function getCurrentUser() {
  * Refresh access token
  */
 async function refreshAccessToken() {
+    if (_credentialExchangeInFlight) {
+        throw new Error('auth_exchange_in_progress');
+    }
     const refreshToken = getRefreshToken();
     if (!refreshToken) {
         throw new Error('No refresh token available');
@@ -509,19 +534,17 @@ async function refreshAccessToken() {
 
     const result = await apiRequest('/api/auth/refresh', 'POST', body, 1, false);
     if (result && result.success) {
-        // Update stored tokens
-        if (result.data && result.data.access_token) {
-            setAccessToken(result.data.access_token);
-        }
-        if (result.data && result.data.refresh_token) {
-            setRefreshToken(result.data.refresh_token);
-        }
+        applyAuthTokensFromPayload(result.data);
         return result.data;
     }
 
-    // If refresh fails, clear tokens only if it's an auth error (not network error)
+    // If refresh fails, clear only if this refresh is still the active one (avoid wiping a new session after sign-in)
     const errorMsg = (result && result.error) || 'Token refresh failed';
-    if (errorMsg.includes('Authentication') || errorMsg.includes('Invalid') || errorMsg.includes('expired')) {
+    const stillSameRefresh = getRefreshToken() === refreshToken;
+    if (
+        stillSameRefresh &&
+        (errorMsg.includes('Authentication') || errorMsg.includes('Invalid') || errorMsg.includes('expired'))
+    ) {
         clearTokens();
     }
     throw new Error(errorMsg);
