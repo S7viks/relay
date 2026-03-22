@@ -47,7 +47,7 @@ function loadPageContent(pageId) {
     else if (path.includes('profile.html')) pageId = 'profile';
     else if (path.includes('login.html')) pageId = 'login';
     else if (path.includes('signup.html')) pageId = 'signup';
-    else if (path === '/chat' || path.endsWith('/chat') || path.endsWith('/index.html')) pageId = 'chat';
+    else if (path === '/chat' || path.endsWith('/chat') || path.endsWith('/chat.html')) pageId = 'chat';
     else return;
 
     switch (pageId) {

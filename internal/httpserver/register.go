@@ -27,7 +27,7 @@ func Register(mux *http.ServeMux, d *Deps) {
 	mux.HandleFunc("/dashboard", serveDashboard)
 	mux.HandleFunc("/dashboard/", serveDashboard)
 	mux.HandleFunc("/welcome", serveStaticPage("landing.html"))
-	mux.HandleFunc("/chat", serveStaticPage("index.html"))
+	mux.HandleFunc("/chat", serveStaticPage("chat.html"))
 	mux.HandleFunc("/chat/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/chat", http.StatusFound)
 	})
