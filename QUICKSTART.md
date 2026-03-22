@@ -40,6 +40,15 @@ GAIOL_ENCRYPTION_KEY=your-32-byte-hex-key
 
 Run the database migrations (see [docs/database-setup.md](docs/database-setup.md)) so auth and key tables exist.
 
+### Two server modes
+
+| Mode | When | Database | `/health` | Models in registry |
+|------|------|----------|-----------|-------------------|
+| **Auth + Supabase** (default) | No `GAIOL_DISABLE_AUTH`; valid `SUPABASE_*` in `.env` | Yes | `auth_disabled: false`, `database.connected: true`, `database.reachable` from live PostgREST ping | Often `0` until tenant loads keys; tenant queries still work |
+| **Local no-auth** | `GAIOL_DISABLE_AUTH=1` (or `GAIOL_AUTH_DISABLED` / `DISABLE_AUTH`) | Skipped | `auth_disabled: true`, `database.connected: false` | From env only: set `OPENROUTER_API_KEY` / `GEMINI_API_KEY` / Ollama so model count is non-zero |
+
+`/api/monitoring/stats` uses the same Supabase client as the app; with the anon key, **RLS** may limit rows unless policies allow the server role to read aggregates.
+
 ---
 
 ## Step 3: Start the Server

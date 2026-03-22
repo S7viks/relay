@@ -9,6 +9,20 @@ let isLoadingProfile = false; // Prevent concurrent profile loads
  * Initialize authentication on page load
  */
 async function initAuth() {
+    // Fetch server auth mode first
+    if (typeof fetchAuthMode === 'function') {
+        await fetchAuthMode();
+    }
+
+    // When auth is disabled server-side, skip all auth flows
+    if (typeof isAuthDisabled === 'function' && isAuthDisabled()) {
+        currentUser = { id: 'local', email: 'local@localhost' };
+        window.currentUser = currentUser;
+        updateAuthUI();
+        if (typeof updateTopBarProfile === 'function') updateTopBarProfile();
+        return;
+    }
+
     // Check if user is already authenticated
     if (isAuthenticated()) {
         try {

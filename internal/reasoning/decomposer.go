@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"gaiol/internal/gaiol/modelresolve"
 	"gaiol/internal/models"
 )
 
@@ -35,32 +36,15 @@ func (d *Decomposer) DecomposePrompt(ctx context.Context, prompt string) ([]Reas
 	decomposeCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
-	// Get all free models from registry and try them
 	registry := d.Router.GetRegistry()
-	allModels := registry.ListModels()
-
-	// Filter for free models and prioritize local Ollama or fast cloud models
-	var decomposerModels []string
-	for _, model := range allModels {
-		if model.CostInfo.CostPerToken == 0.0 {
-			// Prioritize Ollama (local) first, then Gemini and Llama-3.2
-			if model.Provider == "ollama" {
-				// Prepend Ollama models
-				decomposerModels = append([]string{string(model.ID)}, decomposerModels...)
-			} else if strings.Contains(string(model.ID), "gemini") || strings.Contains(string(model.ID), "llama-3.2") {
-				decomposerModels = append([]string{string(model.ID)}, decomposerModels...)
-			} else {
-				decomposerModels = append(decomposerModels, string(model.ID))
-			}
-		}
-	}
+	decomposerModels := modelresolve.OrderedFreeModelIDsForDecomposer(registry.ListModels())
 
 	if len(decomposerModels) == 0 {
 		return nil, fmt.Errorf("no free models available for decomposition")
 	}
 
 	// If an Ollama model was found, it should already be at the front
-	if strings.HasPrefix(decomposerModels[0], "ollama:") {
+	if strings.HasPrefix(decomposerModels[0], modelresolve.ProviderOllama+":") {
 		fmt.Printf("🔍 Using Ollama for decomposition: %s\n", decomposerModels[0])
 	} else {
 		fmt.Printf("📋 Found %d free models available for decomposition\n", len(decomposerModels))

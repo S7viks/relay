@@ -525,20 +525,21 @@ Authorization: Bearer <access_token>
 GET /api/monitoring/stats
 ```
 
-**Response:**
+**Response** (shape from `internal/monitoring/metrics.go` — values depend on DB refresh; many fields stay at zero until aggregates are fully wired):
+
 ```json
 {
-  "total_queries": 1234,
-  "total_cost": 12.34,
-  "average_latency_ms": 890,
-  "models_used": {
-    "openrouter:google/gemini-2.0-flash-exp:free": 456,
-    "openrouter:meta-llama/llama-3.2-3b-instruct:free": 234
-  },
-  "errors": 12,
-  "success_rate": 0.99
+  "total_requests": 0,
+  "total_cost": 0,
+  "avg_latency_ms": 0,
+  "success_rate": 0,
+  "model_performance": {},
+  "provider_health": {},
+  "updated_at": "2025-01-01T12:00:00Z"
 }
 ```
+
+Use live output from `GET /api/monitoring/stats` in your report. To save snapshots: `scripts/collect-report-metrics.ps1` (writes `report-artifacts/monitoring-stats.json`). See `docs/project-report-pack.md`.
 
 ---
 
@@ -557,11 +558,17 @@ GET /health
   "models": 150,
   "version": "1.0.0",
   "time": "2024-01-01T12:00:00Z",
+  "auth_disabled": false,
   "database": {
-    "connected": true
+    "connected": true,
+    "reachable": true
   }
 }
 ```
+
+- `database.connected`: Supabase client was initialized at startup (auth + DB mode).
+- `database.reachable`: PostgREST at your project URL responded (live ping). If `false`, see `database.ping_error`.
+- With `GAIOL_DISABLE_AUTH=1`, `auth_disabled` is true, `database.connected` is false, and the app skips DB init.
 
 ---
 

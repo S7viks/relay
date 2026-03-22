@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"gaiol/internal/gaiol/modelresolve"
 	"gaiol/internal/models"
 )
 
@@ -34,7 +35,7 @@ func (s *Scorer) ScoreOutput(ctx context.Context, objective, response, modelID s
 	qm := NewQueryModel(s.Router)
 	promptFull := SystemPromptScorer + "\n\n" + prompt
 
-	resp, err := qm.Query(ctx, "anthropic/claude-3-5-sonnet", promptFull)
+	resp, err := qm.Query(ctx, modelresolve.ScorerQuerySlug, promptFull)
 
 	latency := time.Since(start).Milliseconds()
 

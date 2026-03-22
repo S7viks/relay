@@ -22,6 +22,7 @@ Index of all documentation. Entry points at repo root: [README.md](../README.md)
 
 | Document | Purpose |
 |----------|---------|
+| [project-report-pack.md](project-report-pack.md) | Project report: poster tables, screenshots checklist, live vs manuscript metrics, team memo |
 | [GAIOL_PUBLIC_PRODUCT_PLAN.md](GAIOL_PUBLIC_PRODUCT_PLAN.md) | Product plan (Parts A–G) |
 | [IMPLEMENTATION_PHASES.md](IMPLEMENTATION_PHASES.md) | Phased implementation checklist |
 | [IMPLEMENTATION_PHASES_DETAILED.md](IMPLEMENTATION_PHASES_DETAILED.md) | Detailed phase tasks |

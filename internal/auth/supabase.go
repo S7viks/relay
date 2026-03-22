@@ -131,7 +131,7 @@ func AuthMiddleware(db *database.Client) func(http.Handler) http.Handler {
 				}
 			}
 
-			ctx := context.WithValue(r.Context(), "user", user)
+			ctx := WithUser(r.Context(), user)
 			ctx = database.WithTenant(ctx, tenantCtx)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -241,12 +241,6 @@ func VerifyToken(tokenString, apiKey string) (*User, error) {
 	}
 
 	return user, nil
-}
-
-// GetUserFromContext extracts user from request context
-func GetUserFromContext(ctx context.Context) (*User, bool) {
-	user, ok := ctx.Value("user").(*User)
-	return user, ok
 }
 
 // RequireAuth ensures a request has authenticated user, returns error if missing

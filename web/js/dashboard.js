@@ -1,5 +1,7 @@
-(function() {
-  if (typeof isAuthenticated !== 'function' || !isAuthenticated()) {
+(async function() {
+  if (typeof fetchAuthMode === 'function') await fetchAuthMode();
+  if (!(typeof isAuthDisabled === 'function' && isAuthDisabled()) &&
+      (typeof isAuthenticated !== 'function' || !isAuthenticated())) {
     window.location.href = '/login';
     return;
   }
@@ -42,7 +44,7 @@
       console.warn('API fetch error:', e);
       return null;
     }
-    if (res.status === 401) {
+    if (res.status === 401 && !(typeof isAuthDisabled === 'function' && isAuthDisabled())) {
       if (_redirecting) return null;
       _redirecting = true;
       if (typeof clearTokens === 'function') clearTokens();

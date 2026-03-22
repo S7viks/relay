@@ -2,6 +2,13 @@
 
 This document explains the authentication system implemented in GAIOL.
 
+## Server modes (auth vs local)
+
+- **Production-style:** Omit `GAIOL_DISABLE_AUTH`. Set `SUPABASE_URL` (or `NEXT_PUBLIC_SUPABASE_URL`) and `SUPABASE_ANON_KEY` (or publishable key). The server registers a global DB client (`database.GetClient()`), enables JWT middleware on protected routes when the DB connects, and pings PostgREST for `/health` `database.reachable`.
+- **Local no-auth:** Set `GAIOL_DISABLE_AUTH=1`. The server does **not** connect to Supabase, stubs `/api/auth/*`, opens query/settings routes without JWT, and builds the model registry from **environment** provider keys (`OPENROUTER_API_KEY`, etc.) and Ollama. Use this only for local development.
+
+Integration tests in `scripts/test/integration.ps1` expect **401** on protected routes only when `auth_disabled` is false **and** `database.connected` is true (see health JSON).
+
 ## Overview
 
 GAIOL uses Supabase Auth for user authentication. The system provides:

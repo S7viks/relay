@@ -7,6 +7,21 @@ const API_BASE = '';
 const ACCESS_TOKEN_KEY = 'gaiol_access_token';
 const REFRESH_TOKEN_KEY = 'gaiol_refresh_token';
 
+// Server-side auth mode (populated by fetchAuthMode on startup)
+let _authDisabled = false;
+
+async function fetchAuthMode() {
+    try {
+        const r = await fetch('/health');
+        if (r.ok) {
+            const d = await r.json();
+            _authDisabled = !!d.auth_disabled;
+        }
+    } catch (_) { /* network error, assume auth enabled */ }
+}
+
+function isAuthDisabled() { return _authDisabled; }
+
 /**
  * Get stored access token
  */
@@ -431,9 +446,10 @@ async function refreshAccessToken() {
 }
 
 /**
- * Check if user is authenticated
+ * Check if user is authenticated (always true when auth is disabled server-side)
  */
 function isAuthenticated() {
+    if (_authDisabled) return true;
     return !!getAccessToken();
 }
 

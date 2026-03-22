@@ -24,9 +24,9 @@ if %EXIT_CODE% NEQ 0 (
     echo ========================================
     echo.
     echo Common issues:
-    echo   - Missing OPENROUTER_API_KEY in .env file
     echo   - Port 8080 already in use
     echo   - Build errors
+    echo   - With no-auth mode: add OPENROUTER_API_KEY (or similar) to .env for models
     echo.
     pause
     exit /b %EXIT_CODE%

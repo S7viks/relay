@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"gaiol/internal/gaiol/modelresolve"
 	"gaiol/internal/models"
 	"gaiol/internal/uaip"
 )
@@ -72,19 +73,9 @@ func (qm *QueryModel) QueryFullWithTokens(ctx context.Context, modelID string, p
 	}
 
 	registry := qm.router.GetRegistry()
-	modelMeta, err := registry.GetModel(models.ModelID(modelID))
+	modelMeta, err := modelresolve.LookupRegisteredModelOrFree(registry, modelID)
 	if err != nil {
-		// Try openrouter prefix first
-		modelMeta, err = registry.GetModel(models.ModelID("openrouter:" + modelID))
-		if err != nil {
-			// Fallback: try any free model in registry
-			freeModels := registry.FindFreeModels()
-			if len(freeModels) > 0 {
-				modelMeta = &freeModels[0]
-			} else {
-				return QueryResponse{}, fmt.Errorf("model not found: %s", modelID)
-			}
-		}
+		return QueryResponse{}, err
 	}
 
 	adapter := modelMeta.Adapter

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gaiol/internal/database"
+	"gaiol/internal/gaiol/modelresolve"
 	"gaiol/internal/models"
 
 	"github.com/google/uuid"
@@ -54,7 +55,7 @@ func NewReasoningEngine(router *models.ModelRouter) *ReasoningEngine {
 		// The orchestrator will initialize RAG when needed
 		store := database.NewSupabaseVectorStore(dbClient)
 		// Find embedding model quickly (check only OpenRouter models)
-		openRouterModels := router.GetRegistry().FindModelsByProvider("openrouter")
+		openRouterModels := router.GetRegistry().FindModelsByProvider(modelresolve.ProviderOpenRouter)
 		for _, m := range openRouterModels {
 			if m.Adapter != nil {
 				if embedder, ok := m.Adapter.(models.EmbeddingProvider); ok {

@@ -41,11 +41,8 @@ if (Test-Path ".env") {
     Write-Host "Create a .env file with your API keys for full functionality." -ForegroundColor Yellow
 }
 
-# Set required environment variables (use existing or defaults)
-if (-not $env:OPENROUTER_API_KEY) {
-    Write-Host "Warning: OPENROUTER_API_KEY not set" -ForegroundColor Yellow
-}
-
+# API keys: with auth/database, users add OpenRouter/Gemini/etc. in the app (Dashboard > Models).
+# OPENROUTER_API_KEY in .env is only for no-auth local mode (GAIOL_DISABLE_AUTH=1). Not required otherwise.
 if (-not $env:SUPABASE_URL -and -not $env:NEXT_PUBLIC_SUPABASE_URL) {
     Write-Host "Warning: Supabase credentials not set - authentication features will be disabled" -ForegroundColor Yellow
 }
@@ -53,15 +50,11 @@ if (-not $env:SUPABASE_URL -and -not $env:NEXT_PUBLIC_SUPABASE_URL) {
 # Check if server is already running
 try {
     $response = Invoke-WebRequest -Uri "http://localhost:8080/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
-    Write-Host "Warning: Server is already running on port 8080!" -ForegroundColor Yellow
-    Write-Host "   Stop the existing server first, or use a different port." -ForegroundColor Yellow
-    Write-Host ""
+    Write-Host "Server is already running on port 8080." -ForegroundColor Yellow
     $health = $response.Content | ConvertFrom-Json
-    Write-Host "Current server status:" -ForegroundColor Cyan
-    Write-Host "  Status: $($health.status)"
-    Write-Host "  Models: $($health.models)"
-    Write-Host "  Database: $($health.database.connected)"
+    Write-Host "  Status: $($health.status), Models: $($health.models), Database: $($health.database.connected)"
     Write-Host ""
+    Write-Host "To restart: stop the existing process (Task Manager or close its window), then run this script again." -ForegroundColor Gray
     Write-Host "Access at: http://localhost:8080" -ForegroundColor Green
     exit 0
 } catch {

@@ -194,8 +194,7 @@ async function executeSingleQuery() {
         }
         const errorMsg = error.message || 'Query failed';
 
-        // Handle authentication errors specially
-        if (errorMsg.includes('Authentication required') || errorMsg.includes('Please sign in')) {
+        if (!(typeof isAuthDisabled === 'function' && isAuthDisabled()) && (errorMsg.includes('Authentication required') || errorMsg.includes('Please sign in'))) {
             showToast('warning', 'Authentication Required', 'Please sign in to use AI models');
             if (typeof switchPage === 'function') {
                 switchPage('login');
@@ -427,6 +426,17 @@ async function executeReasoningQuery() {
                 if (typeof clearChatStatus === 'function') {
                     clearChatStatus();
                 }
+            } else if (event.type === 'error') {
+                const contentBody = document.getElementById(contentId);
+                const errMsg = (typeof event.payload === 'string') ? event.payload : (event.payload && event.payload.message) || 'Reasoning failed';
+                if (contentBody) {
+                    contentBody.textContent = errMsg;
+                    contentBody.style.opacity = '1';
+                }
+                setUIState({ loading: false });
+                if (typeof clearChatStatus === 'function') {
+                    clearChatStatus();
+                }
             }
         });
 
@@ -440,8 +450,7 @@ async function executeReasoningQuery() {
     } catch (error) {
         const errorMsg = error.message || 'Reasoning failed';
 
-        // Handle authentication errors specially
-        if (errorMsg.includes('Authentication required') || errorMsg.includes('Please sign in')) {
+        if (!(typeof isAuthDisabled === 'function' && isAuthDisabled()) && (errorMsg.includes('Authentication required') || errorMsg.includes('Please sign in'))) {
             showToast('warning', 'Authentication Required', 'Please sign in to use AI models');
             if (typeof switchPage === 'function') {
                 switchPage('login');

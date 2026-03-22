@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"gaiol/internal/gaiol/modelresolve"
 	"gaiol/internal/models"
 )
 
@@ -38,7 +39,7 @@ func (saw *SimpleAgentWorkflow) Execute(ctx context.Context, userPrompt string) 
 	}
 
 	// Use ANY available model (prefer free ones)
-	modelID := "ollama:llama3.2:latest" // Try Ollama first
+	modelID := modelresolve.DefaultAgentWorkflowModelID()
 
 	// PHASE 1: PLANNING (30s timeout)
 	fmt.Println("🎯 PHASE 1: Planning")

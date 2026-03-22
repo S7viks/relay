@@ -1,0 +1,302 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gaiol.dev/schemas/v1/orchestrate-response.schema.json",
+  "title": "GAIOL OrchestrateResponse v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "trace_id", "answer", "trace", "trust_updates"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "trace_id": { "type": "string", "minLength": 1 },
+    "session_id": { "type": "string" },
+    "answer": { "type": "string" },
+    "trace": { "$ref": "#/$defs/orchestration_trace" },
+    "trust_updates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/trust_update_event" }
+    }
+  },
+  "$defs": {
+    "trust_update_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "event",
+        "trace_id",
+        "domain",
+        "model_id",
+        "provider_id",
+        "distribution",
+        "updated_at"
+      ],
+      "properties": {
+        "schema_version": { "type": "string", "const": "1.0" },
+        "event": { "type": "string", "const": "trust_updated" },
+        "trace_id": { "type": "string", "minLength": 1 },
+        "session_id": { "type": "string" },
+        "domain": { "type": "string", "minLength": 1 },
+        "model_id": { "type": "string", "minLength": 1 },
+        "provider_id": { "type": "string", "minLength": 1 },
+        "distribution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["alpha", "beta"],
+          "properties": {
+            "alpha": { "type": "number", "exclusiveMinimum": 0 },
+            "beta": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        "updated_at": { "type": "string", "minLength": 1 },
+        "subtask_id": { "type": "string" },
+        "prior_distribution": { "$ref": "#/$defs/beta_trust" },
+        "after_decay_distribution": { "$ref": "#/$defs/beta_trust" },
+        "prior_mean": { "type": "number" },
+        "posterior_mean": { "type": "number" },
+        "decay": { "type": "number", "minimum": 0, "maximum": 1 },
+        "strength": { "type": "number", "minimum": 0 },
+        "signal": { "type": "number", "minimum": 0, "maximum": 1 },
+        "role": { "type": "string", "enum": ["winner", "participant"] },
+        "explanation": { "type": "string" }
+      }
+    },
+    "beta_trust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alpha", "beta"],
+      "properties": {
+        "alpha": { "type": "number", "exclusiveMinimum": 0 },
+        "beta": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "orchestration_trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trace_id", "domain", "decomposition", "subtasks", "started_at", "finished_at"],
+      "properties": {
+        "trace_id": { "type": "string" },
+        "domain": { "type": "string" },
+        "started_at": { "type": "string" },
+        "finished_at": { "type": "string" },
+        "decomposition": { "$ref": "#/$defs/decomposition" },
+        "subtasks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/subtask_trace" }
+        }
+      }
+    },
+    "decomposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subtasks"],
+      "properties": {
+        "subtasks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/subtask_spec" }
+        },
+        "rationale": { "type": "string" }
+      }
+    },
+    "subtask_spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "description", "task_kind"],
+      "properties": {
+        "id": { "type": "string" },
+        "parent_id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "task_kind": {
+          "type": "string",
+          "enum": ["qa", "code", "summarization", "reasoning", "creative", "tool_use", "unknown"]
+        },
+        "required_capabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "routing_rank_breakdown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accuracy", "latency", "cost", "availability", "capability_match"],
+      "properties": {
+        "accuracy": { "type": "number" },
+        "latency": { "type": "number" },
+        "cost": { "type": "number" },
+        "availability": { "type": "number" },
+        "capability_match": { "type": "number" }
+      }
+    },
+    "routing_explanation_trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "diversity_rationale",
+        "candidate_pool_size",
+        "beam_width",
+        "model_rank_snapshot"
+      ],
+      "properties": {
+        "diversity_rationale": { "type": "string" },
+        "candidate_pool_size": { "type": "integer", "minimum": 0 },
+        "beam_width": { "type": "integer", "minimum": 1 },
+        "model_rank_snapshot": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["model_id", "provider_id", "routing_score", "breakdown"],
+            "properties": {
+              "model_id": { "type": "string" },
+              "provider_id": { "type": "string" },
+              "routing_score": { "type": "number" },
+              "breakdown": { "$ref": "#/$defs/routing_rank_breakdown" }
+            }
+          }
+        }
+      }
+    },
+    "path_candidate_trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path_id", "model_id", "provider_id", "score", "kept", "text_preview"],
+      "properties": {
+        "path_id": { "type": "string" },
+        "model_id": { "type": "string" },
+        "provider_id": { "type": "string" },
+        "score": { "type": "number" },
+        "kept": { "type": "boolean" },
+        "text_preview": { "type": "string" }
+      }
+    },
+    "beam_prune_trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["beam_width", "kept_path_ids", "discarded_path_ids"],
+      "properties": {
+        "beam_width": { "type": "integer", "minimum": 1 },
+        "kept_path_ids": { "type": "array", "items": { "type": "string" } },
+        "discarded_path_ids": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "path_exploration_trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidates", "pruning", "winning_path_id"],
+      "properties": {
+        "candidates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/path_candidate_trace" }
+        },
+        "pruning": { "$ref": "#/$defs/beam_prune_trace" },
+        "winning_path_id": { "type": "string" }
+      }
+    },
+    "trust_round_entry_trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "provider_id",
+        "domain",
+        "role",
+        "prior",
+        "after_decay",
+        "posterior",
+        "prior_mean",
+        "posterior_mean",
+        "decay",
+        "strength",
+        "signal",
+        "explanation",
+        "persisted"
+      ],
+      "properties": {
+        "model_id": { "type": "string" },
+        "provider_id": { "type": "string" },
+        "domain": { "type": "string" },
+        "role": { "type": "string", "enum": ["winner", "participant"] },
+        "prior": { "$ref": "#/$defs/beta_trust" },
+        "after_decay": { "$ref": "#/$defs/beta_trust" },
+        "posterior": { "$ref": "#/$defs/beta_trust" },
+        "prior_mean": { "type": "number" },
+        "posterior_mean": { "type": "number" },
+        "decay": { "type": "number", "minimum": 0, "maximum": 1 },
+        "strength": { "type": "number", "minimum": 0 },
+        "signal": { "type": "number", "minimum": 0, "maximum": 1 },
+        "explanation": { "type": "string" },
+        "persisted": { "type": "boolean" }
+      }
+    },
+    "trust_round_trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "consensus_mode",
+        "winner_model_id",
+        "subtask_id",
+        "decay",
+        "strength_winner",
+        "strength_participant",
+        "entries"
+      ],
+      "properties": {
+        "consensus_mode": {
+          "type": "string",
+          "enum": ["uniform", "static", "abtc"]
+        },
+        "winner_model_id": { "type": "string" },
+        "subtask_id": { "type": "string" },
+        "decay": { "type": "number", "minimum": 0, "maximum": 1 },
+        "strength_winner": { "type": "number", "minimum": 0 },
+        "strength_participant": { "type": "number", "minimum": 0 },
+        "consensus_trust_exponent": { "type": "number", "minimum": 0 },
+        "entries": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/trust_round_entry_trace" }
+        }
+      }
+    },
+    "subtask_trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subtask_id", "routed_model_ids", "calls", "scores"],
+      "properties": {
+        "subtask_id": { "type": "string" },
+        "routed_model_ids": { "type": "array", "items": { "type": "string" } },
+        "calls": { "type": "array", "items": { "$ref": "#/$defs/model_call" } },
+        "scores": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "chosen_model_id": { "type": "string" },
+        "consensus_text": { "type": "string" },
+        "path_exploration": { "$ref": "#/$defs/path_exploration_trace" },
+        "routing_explanation": { "$ref": "#/$defs/routing_explanation_trace" },
+        "trust_round": { "$ref": "#/$defs/trust_round_trace" }
+      }
+    },
+    "model_call": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_id", "provider_id", "text", "latency_ms"],
+      "properties": {
+        "model_id": { "type": "string" },
+        "provider_id": { "type": "string" },
+        "text": { "type": "string" },
+        "latency_ms": { "type": "number", "minimum": 0 },
+        "usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "prompt_tokens": { "type": "integer", "minimum": 0 },
+            "completion_tokens": { "type": "integer", "minimum": 0 },
+            "cost_usd": { "type": "number", "minimum": 0 }
+          }
+        },
+        "error": { "type": "string" }
+      }
+    }
+  }
+}

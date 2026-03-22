@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"gaiol/internal/gaiol/modelresolve"
 )
 
 // ConsensusStrategy defines how model disagreements are resolved
@@ -29,7 +31,7 @@ func DefaultConsensusConfig() ConsensusConfig {
 	return ConsensusConfig{
 		Enabled:   true, // Enabled by default for better consensus
 		Strategy:  StrategyMetaAgent,
-		MetaModel: "openrouter:google/gemini-2.0-flash-exp:free", // Use free model for consensus
+		MetaModel: modelresolve.DefaultConsensusMetaModelID(),
 		Threshold: 0.6,                                           // Lower threshold to trigger more often
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"gaiol/internal/gaiol/modelresolve"
 	"gaiol/internal/models"
 	"gaiol/internal/models/adapters"
 	"gaiol/internal/uaip"
@@ -56,7 +57,7 @@ func (o *Orchestrator) ExecuteStep(ctx context.Context, step ReasoningStep, shar
 		model, err := o.Router.Route(routeConfig)
 		if err != nil {
 			fmt.Printf("⚠️ Dynamic routing failed, using fallback\n")
-			effectiveModelIDs = []string{"google/gemini-2.0-flash-exp:free"} // Fast free model
+			effectiveModelIDs = []string{modelresolve.DefaultDynamicRouteFailureModelID()}
 		} else {
 			effectiveModelIDs = []string{string(model.ID)}
 		}
@@ -113,11 +114,13 @@ func (o *Orchestrator) ExecuteStep(ctx context.Context, step ReasoningStep, shar
 				len(output.Response) > 10 { // Must be substantial
 
 				mu.Lock()
-				successCount++
 				if successCount >= maxSuccess {
-					close(doneChan) // Signal others to stop
+					mu.Unlock()
+					return
 				}
+				successCount++
 				mu.Unlock()
+				close(doneChan) // only first success reaches here (mutex + early return)
 
 				outputChan <- output
 			}
@@ -220,7 +223,7 @@ DONE:
 			},
 		}
 
-		hfResp, hfErr := hfAdapter.GenerateText(hfCtx, "mistralai/Mistral-7B-Instruct-v0.2", hfReq)
+		hfResp, hfErr := hfAdapter.GenerateText(hfCtx, modelresolve.HuggingFaceFallbackModelName, hfReq)
 		if hfErr == nil && hfResp.Status.Success {
 			fmt.Println("✅ HuggingFace fallback succeeded!")
 			return []ModelOutput{{

@@ -16,9 +16,10 @@ coverage.out
 
 # Dependency directories
 vendor/
+node_modules/
 
-# Nested repo (removed submodule; single codebase at root)
-GAIOL/
+# Nested clone/submodule at repo root only (do not match internal/gaiol on case-insensitive FS)
+/GAIOL/
 
 # Archive (do not track; keeps repo streamlined)
 _archive/
@@ -44,6 +45,23 @@ Thumbs.db
 
 # Logs
 *.log
+
+# LaTeX (paper build artifacts)
+*.aux
+*.bbl
+*.blg
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.run.xml
+*.bcf
+
+# Local project report captures (screenshots, curl outputs)
+report-artifacts/
 
 # Build and test artifacts
 build_error.txt

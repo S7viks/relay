@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gaiol.dev/schemas/v1/orchestrate-request.schema.json",
+  "title": "GAIOL OrchestrateRequest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "trace_id", "domain", "task_kind", "objective", "messages"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "trace_id": { "type": "string", "minLength": 1 },
+    "session_id": { "type": "string" },
+    "domain": { "type": "string", "minLength": 1 },
+    "task_kind": {
+      "type": "string",
+      "enum": ["qa", "code", "summarization", "reasoning", "creative", "tool_use", "unknown"]
+    },
+    "objective": { "type": "string" },
+    "messages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "content"],
+        "properties": {
+          "role": { "type": "string", "enum": ["system", "user", "assistant", "tool"] },
+          "content": { "type": "string" },
+          "name": { "type": "string" }
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_cost_usd": { "type": "number", "minimum": 0 },
+        "max_latency_ms_per_call": { "type": "integer", "minimum": 0 },
+        "max_parallel_calls": { "type": "integer", "minimum": 1 },
+        "temperature": { "type": "number", "minimum": 0, "maximum": 2 },
+        "max_output_tokens": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "explore_paths": { "type": "boolean" },
+    "beam_width": { "type": "integer", "minimum": 1 },
+    "consensus_mode": { "type": "string", "enum": ["uniform", "static", "abtc"] }
+  }
+}

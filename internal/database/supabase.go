@@ -3,8 +3,11 @@ package database
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/joho/godotenv"
 	supabase "github.com/supabase-community/supabase-go"
@@ -12,6 +15,7 @@ import (
 
 var (
 	globalClient *Client
+	globalMu     sync.RWMutex
 	clientOnce   sync.Once
 	initError    error
 )
@@ -64,14 +68,16 @@ func NewClient() (*Client, error) {
 	}, nil
 }
 
+type tenantCtxKey struct{}
+
 // WithTenant returns a context with tenant information
 func WithTenant(ctx context.Context, tenant TenantContext) context.Context {
-	return context.WithValue(ctx, "tenant", tenant)
+	return context.WithValue(ctx, tenantCtxKey{}, tenant)
 }
 
 // GetTenantFromContext extracts tenant information from context
 func GetTenantFromContext(ctx context.Context) (TenantContext, bool) {
-	tenant, ok := ctx.Value("tenant").(TenantContext)
+	tenant, ok := ctx.Value(tenantCtxKey{}).(TenantContext)
 	return tenant, ok
 }
 
@@ -96,43 +102,70 @@ func Init() error {
 			initError = err
 			return
 		}
-		globalClient = client
+		SetGlobalClient(client)
 	})
 	return initError
+}
+
+// SetGlobalClient registers the client returned by GetClient for packages that cannot
+// receive dbClient through main (monitoring, reasoning engine RAG, memory).
+// Pass nil to clear (e.g. auth-disabled mode).
+func SetGlobalClient(c *Client) {
+	globalMu.Lock()
+	defer globalMu.Unlock()
+	globalClient = c
 }
 
 // GetClient returns the initialized global Supabase client
 // Returns nil if Init() has not been called or failed
 func GetClient() *Client {
+	globalMu.RLock()
+	defer globalMu.RUnlock()
 	return globalClient
 }
 
-// HealthCheck verifies the database connection is working
+// PingREST checks that the Supabase PostgREST endpoint responds (TLS + API key).
+// It does not run SQL; RLS may still block table reads when using the anon key.
+func (c *Client) PingREST(ctx context.Context) error {
+	if c == nil || c.URL == "" {
+		return fmt.Errorf("database client not configured")
+	}
+	base := strings.TrimSuffix(strings.TrimSpace(c.URL), "/")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/rest/v1/", nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("apikey", c.APIKey)
+	req.Header.Set("Authorization", "Bearer "+c.APIKey)
+
+	httpClient := &http.Client{Timeout: 5 * time.Second}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 500 {
+		return fmt.Errorf("postgrest status %d", resp.StatusCode)
+	}
+	return nil
+}
+
+// HealthCheck verifies the database client exists and PostgREST is reachable.
 func HealthCheck(ctx context.Context) error {
 	client := GetClient()
 	if client == nil {
-		return fmt.Errorf("Supabase client not initialized - call Init() first")
+		return fmt.Errorf("Supabase client not initialized - call Init() or SetGlobalClient first")
 	}
-
-	// Perform a simple query to verify connection
-	// Try to query a system table or perform a simple operation
-	// Since Supabase is built on PostgreSQL, we can use a simple SELECT 1 query
-	// through the RPC mechanism or a direct query if available
-
-	// For now, we'll just verify the client is properly initialized
-	// A more thorough check would require knowing the database schema
-	// This is a basic connectivity check
 	if client.Client == nil {
 		return fmt.Errorf("Supabase client is nil")
 	}
-
-	return nil
+	return client.PingREST(ctx)
 }
 
 // Close closes the database connection (if needed)
 // Note: The Supabase Go client doesn't require explicit closing,
 // but this function is provided for consistency with other database clients
 func Close() error {
-	globalClient = nil
+	SetGlobalClient(nil)
 	return nil
 }

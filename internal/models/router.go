@@ -53,14 +53,14 @@ func (mr *ModelRouter) Route(config RoutingConfig) (*ModelMetadata, error) {
 	}
 
 	// PRIORITY FIX: Prefer local (Ollama) models first
-	localModels := filterByProvider(candidates, "ollama")
+	localModels := filterByProvider(candidates, string(ProviderOllama))
 	if len(localModels) > 0 {
 		fmt.Printf("🏠 Using local Ollama model (no rate limits, free)\n")
 		return &localModels[0], nil
 	}
 
 	// Then HuggingFace
-	hfModels := filterByProvider(candidates, "huggingface")
+	hfModels := filterByProvider(candidates, string(ProviderHuggingFace))
 	if len(hfModels) > 0 && config.Strategy == StrategyFreeOnly {
 		fmt.Printf("🤗 Using HuggingFace model (free API)\n")
 		return &hfModels[0], nil

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gaiol.dev/schemas/v1/trust-update.schema.json",
+  "title": "GAIOL TrustUpdateEvent v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event",
+    "trace_id",
+    "domain",
+    "model_id",
+    "provider_id",
+    "distribution",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "event": { "type": "string", "const": "trust_updated" },
+    "trace_id": { "type": "string", "minLength": 1 },
+    "session_id": { "type": "string" },
+    "domain": { "type": "string", "minLength": 1 },
+    "model_id": { "type": "string", "minLength": 1 },
+    "provider_id": { "type": "string", "minLength": 1 },
+    "distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alpha", "beta"],
+      "properties": {
+        "alpha": { "type": "number", "exclusiveMinimum": 0 },
+        "beta": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "updated_at": { "type": "string", "minLength": 1 }
+  }
+}

@@ -8,11 +8,15 @@ import (
 	"strings"
 	"sync"
 
+	"gaiol/internal/gaiol/modelresolve"
 	"gaiol/internal/models"
 	"gaiol/internal/monitoring"
 
 	"github.com/gorilla/websocket"
 )
+
+// Events can be emitted from RunSession before the browser opens the WebSocket; buffer until connect.
+const maxBufferedReasoningEvents = 256
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -24,18 +28,24 @@ var upgrader = websocket.Upgrader{
 
 // ReasoningAPI provides HTTP and WS handlers for the reasoning engine
 type ReasoningAPI struct {
-	Engine  *ReasoningEngine
-	Metrics *monitoring.MetricsService // NEW: For monitoring stats
-	Clients map[string][]*websocket.Conn
-	mu      sync.RWMutex // Protects Clients and WebSocket writes
+	Engine        *ReasoningEngine
+	Metrics       *monitoring.MetricsService // NEW: For monitoring stats
+	Clients       map[string][]*websocket.Conn
+	pendingEvents map[string][]ReasoningEvent // per-session queue until first WS client
+	mu            sync.Mutex                  // Clients, pendingEvents, and serialized WS writes
 }
 
-// NewReasoningAPI creates a new reasoning API instance
-func NewReasoningAPI(router *models.ModelRouter) *ReasoningAPI {
+// NewReasoningAPI creates a new reasoning API instance.
+// If ms is nil, a new MetricsService is created.
+func NewReasoningAPI(router *models.ModelRouter, ms *monitoring.MetricsService) *ReasoningAPI {
+	if ms == nil {
+		ms = monitoring.NewMetricsService()
+	}
 	api := &ReasoningAPI{
-		Engine:  NewReasoningEngine(router),
-		Metrics: monitoring.NewMetricsService(),
-		Clients: make(map[string][]*websocket.Conn),
+		Engine:        NewReasoningEngine(router),
+		Metrics:       ms,
+		Clients:       make(map[string][]*websocket.Conn),
+		pendingEvents: make(map[string][]ReasoningEvent),
 	}
 
 	// Register the engine's event callback to broadcast via WebSocket
@@ -45,18 +55,22 @@ func NewReasoningAPI(router *models.ModelRouter) *ReasoningAPI {
 
 // BroadcastEvent sends a reasoning event to all connected WebSocket clients for a session
 func (api *ReasoningAPI) BroadcastEvent(event ReasoningEvent) {
-	api.mu.RLock()
-	conns, exists := api.Clients[event.SessionID]
-	api.mu.RUnlock()
-
-	if !exists {
+	api.mu.Lock()
+	conns := api.Clients[event.SessionID]
+	if len(conns) == 0 {
+		q := api.pendingEvents[event.SessionID]
+		if len(q) < maxBufferedReasoningEvents {
+			api.pendingEvents[event.SessionID] = append(q, event)
+		}
+		api.mu.Unlock()
 		return
 	}
+	live := append([]*websocket.Conn(nil), conns...)
+	api.mu.Unlock()
 
-	// Serialize WebSocket writes to prevent concurrent write panic
-	for _, conn := range conns {
+	for _, conn := range live {
 		api.mu.Lock()
-		conn.WriteJSON(event)
+		_ = conn.WriteJSON(event)
 		api.mu.Unlock()
 	}
 }
@@ -84,11 +98,7 @@ func (api *ReasoningAPI) HandleStartReasoning(w http.ResponseWriter, r *http.Req
 	// Auto-select models if none provided - prioritize speed
 	modelIDs := req.Models
 	if len(modelIDs) == 0 {
-		// Fastest free models for speed
-		modelIDs = []string{
-			"google/gemini-2.0-flash-exp:free", // Fastest free model
-			"deepseek/deepseek-r1:free",        // Backup
-		}
+		modelIDs = modelresolve.DefaultReasoningStarterModelIDs()
 	}
 
 	// Apply beam search config if provided (beam search is already enabled by default)
@@ -152,7 +162,15 @@ func (api *ReasoningAPI) HandleWebSocket(w http.ResponseWriter, r *http.Request)
 
 	api.mu.Lock()
 	api.Clients[sessionID] = append(api.Clients[sessionID], conn)
+	pending := append([]ReasoningEvent(nil), api.pendingEvents[sessionID]...)
+	delete(api.pendingEvents, sessionID)
 	api.mu.Unlock()
+
+	for _, ev := range pending {
+		api.mu.Lock()
+		_ = conn.WriteJSON(ev)
+		api.mu.Unlock()
+	}
 
 	// Keep connection alive
 	for {
@@ -172,6 +190,7 @@ func (api *ReasoningAPI) HandleWebSocket(w http.ResponseWriter, r *http.Request)
 	}
 	if len(api.Clients[sessionID]) == 0 {
 		delete(api.Clients, sessionID)
+		delete(api.pendingEvents, sessionID)
 	}
 	api.mu.Unlock()
 }
