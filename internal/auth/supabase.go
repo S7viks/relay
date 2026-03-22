@@ -70,6 +70,11 @@ func setCachedUser(token string, user *User) {
 func AuthMiddleware(db *database.Client) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// CORS middleware is inner; browser preflight sends OPTIONS without Authorization.
+			if r.Method == http.MethodOptions {
+				next.ServeHTTP(w, r)
+				return
+			}
 			// Skip auth for public routes
 			if r.URL.Path == "/health" ||
 				r.URL.Path == "/" ||
