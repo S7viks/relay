@@ -31,7 +31,6 @@ func Register(mux *http.ServeMux, d *Deps) {
 	mux.HandleFunc("/chat/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/chat", http.StatusFound)
 	})
-	mux.HandleFunc("/", noCacheFileServer)
 
 	// 2. Model Routes (public)
 	mux.HandleFunc("/api/models/free", cors(d.handleListFreeModels))
@@ -121,4 +120,7 @@ func Register(mux *http.ServeMux, d *Deps) {
 	}
 
 	mux.Handle("/v1/chat", cors(d.handleV1Chat))
+
+	// Static files and HTML pages last so /api, /health, /v1, etc. are never swallowed by the file server.
+	mux.HandleFunc("/", noCacheFileServer)
 }

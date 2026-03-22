@@ -23,7 +23,7 @@ const ReasoningEngine = {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch('/api/reasoning/start', {
+            const response = await fetch((typeof apiUrl === 'function' ? apiUrl : function (p) { return p; })('/api/reasoning/start'), {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify({
@@ -74,8 +74,10 @@ const ReasoningEngine = {
      * @param {string} sessionID 
      */
     connect(sessionID) {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/api/reasoning/ws?session_id=${sessionID}`;
+        const wsUrl = (typeof apiWebSocketUrl === 'function' ? apiWebSocketUrl : function (p) {
+            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            return proto + '//' + window.location.host + p;
+        })('/api/reasoning/ws?session_id=' + encodeURIComponent(sessionID));
 
         // Close existing connection if any
         if (this.socket && this.socket.readyState !== WebSocket.CLOSED) {

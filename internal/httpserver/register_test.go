@@ -133,6 +133,24 @@ func truncateRunes(s string, n int) string {
 	return string(r[:n])
 }
 
+func TestAPIModels_OK(t *testing.T) {
+	chdirProjectRoot(t)
+	d := newTestDepsAuthDisabled(t)
+	mux := http.NewServeMux()
+	Register(mux, d)
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	resp, err := http.Get(srv.URL + "/api/models")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET /api/models status %d want 200 (static / handler must not shadow API)", resp.StatusCode)
+	}
+}
+
 func TestV1Chat_GET_NotAllowed(t *testing.T) {
 	d := newTestDepsAuthDisabled(t)
 	mux := http.NewServeMux()

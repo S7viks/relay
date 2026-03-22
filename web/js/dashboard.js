@@ -36,7 +36,8 @@
     const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
     var res;
     try {
-      res = await fetch(endpoint, {
+      const url = (typeof apiUrl === 'function' && endpoint.charAt(0) === '/') ? apiUrl(endpoint) : endpoint;
+      res = await fetch(url, {
         ...opts,
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(opts && opts.headers || {}) }
       });
@@ -308,7 +309,7 @@
       }
       content.querySelector('#btnExportUsage').onclick = async function() {
         const token = getAccessToken();
-        const res = await fetch('/api/usage/export', { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+        const res = await fetch((typeof apiUrl === 'function' ? apiUrl : function (p) { return p; })('/api/usage/export'), { headers: token ? { Authorization: 'Bearer ' + token } : {} });
         const blob = await res.blob();
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'usage.csv'; a.click(); URL.revokeObjectURL(a.href);
       };
@@ -348,7 +349,7 @@
             alert('API name, Base URL, and API key are required.');
             return;
           }
-          var res = await fetch('/api/settings/providers', {
+          var res = await fetch((typeof apiUrl === 'function' ? apiUrl : function (p) { return p; })('/api/settings/providers'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getAccessToken() },
             body: JSON.stringify({ provider_key: providerKey, provider_type: providerType, base_url: baseUrl, api_key: apiKey })
@@ -360,7 +361,7 @@
       content.querySelectorAll('.btn-remove-custom-provider').forEach(function(btn) {
         btn.onclick = async function() {
           if (!confirm('Remove this API?')) return;
-          await fetch('/api/settings/providers?provider_key=' + encodeURIComponent(btn.dataset.providerKey), { method: 'DELETE', headers: { Authorization: 'Bearer ' + getAccessToken() } });
+          await fetch((typeof apiUrl === 'function' ? apiUrl : function (p) { return p; })('/api/settings/providers?provider_key=' + encodeURIComponent(btn.dataset.providerKey)), { method: 'DELETE', headers: { Authorization: 'Bearer ' + getAccessToken() } });
           showPage('models');
         };
       });
@@ -373,7 +374,7 @@
           const modelId = (document.getElementById('tmModelId') || {}).value || '';
           const displayName = (document.getElementById('tmDisplayName') || {}).value || '';
           if (!providerKey || !modelId) return;
-          const res = await fetch('/api/settings/models', {
+          const res = await fetch((typeof apiUrl === 'function' ? apiUrl : function (p) { return p; })('/api/settings/models'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getAccessToken() },
             body: JSON.stringify({ provider_key: providerKey, model_id: modelId, display_name: displayName })
@@ -387,7 +388,7 @@
           if (!confirm('Remove this model?')) return;
           const pk = btn.dataset.providerKey;
           const mid = btn.dataset.modelId;
-          await fetch('/api/settings/models?provider_key=' + encodeURIComponent(pk) + '&model_id=' + encodeURIComponent(mid), { method: 'DELETE', headers: { Authorization: 'Bearer ' + getAccessToken() } });
+          await fetch((typeof apiUrl === 'function' ? apiUrl : function (p) { return p; })('/api/settings/models?provider_key=' + encodeURIComponent(pk) + '&model_id=' + encodeURIComponent(mid)), { method: 'DELETE', headers: { Authorization: 'Bearer ' + getAccessToken() } });
           showPage('models');
         };
       });
@@ -418,7 +419,7 @@
         bodyEl.querySelectorAll('.btn-set-default').forEach(function(b) {
           b.onclick = async function() {
             const mid = b.dataset.modelId;
-            await fetch('/api/settings/preferences', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getAccessToken() }, body: JSON.stringify({ default_model_id: mid }) });
+            await fetch((typeof apiUrl === 'function' ? apiUrl : function (p) { return p; })('/api/settings/preferences'), { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getAccessToken() }, body: JSON.stringify({ default_model_id: mid }) });
             showPage('models');
           };
         });
@@ -431,7 +432,7 @@
       content.innerHTML = renderApiKeys(keys || [], window._createdKey || null);
       window._createdKey = null;
       content.querySelector('#btnCreateKey').onclick = async function() {
-        const res = await fetch('/api/gaiol-keys', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getAccessToken() }, body: JSON.stringify({ name: 'default' }) });
+        const res = await fetch((typeof apiUrl === 'function' ? apiUrl : function (p) { return p; })('/api/gaiol-keys'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getAccessToken() }, body: JSON.stringify({ name: 'default' }) });
         const text = await res.text();
         if (!res.ok) {
           var msg = text;
@@ -447,7 +448,7 @@
       content.querySelectorAll('.btn-revoke-key').forEach(function(btn) {
         btn.onclick = async function() {
           if (!confirm('Revoke this key? It will stop working immediately.')) return;
-          await fetch('/api/gaiol-keys/' + btn.dataset.id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + getAccessToken() } });
+          await fetch((typeof apiUrl === 'function' ? apiUrl : function (p) { return p; })('/api/gaiol-keys/' + btn.dataset.id), { method: 'DELETE', headers: { Authorization: 'Bearer ' + getAccessToken() } });
           showPage('api-keys');
         };
       });
@@ -460,7 +461,7 @@
         const budgetVal = budgetEl && budgetEl.value.trim() !== '' ? parseFloat(budgetEl.value) : null;
         const strategyEl = document.getElementById('prefStrategy');
         const modelEl = document.getElementById('prefDefaultModel');
-        await fetch('/api/settings/preferences', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getAccessToken() }, body: JSON.stringify({ budget_limit: budgetVal, strategy: strategyEl ? strategyEl.value : 'balanced', default_model_id: modelEl ? modelEl.value : '' }) });
+        await fetch((typeof apiUrl === 'function' ? apiUrl : function (p) { return p; })('/api/settings/preferences'), { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getAccessToken() }, body: JSON.stringify({ budget_limit: budgetVal, strategy: strategyEl ? strategyEl.value : 'balanced', default_model_id: modelEl ? modelEl.value : '' }) });
         showPage('settings');
       };
     } else {

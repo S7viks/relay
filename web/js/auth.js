@@ -398,7 +398,7 @@ function showForgotPassword() {
         }
         submitBtn.disabled = true;
         const redirectTo = (window.location.origin || '') + '/reset-password';
-        fetch('/api/auth/recover', {
+        fetch((typeof apiUrl === 'function' ? apiUrl : function (p) { return p; })('/api/auth/recover'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: email, redirect_to: redirectTo })

@@ -1,7 +1,53 @@
 // API Client Module
 // Handles all API communication with the backend
+//
+// When the UI is opened via a static server (Live Server, file preview) on another port, set the Go backend origin:
+//   localStorage.setItem('gaiol_api_base', 'http://localhost:8080'); location.reload()
+// Or in HTML: <meta name="gaiol-api-base" content="http://localhost:8080">
+// Or before api.js: window.__GAIOL_API_BASE__ = 'http://localhost:8080';
 
-const API_BASE = '';
+function getApiBase() {
+    if (typeof window === 'undefined') return '';
+    if (window.__GAIOL_API_BASE__ != null && String(window.__GAIOL_API_BASE__).trim() !== '') {
+        return String(window.__GAIOL_API_BASE__).replace(/\/+$/, '');
+    }
+    try {
+        const el = document.querySelector('meta[name="gaiol-api-base"]');
+        if (el) {
+            const c = (el.getAttribute('content') || '').trim();
+            if (c) return c.replace(/\/+$/, '');
+        }
+    } catch (e) { /* ignore */ }
+    try {
+        const ls = localStorage.getItem('gaiol_api_base');
+        if (ls && ls.trim()) return ls.trim().replace(/\/+$/, '');
+    } catch (e) { /* ignore */ }
+    return '';
+}
+
+function apiUrl(path) {
+    const p = (path && path.charAt(0) === '/') ? path : '/' + (path || '');
+    const b = getApiBase();
+    return b ? b + p : p;
+}
+
+/** WebSocket URL for paths like /api/reasoning/ws?session_id=... */
+function apiWebSocketUrl(pathAndQuery) {
+    const p = (pathAndQuery && pathAndQuery.charAt(0) === '/') ? pathAndQuery : '/' + (pathAndQuery || '');
+    const b = getApiBase();
+    if (b) {
+        try {
+            const u = new URL(b);
+            const proto = u.protocol === 'https:' ? 'wss:' : 'ws:';
+            return proto + '//' + u.host + p;
+        } catch (e) { /* fall through */ }
+    }
+    if (typeof window !== 'undefined' && window.location) {
+        const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        return proto + '//' + window.location.host + p;
+    }
+    return 'ws://localhost:8080' + p;
+}
 
 // Token storage keys
 const ACCESS_TOKEN_KEY = 'gaiol_access_token';
@@ -12,7 +58,7 @@ let _authDisabled = false;
 
 async function fetchAuthMode() {
     try {
-        const r = await fetch('/health');
+        const r = await fetch(apiUrl('/health'));
         if (r.ok) {
             const d = await r.json();
             _authDisabled = !!d.auth_disabled;
@@ -70,7 +116,7 @@ function clearTokens() {
  * Centralized API request wrapper with error handling and retry logic
  */
 async function apiRequest(endpoint, method = 'GET', body = null, retries = 3, requireAuth = false) {
-    const url = `${API_BASE}${endpoint}`;
+    const url = apiUrl(endpoint);
     const options = {
         method,
         headers: {
@@ -475,10 +521,13 @@ function isAuthenticated() {
     return !!getAccessToken();
 }
 
-// Expose for standalone pages (e.g. dashboard)
+// Expose for standalone pages (e.g. dashboard) and cross-origin static dev
 window.isAuthenticated = isAuthenticated;
 window.signOut = signOut;
 window.clearTokens = clearTokens;
+window.getApiBase = getApiBase;
+window.apiUrl = apiUrl;
+window.apiWebSocketUrl = apiWebSocketUrl;
 
 /**
  * Auto-refresh token if expired (helper for apiRequest)
