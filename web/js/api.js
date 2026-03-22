@@ -5,6 +5,9 @@
 //   localStorage.setItem('gaiol_api_base', 'http://localhost:8080'); location.reload()
 // Or in HTML: <meta name="gaiol-api-base" content="http://localhost:8080">
 // Or before api.js: window.__GAIOL_API_BASE__ = 'http://localhost:8080';
+// Vercel: set project env GAIOL_API_PUBLIC_URL to your Go API (e.g. https://api.example.com); build injects gaiol-api-config.js.
+
+let _warnedVercelNoApiBase = false;
 
 function getApiBase() {
     if (typeof window === 'undefined') return '';
@@ -22,6 +25,17 @@ function getApiBase() {
         const ls = localStorage.getItem('gaiol_api_base');
         if (ls && ls.trim()) return ls.trim().replace(/\/+$/, '');
     } catch (e) { /* ignore */ }
+    if (!_warnedVercelNoApiBase && typeof window !== 'undefined') {
+        const h = window.location.hostname || '';
+        if (h.endsWith('.vercel.app')) {
+            _warnedVercelNoApiBase = true;
+            console.warn(
+                '[GAIOL] This Vercel deployment serves static files only. ' +
+                'Set Vercel environment variable GAIOL_API_PUBLIC_URL to your Go API origin and redeploy, ' +
+                'or run: localStorage.setItem("gaiol_api_base","https://your-api-host"); location.reload()'
+            );
+        }
+    }
     return '';
 }
 

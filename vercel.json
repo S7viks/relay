@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "exit 0",
+  "buildCommand": "node scripts/inject-gaiol-config.js",
   "outputDirectory": "web",
   "cleanUrls": true,
   "trailingSlash": false
