@@ -212,17 +212,17 @@ func noCacheFileServer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 
-	// Handle root path - serve chat app (no auth required to view)
+	// Root is the public landing page; chat UI is served at /chat (see register.go).
 	if r.URL.Path == "/" || r.URL.Path == "" {
-		file, err := os.Open("./web/index.html")
+		file, err := os.Open("./web/landing.html")
 		if err != nil {
-			http.Error(w, "index.html not found", http.StatusNotFound)
+			http.Error(w, "landing.html not found", http.StatusNotFound)
 			return
 		}
 		defer file.Close()
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		http.ServeContent(w, r, "index.html", time.Time{}, file)
+		http.ServeContent(w, r, "landing.html", time.Time{}, file)
 		return
 	}
 

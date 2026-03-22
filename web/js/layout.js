@@ -60,7 +60,7 @@ function renderLeftSidebar(currentPage = 'chat') {
             </div>
 
             <nav class="sidebar-nav">
-                <a href="/" class="nav-item ${currentPage === 'chat' ? 'active' : ''}" data-page="chat">
+                <a href="/chat" class="nav-item ${currentPage === 'chat' ? 'active' : ''}" data-page="chat">
                     <span class="nav-text">Chat</span>
                 </a>
                 <a href="/history.html" class="nav-item ${currentPage === 'history' ? 'active' : ''}" data-page="history">

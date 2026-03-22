@@ -19,7 +19,7 @@ function escapeHtmlText(text) {
  */
 function switchPage(pageId) {
     const pageMap = {
-        'chat': '/',
+        'chat': '/chat',
         'history': '/history.html',
         'settings': '/settings.html',
         'profile': '/profile.html',
@@ -47,7 +47,8 @@ function loadPageContent(pageId) {
     else if (path.includes('profile.html')) pageId = 'profile';
     else if (path.includes('login.html')) pageId = 'login';
     else if (path.includes('signup.html')) pageId = 'signup';
-    else pageId = 'chat';
+    else if (path === '/chat' || path.endsWith('/chat') || path.endsWith('/index.html')) pageId = 'chat';
+    else return;
 
     switch (pageId) {
         case 'chat':
