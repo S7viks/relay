@@ -1364,14 +1364,7 @@ func (d *Deps) handleTenantModels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	models := tenantReg.ListModels()
-	list := make([]map[string]interface{}, 0, len(models))
-	for _, m := range models {
-		list = append(list, map[string]interface{}{
-			"id":           string(m.ID),
-			"display_name": m.DisplayName,
-			"provider":     m.Provider,
-		})
-	}
+	list := convertModelsToJSON(models)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"models": list, "count": len(list)})
 }

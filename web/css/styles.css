@@ -858,8 +858,8 @@ body::before {
 /* Main Content - Terminal */
 .main-content {
     flex: 1 1 0;
-    min-width: 120px;
-    min-height: 200px;
+    min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -891,7 +891,7 @@ body::before {
     display: flex;
     flex-direction: column;
     flex: 1 1 0;
-    min-height: 200px;
+    min-height: 0;
     overflow: hidden;
     position: relative;
     width: 100%;
@@ -1170,7 +1170,7 @@ body::before {
 /* Chat Container - Wraps messages and input */
 .chat-container {
     flex: 1 1 0;
-    min-height: 180px;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -3146,6 +3146,10 @@ body::before {
 /* Settings Content */
 .settings-content {
     max-width: 800px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    width: 100%;
 }
 
 .settings-section {
@@ -3938,6 +3942,10 @@ body::before {
     flex-direction: column;
     gap: var(--space-xl);
     max-width: 800px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    width: 100%;
 }
 
 .profile-section {
@@ -5115,6 +5123,7 @@ kbd {
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
+    min-height: 0;
 }
 
 .models-header-section {
@@ -5290,6 +5299,7 @@ kbd {
 /* Model Grid Redesigned */
 .model-grid-redesigned {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: var(--space-xl);
     display: grid;
@@ -5723,6 +5733,7 @@ kbd {
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 0;
     overflow-y: auto;
     padding: var(--space-xl);
     gap: var(--space-xl);

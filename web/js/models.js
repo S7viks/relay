@@ -105,9 +105,11 @@ function groupModelsByProvider(models) {
  * Check if model is free
  */
 function isModelFree(model) {
-    // Handle both Go JSON format (capitalized) and snake_case format
+    // Handle both Go JSON format (capitalized) and snake_case format; /api/models and /api/tenant/models also expose top-level cost_per_token
+    const top = model.cost_per_token != null ? model.cost_per_token : model.CostPerToken;
     const costInfo = model.cost_info || model.CostInfo || {};
-    const costPerToken = costInfo.cost_per_token || costInfo.CostPerToken || 0;
+    const costPerToken =
+        top != null ? Number(top) : Number(costInfo.cost_per_token || costInfo.CostPerToken || 0);
     return costPerToken === 0;
 }
 

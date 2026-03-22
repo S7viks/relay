@@ -288,9 +288,23 @@ async function apiRequest(endpoint, method = 'GET', body = null, retries = 3, re
 }
 
 /**
- * Fetch all available models
+ * Fetch all available models.
+ * When signed in, uses tenant-scoped /api/tenant/models (same shape as /api/models).
+ * Falls back to global /api/models (e.g. local no-auth with env keys).
  */
 async function fetchAllModels() {
+    const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+    if (token) {
+        const tenantResult = await apiRequest('/api/tenant/models', 'GET', null, 3, true);
+        if (
+            tenantResult.success &&
+            tenantResult.data &&
+            Array.isArray(tenantResult.data.models) &&
+            tenantResult.data.models.length > 0
+        ) {
+            return tenantResult.data.models;
+        }
+    }
     const result = await apiRequest('/api/models');
     if (result.success && result.data.models) {
         return result.data.models;
@@ -299,9 +313,24 @@ async function fetchAllModels() {
 }
 
 /**
- * Fetch only free models
+ * Fetch only free models (cost_per_token === 0).
  */
 async function fetchFreeModels() {
+    const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+    if (token) {
+        const tenantResult = await apiRequest('/api/tenant/models', 'GET', null, 3, true);
+        if (tenantResult.success && tenantResult.data && Array.isArray(tenantResult.data.models)) {
+            const all = tenantResult.data.models;
+            const free = all.filter(function (m) {
+                const c = m.cost_per_token != null ? m.cost_per_token : (m.CostPerToken != null ? m.CostPerToken : null);
+                if (c != null) return Number(c) === 0;
+                const ci = m.cost_info || m.CostInfo || {};
+                const ct = ci.cost_per_token != null ? ci.cost_per_token : ci.CostPerToken;
+                return ct == null || Number(ct) === 0;
+            });
+            if (free.length > 0) return free;
+        }
+    }
     const result = await apiRequest('/api/models/free');
     if (result.success && result.data.models) {
         return result.data.models;
