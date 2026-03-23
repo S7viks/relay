@@ -292,6 +292,11 @@
 
   async function showPage(page) {
     setActiveNav();
+    if (page === 'chat') {
+      setTitle('Chat');
+      content.innerHTML = '<iframe class="chat-iframe" src="/chat?embedded=1" title="Chat"></iframe>';
+      return;
+    }
     if (page === 'home') {
       setTitle('Dashboard');
       const [usage, gaiolKeys, customProviders, preferences] = await Promise.all([api('/api/usage'), api('/api/gaiol-keys'), api('/api/settings/providers'), api('/api/settings/preferences')]);

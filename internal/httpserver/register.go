@@ -29,7 +29,15 @@ func Register(mux *http.ServeMux, d *Deps) {
 	mux.HandleFunc("/dashboard", serveDashboard)
 	mux.HandleFunc("/dashboard/", serveDashboard)
 	mux.HandleFunc("/welcome", serveStaticPage("landing.html"))
-	mux.HandleFunc("/chat", serveStaticPage("chat.html"))
+	mux.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
+		// When embedded inside the dashboard, render the chat app.
+		// Otherwise redirect so users only see the single dashboard frontend.
+		if r.URL.Query().Get("embedded") == "1" {
+			serveStaticPage("chat.html")(w, r)
+			return
+		}
+		http.Redirect(w, r, "/dashboard/chat", http.StatusFound)
+	})
 	mux.HandleFunc("/chat/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/chat", http.StatusFound)
 	})

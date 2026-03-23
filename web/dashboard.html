@@ -55,6 +55,14 @@
     .main-content-wrap #dashboardContent { padding: 1.25rem; }
     .card .label { font-family: var(--font-mono); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
     .card .value { font-family: var(--font-mono); color: var(--accent); }
+    .chat-iframe {
+      width: 100%;
+      border: 0;
+      display: block;
+      background: var(--bg);
+      /* Keep it inside the dashboard scroll container */
+      height: calc(100vh - 260px);
+    }
     @media (max-width: 768px) {
       .nav-toggle { display: block; }
       .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 20; transform: translateX(-100%); transition: transform 0.2s; }
@@ -72,7 +80,7 @@
   </div>
   <div class="layout">
     <aside class="sidebar" id="sidebar">
-      <a href="/chat" class="nav-link">Chat</a>
+      <a href="/dashboard/chat" class="nav-link" data-page="chat">Chat</a>
       <a href="/dashboard" class="nav-link" data-page="home">Home</a>
       <a href="/dashboard/usage" class="nav-link" data-page="usage">Usage</a>
       <a href="/dashboard/billing" class="nav-link" data-page="billing">Billing</a>
