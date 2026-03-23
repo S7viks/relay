@@ -31,6 +31,22 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        /* Embedded mode: chat is rendered inside dashboard content area */
+        body.embedded {
+            background: transparent;
+        }
+
+        body.embedded .app-container {
+            min-height: 0;
+        }
+
+        body.embedded .main-content {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
     <!-- Auth gating handled at interaction time; allow UI to render even when not signed in -->
 </head>
 
@@ -214,6 +230,13 @@
     <script>
         // Initialize layout for chat page
         document.addEventListener('DOMContentLoaded', async function () {
+            const params = new URLSearchParams(window.location.search);
+            const embedded = params.get('embedded') === '1';
+
+            if (embedded) {
+                document.body.classList.add('embedded');
+            }
+
             // Wait for auth.js to load
             await new Promise(resolve => {
                 if (typeof isAuthenticated === 'function') {
@@ -231,8 +254,11 @@
                 }
             });
 
-            // Render layout even if not authenticated; interactions will gate on auth
-            initializeLayout('Chat', 'chat');
+            // Embedded mode is rendered inside dashboard, so skip extra top/side layouts.
+            if (!embedded) {
+                // Render layout even if not authenticated; interactions will gate on auth
+                initializeLayout('Chat', 'chat');
+            }
         });
     </script>
 </body>
