@@ -10,7 +10,7 @@ import {
   InMemoryTrustRepository,
 } from "../persistence/memory-store.js";
 import { OrchestratorPipeline } from "../orchestration/pipeline.js";
-import { sampleRegistry } from "../config/sample-registry.js";
+import { buildOrchestratorRegistry } from "../config/registry-from-env.js";
 import { loadOrchestratorPort } from "../config/env.js";
 import type { OrchestrationRequest } from "../domain/task.js";
 import {
@@ -31,7 +31,7 @@ export function buildServer() {
   const traces = new InMemoryTraceRepository();
   const sessions = new InMemorySessionRepository();
   const evaluations = new InMemoryEvaluationRepository();
-  const registry = sampleRegistry();
+  const registry = buildOrchestratorRegistry();
   const adapters = buildAdaptersFromEnv();
 
   const orchestrator = new OrchestratorPipeline({

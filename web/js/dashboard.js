@@ -2,7 +2,7 @@
   if (typeof fetchAuthMode === 'function') await fetchAuthMode();
   if (!(typeof isAuthDisabled === 'function' && isAuthDisabled()) &&
       (typeof isAuthenticated !== 'function' || !isAuthenticated())) {
-    window.location.href = '/login';
+    window.location.href = '/login.html';
     return;
   }
 
@@ -49,7 +49,7 @@
       if (_redirecting) return null;
       _redirecting = true;
       if (typeof clearTokens === 'function') clearTokens();
-      window.location.href = '/login';
+      window.location.href = '/login.html';
       return null;
     }
     const text = await res.text();

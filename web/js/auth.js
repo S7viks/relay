@@ -289,6 +289,7 @@ function updateAuthUI() {
     const isAuth = isAuthenticated();
     const loginNavItem = document.getElementById('loginNavItem');
     const profileNavItem = document.getElementById('profileNavItem');
+    const dashboardNavItem = document.getElementById('dashboardNavItem');
 
     if (loginNavItem) {
         if (isAuth) {
@@ -302,6 +303,10 @@ function updateAuthUI() {
 
     if (profileNavItem) {
         profileNavItem.style.display = isAuth ? 'block' : 'none';
+    }
+
+    if (dashboardNavItem) {
+        dashboardNavItem.style.display = isAuth ? 'flex' : 'none';
     }
 
     // Update top bar profile button

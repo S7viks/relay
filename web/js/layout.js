@@ -69,6 +69,9 @@ function renderLeftSidebar(currentPage = 'chat') {
                 <a href="/settings.html" class="nav-item ${currentPage === 'settings' ? 'active' : ''}" data-page="settings">
                     <span class="nav-text">Settings</span>
                 </a>
+                <a href="/dashboard" class="nav-item" id="dashboardNavItem" data-page="dashboard" style="display: ${isAuth ? 'flex' : 'none'};">
+                    <span class="nav-text">Dashboard</span>
+                </a>
                 <div class="nav-divider"></div>
                 <a href="/profile.html" class="nav-item ${currentPage === 'profile' ? 'active' : ''}" id="profileNavItem" data-page="profile" style="display: ${isAuth ? 'flex' : 'none'};">
                     <span class="nav-text">Profile</span>
