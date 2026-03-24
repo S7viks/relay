@@ -21,6 +21,8 @@ export interface TrustRepository {
   getTrust(modelId: string, domain: string): Promise<TrustRecord | null>;
   upsertTrust(record: TrustRecord): Promise<void>;
   listByDomain(domain: string): Promise<TrustRecord[]>;
+  /** All trust rows (dashboard); optional for simple stores. */
+  listAll(): Promise<TrustRecord[]>;
 }
 
 export interface SessionRepository {
@@ -31,6 +33,8 @@ export interface SessionRepository {
 export interface TraceRepository {
   append(trace: OrchestrationTrace): Promise<void>;
   get(traceId: TraceId): Promise<OrchestrationTrace | null>;
+  /** Recent trace ids, newest last (for metrics index MVP). */
+  listTraceIds(limit: number): Promise<TraceId[]>;
 }
 
 export interface EvaluationRepository {

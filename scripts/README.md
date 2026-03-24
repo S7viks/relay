@@ -7,24 +7,16 @@ Run all scripts from the **repository root** (e.g. `.\scripts\test\integration.p
 | Script | Description |
 |--------|-------------|
 | `integration.ps1` | Integration tests: health, public/protected routes, CORS, v1/chat 401. Requires server on http://localhost:8080. Skips JWT/401 block when health reports `auth_disabled` or `database.connected: false`. |
-| `quick.ps1` | Quick Ollama/reasoning test (reasoning/start). |
-| `final.ps1` | 7-step pipeline test (query/smart). |
-| `raw.ps1` | Raw output test for reasoning start and status. |
-| `pipeline.ps1` | Simple pipeline test. |
+| `reasoning-start.ps1` | POST `/api/reasoning/start` smoke test (summary output). Use `-Raw` for full JSON. Optional `GAIOL_BASE_URL`. |
+| `pipeline.ps1` | Simple pipeline test (`/api/query/smart`). |
 | `ollama.ps1` | Ollama availability + GAIOL server + query test. |
-
-## Report / metrics (`scripts/`)
-
-| Script | Description |
-|--------|-------------|
-| `collect-report-metrics.ps1` | Writes `report-artifacts/health.json` and `monitoring-stats.json` (server must be running). See `docs/project-report-pack.md`. |
-| `capture-report-screenshots.ps1` | Headless Chrome/Edge screenshots into `report-artifacts/screenshots/`. Builds and starts `web-server.exe` if needed; use `-NoStartServer` if already running. |
 
 ## Dev scripts (`scripts/dev/`)
 
 | Script | Description |
 |--------|-------------|
 | `clean-start.ps1` | Stop any running server, remove *.exe, build, then run web-server.exe. Run from repo root. |
+| `stack-local.ps1` | Prints commands to run Go, TS orchestrator, and Vite dashboard in three terminals (does not start them). |
 
 ## Start/stop (root)
 

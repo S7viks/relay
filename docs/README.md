@@ -1,44 +1,48 @@
 # GAIOL Documentation
 
-Index of all documentation. Entry points at repo root: [README.md](../README.md), [QUICKSTART.md](../QUICKSTART.md), [API.md](../API.md).
+Entry points at repo root: [README.md](../README.md), [QUICKSTART.md](../QUICKSTART.md), [API.md](../API.md).
+
+## Canonical reference (platform)
+
+| Document | Purpose |
+|----------|---------|
+| [01-PROJECT-OVERVIEW.md](01-PROJECT-OVERVIEW.md) | Goals, scope, results, repo map |
+| [02-ARCHITECTURE.md](02-ARCHITECTURE.md) | System architecture |
+| [03-ALGORITHMS-AND-RESEARCH.md](03-ALGORITHMS-AND-RESEARCH.md) | Algorithms and manuscript reference |
+| [04-CODEBASE-INTERNALS.md](04-CODEBASE-INTERNALS.md) | Packages and implementation map |
+| [05-DATA-FLOW-AND-PATTERNS.md](05-DATA-FLOW-AND-PATTERNS.md) | Request and state flow |
+| [06-QUICK-REFERENCE.md](06-QUICK-REFERENCE.md) | Glossary, commands, caveats |
 
 ## Getting started
 
 | Document | Purpose |
 |----------|---------|
 | [database-setup.md](database-setup.md) | Supabase database and migrations |
+| [LOCAL-DEV-STACK.md](LOCAL-DEV-STACK.md) | Go + TS orchestrator + Vite: ports, env, health, auth |
+| [DASHBOARD.md](DASHBOARD.md) | React dashboard routes and API map |
+| [DEMO-SCRIPT.md](DEMO-SCRIPT.md) | Chat → trace → trust demo steps |
+| [FEATURE-FLAGS.md](FEATURE-FLAGS.md) | Env vars for TS delegation, CORS, auth |
 | [authentication.md](authentication.md) | Auth endpoints and frontend usage |
 | [ollama-setup.md](ollama-setup.md) | Optional Ollama setup |
 
-## Architecture and design
+## Architecture and routing
 
 | Document | Purpose |
 |----------|---------|
-| [architecture.md](architecture.md) | System architecture overview |
-| [simplified-architecture.md](simplified-architecture.md) | Reasoning engine |
+| [simplified-architecture.md](simplified-architecture.md) | Reasoning engine flow (decompose, beam, consensus) |
 | [routing.md](routing.md) | Route registration and middleware |
 
-## Planning and reference
+## Operations
 
 | Document | Purpose |
 |----------|---------|
-| [project-report-pack.md](project-report-pack.md) | Project report: poster tables, screenshots checklist, live vs manuscript metrics, team memo |
-| [GAIOL_PUBLIC_PRODUCT_PLAN.md](GAIOL_PUBLIC_PRODUCT_PLAN.md) | Product plan (Parts A–G) |
-| [IMPLEMENTATION_PHASES.md](IMPLEMENTATION_PHASES.md) | Phased implementation checklist |
-| [IMPLEMENTATION_PHASES_DETAILED.md](IMPLEMENTATION_PHASES_DETAILED.md) | Detailed phase tasks |
-| [RUNBOOK.md](RUNBOOK.md) | Operations: deploy, migrations, revoke key, health |
-| [features-implemented.md](features-implemented.md) | Feature list |
-| [implementation-status.md](implementation-status.md) | Status report |
-| [project-documentation.md](project-documentation.md) | Detailed project reference |
+| [RUNBOOK.md](RUNBOOK.md) | Deploy, migrations, revoke key, health |
 
-## Design and comparison
+## TypeScript orchestrator
 
 | Document | Purpose |
 |----------|---------|
-| [design-action-plan.md](design-action-plan.md) | Design enhancement plan |
-| [design-enhancement-guide.md](design-enhancement-guide.md) | Enhancement guide |
-| [quick-design-wins.md](quick-design-wins.md) | Quick design wins |
-| [comparison.md](comparison.md) | Feature comparison |
+| [gaiol-ts-orchestrator-wiring.md](gaiol-ts-orchestrator-wiring.md) | Go bridge and TS orchestrator wiring |
 
 ## World model
 
@@ -48,11 +52,8 @@ Index of all documentation. Entry points at repo root: [README.md](../README.md)
 | [world-model-quick-start.md](world-model-quick-start.md) | World model quick start |
 | [world-model-verification.md](world-model-verification.md) | Verification steps |
 
-## Meta
+## Archived docs and coursework assets
 
-| Document | Purpose |
-|----------|---------|
-| [REORGANIZATION_PLAN.md](REORGANIZATION_PLAN.md) | Repository reorganization log |
-| [cleanup-summary.md](cleanup-summary.md) | Cleanup summary |
-| [codebase-review-summary.md](codebase-review-summary.md) | Codebase review |
-| [favicon-note.md](favicon-note.md) | Favicon note |
+Planning checklists, product plans, report templates, and superseded narratives live under **`../_archive/`** (see `_archive/README.md`). They are intentionally excluded from the default documentation index.
+
+The **pre-React static dashboard** (old `web/dashboard.html`, `chat.html`, and related JS) is preserved under **`../archive/web-legacy/`** (see `archive/web-legacy/README.md`); the live app is `dashboard/` + `dashboard/dist/` served at `/dashboard/`.

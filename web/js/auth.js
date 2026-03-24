@@ -486,7 +486,7 @@ function updateNavigationPageNames() {
         'signup': 'Sign Up'
     };
 
-    // Update navigation.js switchPage function if needed
+    // Update page-chrome switchPage if needed
     if (typeof switchPage === 'function') {
         const originalSwitchPage = window.switchPage;
         window.switchPage = function (pageId) {

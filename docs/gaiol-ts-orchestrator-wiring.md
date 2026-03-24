@@ -25,6 +25,10 @@ The Go web server can delegate `POST /api/query/smart` to the TypeScript orchest
 
 `GET /api/orchestration/traces/{trace_id}` forwards to the TS service `GET /v1/traces/{trace_id}` and returns the JSON bundle (`trace`, `timeline_rebuilt`, `metrics_summary`). Returns `503` if no TS client is configured.
 
+- `GET /api/orchestration/trust` → TS `GET /v1/trust` (optional `?domain=`).
+- `GET /api/orchestration/trace-ids` → TS `GET /v1/traces?limit=` (recent trace ids).
+- `POST /api/orchestration/eval/contains` → TS `POST /v1/eval/contains` (contains-based eval on an answer string).
+
 ## Operations layout
 
 Typical production: run the TS orchestrator as a sidecar or internal service on a stable port, set `GAIOL_TS_ORCHESTRATOR_URL` to that base URL, and enable `GAIOL_USE_TS_ORCHESTRATOR`. The Go app does not embed Node; it only speaks HTTP.

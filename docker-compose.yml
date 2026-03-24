@@ -1,0 +1,25 @@
+# Minimal local stack: Go API + TS orchestrator. Build dashboard separately (`dashboard/npm run build`)
+# and serve via Go static handler or any static host.
+services:
+  orchestrator:
+    build:
+      context: ./orchestrator
+      dockerfile: Dockerfile
+    ports:
+      - "8787:8787"
+    environment:
+      ORCHESTRATOR_PORT: "8787"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      GAIOL_DISABLE_AUTH: "1"
+      GAIOL_TS_ORCHESTRATOR_URL: "http://orchestrator:8787"
+      GAIOL_USE_TS_ORCHESTRATOR: "1"
+    depends_on:
+      - orchestrator

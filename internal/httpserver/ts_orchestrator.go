@@ -3,6 +3,7 @@ package httpserver
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -216,6 +217,87 @@ func (d *Deps) handleOrchestrationTraceProxy(w http.ResponseWriter, r *http.Requ
 	body, status, err := d.TSOrchestrator.GetTraceBundle(ctx, id)
 	if err != nil {
 		log.Printf("orchestration trace proxy: %v", err)
+		apijson.WriteError(w, http.StatusBadGateway, "orchestrator unreachable", "orchestrator_upstream_error")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = w.Write(body)
+}
+
+// handleOrchestrationTrustProxy proxies GET /api/orchestration/trust to TS GET /v1/trust.
+func (d *Deps) handleOrchestrationTrustProxy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if d.TSOrchestrator == nil {
+		apijson.WriteError(w, http.StatusServiceUnavailable, "TS orchestrator client not configured", "ts_orchestrator_disabled")
+		return
+	}
+	ctx, cancelFn := contextWithOptionalTimeout(r.Context(), 15*time.Second)
+	defer cancelFn()
+	domain := strings.TrimSpace(r.URL.Query().Get("domain"))
+	body, status, err := d.TSOrchestrator.GetTrustJSON(ctx, domain)
+	if err != nil {
+		log.Printf("orchestration trust proxy: %v", err)
+		apijson.WriteError(w, http.StatusBadGateway, "orchestrator unreachable", "orchestrator_upstream_error")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = w.Write(body)
+}
+
+// handleOrchestrationTraceIDsProxy proxies GET /api/orchestration/trace-ids to TS GET /v1/traces?limit=.
+func (d *Deps) handleOrchestrationTraceIDsProxy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if d.TSOrchestrator == nil {
+		apijson.WriteError(w, http.StatusServiceUnavailable, "TS orchestrator client not configured", "ts_orchestrator_disabled")
+		return
+	}
+	limit := 50
+	if s := strings.TrimSpace(r.URL.Query().Get("limit")); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			limit = n
+		}
+	}
+	ctx, cancelFn := contextWithOptionalTimeout(r.Context(), 15*time.Second)
+	defer cancelFn()
+	body, status, err := d.TSOrchestrator.GetTraceIndexJSON(ctx, limit)
+	if err != nil {
+		log.Printf("orchestration trace-ids proxy: %v", err)
+		apijson.WriteError(w, http.StatusBadGateway, "orchestrator unreachable", "orchestrator_upstream_error")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = w.Write(body)
+}
+
+// handleOrchestrationEvalContainsProxy proxies POST /api/orchestration/eval/contains to TS.
+func (d *Deps) handleOrchestrationEvalContainsProxy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if d.TSOrchestrator == nil {
+		apijson.WriteError(w, http.StatusServiceUnavailable, "TS orchestrator client not configured", "ts_orchestrator_disabled")
+		return
+	}
+	raw, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err != nil {
+		apijson.WriteError(w, http.StatusBadRequest, "read body", "bad_request")
+		return
+	}
+	ctx, cancelFn := contextWithOptionalTimeout(r.Context(), 30*time.Second)
+	defer cancelFn()
+	body, status, err := d.TSOrchestrator.PostEvalContainsJSON(ctx, raw)
+	if err != nil {
+		log.Printf("orchestration eval proxy: %v", err)
 		apijson.WriteError(w, http.StatusBadGateway, "orchestrator unreachable", "orchestrator_upstream_error")
 		return
 	}

@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dev:api": "tsx src/api/server.ts",
+    "start": "tsx src/api/server.ts",
     "cli": "tsx src/cli/index.ts"
   },
   "engines": {

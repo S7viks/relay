@@ -3,9 +3,61 @@ package httpserver
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"strings"
+	"sync"
+	"time"
 
 	"gaiol/internal/auth"
+	"gaiol/internal/database"
+	orchestratorv1 "gaiol/internal/gaiol/orchestratorcontract/v1"
+	"gaiol/internal/models"
+	"gaiol/internal/reasoning"
 )
+
+const RateLimitPerMin = 60
+
+// Deps holds shared HTTP handler dependencies (replaces package-level globals in main).
+type Deps struct {
+	Registry     *models.Registry
+	Router       *models.ModelRouter
+	Tracker      *models.PerformanceTracker
+	DB           *database.Client
+	DBAvailable  bool
+	AuthDisabled bool
+	AuthAPI      *auth.AuthAPI
+	ReasoningAPI *reasoning.ReasoningAPI
+	WorldModel   *reasoning.WorldModel
+
+	TSOrchestrator         *orchestratorv1.Client
+	TSOrchestratorDelegate bool
+
+	AllowedOrigins map[string]struct{}
+	LogLevel       string
+
+	RateLimitMu    sync.Mutex
+	RateLimitCount map[string][]time.Time
+}
+
+// InitConfigFromEnv sets AllowedOrigins and LogLevel from environment variables.
+func (d *Deps) InitConfigFromEnv() {
+	s := strings.TrimSpace(os.Getenv("ALLOWED_ORIGINS"))
+	if s == "" {
+		d.AllowedOrigins = nil
+	} else {
+		d.AllowedOrigins = make(map[string]struct{})
+		for _, o := range strings.Split(s, ",") {
+			o = strings.TrimSpace(o)
+			if o != "" {
+				d.AllowedOrigins[o] = struct{}{}
+			}
+		}
+	}
+	d.LogLevel = strings.ToLower(strings.TrimSpace(os.Getenv("LOG_LEVEL")))
+	if d.LogLevel == "" {
+		d.LogLevel = "info"
+	}
+}
 
 // Register attaches all HTTP routes to mux (use http.DefaultServeMux in production).
 func Register(mux *http.ServeMux, d *Deps) {
@@ -26,16 +78,12 @@ func Register(mux *http.ServeMux, d *Deps) {
 		mux.HandleFunc("/reset-password", serveStaticPage("reset-password.html"))
 	}
 	mux.HandleFunc("/terms", serveStaticPage("terms.html"))
-	mux.HandleFunc("/dashboard", serveDashboard)
-	mux.HandleFunc("/dashboard/", serveDashboard)
+	// React SPA (Vite): build output in dashboard/dist — see docs/DASHBOARD.md
+	mux.HandleFunc("/dashboard", redirectDashboardSlash)
+	mux.HandleFunc("/dashboard/assets/", serveReactDashboardAssets)
+	mux.HandleFunc("/dashboard/", serveReactDashboardSPA)
 	mux.HandleFunc("/welcome", serveStaticPage("landing.html"))
 	mux.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
-		// When embedded inside the dashboard, render the chat app.
-		// Otherwise redirect so users only see the single dashboard frontend.
-		if r.URL.Query().Get("embedded") == "1" {
-			serveStaticPage("chat.html")(w, r)
-			return
-		}
 		http.Redirect(w, r, "/dashboard/chat", http.StatusFound)
 	})
 	mux.HandleFunc("/chat/", func(w http.ResponseWriter, r *http.Request) {
@@ -79,6 +127,9 @@ func Register(mux *http.ServeMux, d *Deps) {
 	if d.AuthDisabled {
 		mux.HandleFunc("/api/query", cors(d.handleQuery))
 		mux.HandleFunc("/api/query/smart", cors(d.handleQuerySmart))
+		mux.HandleFunc("/api/orchestration/trust", cors(d.handleOrchestrationTrustProxy))
+		mux.HandleFunc("/api/orchestration/trace-ids", cors(d.handleOrchestrationTraceIDsProxy))
+		mux.HandleFunc("/api/orchestration/eval/contains", cors(d.handleOrchestrationEvalContainsProxy))
 		mux.HandleFunc("/api/orchestration/traces/", cors(d.handleOrchestrationTraceProxy))
 		mux.HandleFunc("/api/query/model", cors(d.handleQueryModel))
 		mux.HandleFunc("/api/reasoning/start", cors(d.handleReasoningStart))
@@ -105,6 +156,9 @@ func Register(mux *http.ServeMux, d *Deps) {
 		reqAuth := auth.AuthMiddleware(d.DB)
 		mux.Handle("/api/query", reqAuth(cors(d.handleQuery)))
 		mux.Handle("/api/query/smart", reqAuth(cors(d.handleQuerySmart)))
+		mux.Handle("/api/orchestration/trust", reqAuth(cors(d.handleOrchestrationTrustProxy)))
+		mux.Handle("/api/orchestration/trace-ids", reqAuth(cors(d.handleOrchestrationTraceIDsProxy)))
+		mux.Handle("/api/orchestration/eval/contains", reqAuth(cors(d.handleOrchestrationEvalContainsProxy)))
 		mux.Handle("/api/orchestration/traces/", reqAuth(cors(d.handleOrchestrationTraceProxy)))
 		mux.Handle("/api/query/model", reqAuth(cors(d.handleQueryModel)))
 		mux.Handle("/api/reasoning/start", reqAuth(cors(d.handleReasoningStart)))

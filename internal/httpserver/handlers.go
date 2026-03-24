@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -134,6 +135,22 @@ func (d *Deps) LocalTenantMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// skipNoiseHTTPLog suppresses 404 spam from browsers (Chrome DevTools, favicon probes, etc.).
+func skipNoiseHTTPLog(path string, status int) bool {
+	if status != http.StatusNotFound {
+		return false
+	}
+	if strings.HasPrefix(path, "/.well-known/") {
+		return true
+	}
+	switch path {
+	case "/favicon.ico", "/robots.txt":
+		return true
+	default:
+		return false
+	}
+}
+
 // requestLogMiddleware logs one line per request for log aggregators.
 // RequestLogMiddleware logs one line per request.
 func (d *Deps) RequestLogMiddleware(next http.Handler) http.Handler {
@@ -144,7 +161,7 @@ func (d *Deps) RequestLogMiddleware(next http.Handler) http.Handler {
 		dur := time.Since(start).Milliseconds()
 		if d.LogLevel == "debug" {
 			log.Printf("request method=%s path=%s status=%d duration_ms=%d size=%d", r.Method, r.URL.Path, rec.status, dur, rec.size)
-		} else if rec.status >= 500 || (rec.status >= 400 && r.URL.Path != "/health") {
+		} else if rec.status >= 500 || (rec.status >= 400 && r.URL.Path != "/health" && !skipNoiseHTTPLog(r.URL.Path, rec.status)) {
 			log.Printf("request method=%s path=%s status=%d duration_ms=%d", r.Method, r.URL.Path, rec.status, dur)
 		}
 	})
@@ -189,17 +206,49 @@ func serveStaticPage(filename string) http.HandlerFunc {
 	}
 }
 
-// serveDashboard serves dashboard.html for /dashboard and /dashboard/* (SPA-style client routing).
-func serveDashboard(w http.ResponseWriter, r *http.Request) {
-	file, err := os.Open("./web/dashboard.html")
-	if err != nil {
-		http.Error(w, "dashboard not found", http.StatusNotFound)
+const reactDashboardIndex = "dashboard/dist/index.html"
+
+// serveReactDashboardAssets serves hashed JS/CSS from the Vite build (base /dashboard/).
+func serveReactDashboardAssets(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	http.StripPrefix("/dashboard", http.FileServer(http.Dir("dashboard/dist"))).ServeHTTP(w, r)
+}
+
+// serveReactDashboardSPA serves the Vite React app for /dashboard and client routes under /dashboard/*.
+func serveReactDashboardSPA(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	defer file.Close()
+	rel := strings.TrimPrefix(r.URL.Path, "/dashboard")
+	rel = strings.Trim(rel, "/")
+	if rel != "" && !strings.Contains(rel, "..") {
+		candidate := filepath.Join("dashboard", "dist", filepath.FromSlash(rel))
+		if fi, err := os.Stat(candidate); err == nil && !fi.IsDir() {
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			http.ServeFile(w, r, candidate)
+			return
+		}
+	}
+	f, err := os.Open(reactDashboardIndex)
+	if err != nil {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>GAIOL Dashboard</title></head><body style="font-family:system-ui;padding:2rem;max-width:40rem"><h1>Dashboard build missing</h1><p>Run <code>cd dashboard &amp;&amp; npm install &amp;&amp; npm run build</code> to generate <code>dashboard/dist/</code>, then restart the server.</p><p><a href="/">Home</a></p></body></html>`))
+		return
+	}
+	defer f.Close()
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	http.ServeContent(w, r, "dashboard.html", time.Time{}, file)
+	http.ServeContent(w, r, "index.html", time.Time{}, f)
+}
+
+func redirectDashboardSlash(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/dashboard" {
+		http.Redirect(w, r, "/dashboard/", http.StatusMovedPermanently)
+		return
+	}
+	http.NotFound(w, r)
 }
 
 // ============================================================================
@@ -1456,9 +1505,9 @@ func (d *Deps) noAuthHandleBillingSummary(w http.ResponseWriter, r *http.Request
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"period":       time.Now().Format("2006-01"),
-		"total_cost":   0.0,
-		"by_provider":  []interface{}{},
+		"period":      time.Now().Format("2006-01"),
+		"total_cost":  0.0,
+		"by_provider": []interface{}{},
 	})
 }
 
@@ -1505,9 +1554,9 @@ func (d *Deps) noAuthHandlePreferences(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"budget_limit":       nil,
-			"default_model_id":  "",
-			"strategy":          "balanced",
+			"budget_limit":     nil,
+			"default_model_id": "",
+			"strategy":         "balanced",
 		})
 	case http.MethodPut:
 		w.Header().Set("Content-Type", "application/json")
@@ -2138,8 +2187,8 @@ func (d *Deps) handleGetSession(w http.ResponseWriter, r *http.Request) {
 	if !userOK || user == nil {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"user":           nil,
-			"authenticated":  false,
+			"user":          nil,
+			"authenticated": false,
 		})
 		return
 	}
@@ -2460,4 +2509,3 @@ func (d *Deps) handleAgentWorkflow(w http.ResponseWriter, r *http.Request) {
 		"agent_count":  len(result.Steps),
 	})
 }
-

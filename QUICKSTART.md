@@ -102,6 +102,17 @@ http://localhost:8080
 
 You should see the GAIOL chat interface!
 
+### React dashboard (Vite) + TS orchestrator
+
+For the developer UI in `dashboard/` (Chat, Trace, Trust, Models, Metrics, …):
+
+1. Start TS orchestrator: `cd orchestrator && npm install && npm run dev:api` (listens on `8787` by default).
+2. In the project root `.env`, set `GAIOL_TS_ORCHESTRATOR_URL=http://127.0.0.1:8787` and `GAIOL_USE_TS_ORCHESTRATOR=1` (and `GAIOL_DISABLE_AUTH=1` for simplest local mode).
+3. Start Go: `go run ./cmd/web-server` (port 8080).
+4. Start Vite: `cd dashboard && npm install && npm run dev` → open **`http://localhost:5173/dashboard/`** (app base path is `/dashboard/`).
+
+Details: [docs/LOCAL-DEV-STACK.md](docs/LOCAL-DEV-STACK.md) and [docs/DASHBOARD.md](docs/DASHBOARD.md).
+
 ---
 
 ## Step 6: Test It Out

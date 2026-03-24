@@ -208,6 +208,53 @@ POST /api/query/smart
 }
 ```
 
+**TypeScript orchestrator path** (when `GAIOL_TS_ORCHESTRATOR_URL` is set and `GAIOL_USE_TS_ORCHESTRATOR=1`, and strategy is not `go_reasoning`): the same endpoint returns additional fields for observability:
+
+- `metadata.trace_id` — orchestration trace id (same as `metadata.session_id` in the TS delegate path today).
+- `metadata.engine` — `"typescript_orchestrator"`.
+- `orchestration` — `{ schema_version, trace_id, trust_updates_count, consensus_mode, explore_paths, beam_width }`.
+- `orchestration_trace` — full v1 trace object.
+- `orchestration_trust_updates` — ABTC trust delta list.
+- `orchestration_metrics` — server-side summary (latency, cost, trust movement) aligned with trace metrics.
+
+### Orchestration (proxied via Go)
+
+These require the TS orchestrator URL on the Go server. Without it, responses are `503` with `ts_orchestrator_disabled`.
+
+```http
+GET /api/orchestration/traces/{trace_id}
+```
+
+Returns the TS bundle: `trace`, `timeline_rebuilt`, `metrics_summary`.
+
+```http
+GET /api/orchestration/trust?domain=
+```
+
+Optional `domain` filters trust rows. Response: `{ "records": [...], "count": n, "domain": "general" | null }` (TrustRecord: `modelId`, `domain`, `distribution` { alpha, beta }, `updatedAt`).
+
+```http
+GET /api/orchestration/trace-ids?limit=50
+```
+
+Returns `{ "trace_ids": [...], "count": n }` (recent ids from in-memory TS store).
+
+```http
+POST /api/orchestration/eval/contains
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "examples": [{ "objective": "Say hello", "expectedContains": ["hello"] }],
+  "answerText": "Hello there"
+}
+```
+
+Response: `{ "pass": true, "results": [...], "eval_id": "..." }`.
+
 ### Query Specific Model
 
 ```http
@@ -539,7 +586,7 @@ GET /api/monitoring/stats
 }
 ```
 
-Use live output from `GET /api/monitoring/stats` in your report. To save snapshots: `scripts/collect-report-metrics.ps1` (writes `report-artifacts/monitoring-stats.json`). See `docs/project-report-pack.md`.
+Use live output from `GET /api/monitoring/stats` as needed. To capture JSON locally, save the response body (for example with `curl -o monitoring-stats.json` against your running instance).
 
 ---
 

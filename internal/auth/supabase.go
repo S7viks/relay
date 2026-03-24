@@ -25,6 +25,19 @@ type User struct {
 	Claims   jwt.MapClaims
 }
 
+type userCtxKey struct{}
+
+// WithUser returns a context that carries the authenticated user.
+func WithUser(ctx context.Context, u *User) context.Context {
+	return context.WithValue(ctx, userCtxKey{}, u)
+}
+
+// GetUserFromContext extracts the user from context (typed key).
+func GetUserFromContext(ctx context.Context) (*User, bool) {
+	u, ok := ctx.Value(userCtxKey{}).(*User)
+	return u, ok
+}
+
 // tokenCacheEntry caches a verified user for a short period to avoid
 // hitting the Supabase API on every single request.
 type tokenCacheEntry struct {

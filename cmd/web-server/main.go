@@ -28,6 +28,13 @@ func envBool(key string) bool {
 	return v == "1" || v == "true" || v == "yes" || v == "y" || v == "on"
 }
 
+func coalescePort(p string) string {
+	if strings.TrimSpace(p) == "" {
+		return "8080"
+	}
+	return strings.TrimSpace(p)
+}
+
 func main() {
 	if err := loadEnv(); err != nil {
 		log.Printf("Warning: Failed to load .env file: %v", err)
@@ -119,6 +126,12 @@ func main() {
 	}
 
 	httpserver.Register(http.DefaultServeMux, deps)
+
+	if _, err := os.Stat("dashboard/dist/index.html"); err != nil {
+		log.Println("Dashboard UI: dashboard/dist/index.html not found — open http://localhost:" + coalescePort(os.Getenv("PORT")) + "/dashboard/ will show a build hint. Run: cd dashboard && npm install && npm run build")
+	} else {
+		log.Println("Dashboard UI: serving React app at /dashboard/ (from dashboard/dist/)")
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {

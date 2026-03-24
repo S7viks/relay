@@ -24,6 +24,8 @@ import { fileURLToPath } from "node:url";
 import { rebuildTimelineFromTrace } from "../observability/replay.js";
 import { summarizeOrchestrationTrace } from "../observability/metrics-summary.js";
 import type { TraceId } from "../domain/ids.js";
+import { evaluateAgainstContains, type EvalExample } from "../evaluation/harness.js";
+import type { ModelCallResult } from "../domain/task.js";
 
 export function buildServer() {
   const logger = createLogger();
@@ -61,6 +63,70 @@ export function buildServer() {
   const app = Fastify({ logger: false });
 
   app.get("/health", async () => ({ ok: true }));
+
+  /** Trust snapshot for ABTC dashboard (all rows or filtered by domain). */
+  app.get<{ Querystring: { domain?: string } }>("/v1/trust", async (req, reply) => {
+    const domain = typeof req.query.domain === "string" ? req.query.domain.trim() : "";
+    const records = domain ? await trust.listByDomain(domain) : await trust.listAll();
+    return reply.send({ records, count: records.length, domain: domain || null });
+  });
+
+  /** Recent trace ids (newest last), for metrics index MVP. */
+  app.get<{ Querystring: { limit?: string } }>("/v1/traces", async (req, reply) => {
+    let limit = 50;
+    const q = req.query.limit;
+    if (typeof q === "string" && q.trim() !== "") {
+      const n = Number(q);
+      if (Number.isFinite(n)) limit = n;
+    }
+    const trace_ids = await traces.listTraceIds(limit);
+    return reply.send({ trace_ids, count: trace_ids.length });
+  });
+
+  /** Run contains-based eval on a single answer string (no live model call). */
+  app.post<{
+    Body: {
+      examples?: EvalExample[];
+      answerText?: string;
+    };
+  }>("/v1/eval/contains", async (req, reply) => {
+    const body = req.body ?? {};
+    const examples = Array.isArray(body.examples) ? body.examples : [];
+    const answerText = typeof body.answerText === "string" ? body.answerText : "";
+    if (!examples.length) {
+      return reply.code(400).send({ error: "examples_required" });
+    }
+    const result: ModelCallResult = {
+      modelId: "eval",
+      providerId: "eval",
+      text: answerText,
+      latencyMs: 0,
+    };
+    const results = examples.map((ex) => {
+      const r = evaluateAgainstContains(ex, result);
+      return {
+        objective: ex.objective,
+        pass: r.pass,
+        score: r.score,
+        notes: r.notes,
+      };
+    });
+    const passAll = results.every((r) => r.pass);
+    const id = `eval-${Date.now()}`;
+    await evaluations.append({
+      id,
+      traceId: "eval-contains",
+      createdAt: new Date().toISOString(),
+      scores: Object.fromEntries(results.map((r, i) => [`ex_${i}`, r.score])),
+      pass: passAll,
+      notes: "contains harness",
+    });
+    return reply.send({
+      pass: passAll,
+      results,
+      eval_id: id,
+    });
+  });
 
   /** Debug: load persisted trace and rebuild timeline + metrics (does not re-run providers). */
   app.get<{ Params: { traceId: string } }>("/v1/traces/:traceId", async (req, reply) => {

@@ -102,7 +102,7 @@ func TestRoot_ServesLanding(t *testing.T) {
 	}
 }
 
-func TestChatRoute_ServesChatApp(t *testing.T) {
+func TestChatRoute_RedirectsToReactDashboard(t *testing.T) {
 	chdirProjectRoot(t)
 	d := newTestDepsAuthDisabled(t)
 	mux := http.NewServeMux()
@@ -110,23 +110,28 @@ func TestChatRoute_ServesChatApp(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 
-	resp, err := http.Get(srv.URL + "/chat?embedded=1")
+	client := &http.Client{CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+		return http.ErrUseLastResponse
+	}}
+	resp, err := client.Get(srv.URL + "/chat")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("status %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusFound && resp.StatusCode != http.StatusMovedPermanently {
+		t.Fatalf("status %d want redirect", resp.StatusCode)
 	}
-	b, _ := io.ReadAll(resp.Body)
-	body := string(b)
-	if !strings.Contains(body, "chatPage") {
-		t.Fatalf("expected chat index body, got prefix %q", truncateRunes(body, 200))
+	loc := resp.Header.Get("Location")
+	if !strings.Contains(loc, "/dashboard/chat") {
+		t.Fatalf("Location %q", loc)
 	}
 }
 
-func TestDashboardChatRoute_ServesDashboardApp(t *testing.T) {
+func TestDashboardChatRoute_ServesReactSPA(t *testing.T) {
 	chdirProjectRoot(t)
+	if _, err := os.Stat(reactDashboardIndex); err != nil {
+		t.Skip("dashboard/dist not built; run npm run build in dashboard/")
+	}
 	d := newTestDepsAuthDisabled(t)
 	mux := http.NewServeMux()
 	Register(mux, d)
@@ -144,8 +149,8 @@ func TestDashboardChatRoute_ServesDashboardApp(t *testing.T) {
 
 	b, _ := io.ReadAll(resp.Body)
 	body := string(b)
-	if !strings.Contains(body, `href="/dashboard/chat"`) {
-		t.Fatalf("expected dashboard template with merged chat link, got prefix %q", truncateRunes(body, 200))
+	if !strings.Contains(body, `id="root"`) {
+		t.Fatalf("expected Vite index.html shell, got prefix %q", truncateRunes(body, 200))
 	}
 }
 

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -82,6 +84,100 @@ func (c *Client) GetTraceBundle(ctx context.Context, traceID string) ([]byte, in
 	if err != nil {
 		return nil, 0, err
 	}
+	hc := c.HTTP
+	if hc == nil {
+		hc = http.DefaultClient
+	}
+	resp, err := hc.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp.StatusCode, err
+	}
+	return body, resp.StatusCode, nil
+}
+
+// GetTrustJSON GETs /v1/trust from the TS orchestrator (optional domain query).
+func (c *Client) GetTrustJSON(ctx context.Context, domain string) ([]byte, int, error) {
+	if c.BaseURL == "" {
+		return nil, 0, fmt.Errorf("orchestratorcontract: BaseURL is empty")
+	}
+	u, err := url.Parse(c.BaseURL + "/v1/trust")
+	if err != nil {
+		return nil, 0, err
+	}
+	domain = strings.TrimSpace(domain)
+	if domain != "" {
+		q := u.Query()
+		q.Set("domain", domain)
+		u.RawQuery = q.Encode()
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	hc := c.HTTP
+	if hc == nil {
+		hc = http.DefaultClient
+	}
+	resp, err := hc.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp.StatusCode, err
+	}
+	return body, resp.StatusCode, nil
+}
+
+// GetTraceIndexJSON GETs /v1/traces?limit= from the TS orchestrator.
+func (c *Client) GetTraceIndexJSON(ctx context.Context, limit int) ([]byte, int, error) {
+	if c.BaseURL == "" {
+		return nil, 0, fmt.Errorf("orchestratorcontract: BaseURL is empty")
+	}
+	if limit < 1 {
+		limit = 50
+	}
+	if limit > 500 {
+		limit = 500
+	}
+	u := c.BaseURL + "/v1/traces?limit=" + strconv.Itoa(limit)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	hc := c.HTTP
+	if hc == nil {
+		hc = http.DefaultClient
+	}
+	resp, err := hc.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp.StatusCode, err
+	}
+	return body, resp.StatusCode, nil
+}
+
+// PostEvalContainsJSON POSTs /v1/eval/contains with a JSON body (pass-through).
+func (c *Client) PostEvalContainsJSON(ctx context.Context, bodyJSON []byte) ([]byte, int, error) {
+	if c.BaseURL == "" {
+		return nil, 0, fmt.Errorf("orchestratorcontract: BaseURL is empty")
+	}
+	urlStr := c.BaseURL + "/v1/eval/contains"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, urlStr, bytes.NewReader(bodyJSON))
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("Content-Type", "application/json")
 	hc := c.HTTP
 	if hc == nil {
 		hc = http.DefaultClient

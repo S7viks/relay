@@ -28,6 +28,10 @@ export class InMemoryTrustRepository implements TrustRepository {
   async listByDomain(domain: string): Promise<TrustRecord[]> {
     return [...this.store.values()].filter((r) => r.domain === domain);
   }
+
+  async listAll(): Promise<TrustRecord[]> {
+    return [...this.store.values()];
+  }
 }
 
 export class InMemorySessionRepository implements SessionRepository {
@@ -51,6 +55,12 @@ export class InMemoryTraceRepository implements TraceRepository {
 
   async get(traceId: TraceId): Promise<OrchestrationTrace | null> {
     return this.traces.get(traceId) ?? null;
+  }
+
+  async listTraceIds(limit: number): Promise<TraceId[]> {
+    const n = Math.max(1, Math.min(500, limit));
+    const keys = [...this.traces.keys()];
+    return keys.slice(-n);
   }
 }
 

@@ -48,4 +48,9 @@ export class FileTrustRepository implements TrustRepository {
     const m = await this.load();
     return [...m.values()].filter((r) => r.domain === domain);
   }
+
+  async listAll(): Promise<TrustRecord[]> {
+    const m = await this.load();
+    return [...m.values()];
+  }
 }
