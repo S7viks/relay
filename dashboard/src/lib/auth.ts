@@ -91,3 +91,24 @@ export function loginHref(): string {
 export function signupHref(): string {
   return `${typeof window !== 'undefined' ? window.location.origin : ''}/signup`
 }
+
+/** Persist tokens from POST /api/auth/signin or signup (same rules as web/js/api.js). */
+export function applySignInTokens(data: unknown): void {
+  if (!data || typeof data !== 'object') return
+  const d = data as Record<string, unknown>
+  const session = d.session as Record<string, unknown> | undefined
+  const access =
+    (typeof d.access_token === 'string' && d.access_token) ||
+    (session && typeof session.access_token === 'string' && session.access_token) ||
+    ''
+  const refresh =
+    (typeof d.refresh_token === 'string' && d.refresh_token) ||
+    (session && typeof session.refresh_token === 'string' && session.refresh_token) ||
+    ''
+  try {
+    if (access) localStorage.setItem(ACCESS_TOKEN_KEY, access)
+    if (refresh) localStorage.setItem(REFRESH_TOKEN_KEY, refresh)
+  } catch {
+    /* private mode */
+  }
+}

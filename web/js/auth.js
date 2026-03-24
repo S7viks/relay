@@ -124,8 +124,8 @@ async function handleLogin(event) {
         updateAuthUI();
         showToast('success', 'Signed in successfully', `Welcome back, ${result.user?.email || 'User'}!`);
 
-        // Redirect to dashboard
-        window.location.href = '/dashboard';
+        // Full URL so session storage and React dashboard share the same host
+        window.location.href = '/dashboard/chat';
     } catch (error) {
         errorDiv.textContent = error.message || 'Sign in failed. Please check your credentials.';
         errorDiv.style.display = 'block';
@@ -190,7 +190,7 @@ async function handleSignup(event) {
         }
 
         showToast('success', 'Account created', 'Welcome to GAIOL!');
-        window.location.href = '/dashboard';
+        window.location.href = '/dashboard/chat';
     } catch (error) {
         const errorMessage = error.message || 'Sign up failed. Please try again.';
         errorDiv.textContent = errorMessage;
