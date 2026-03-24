@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAppStore } from '../../store'
 import { ToastContainer } from '../ui/Toast'
-import { fetchHealth } from '../../lib/api'
+import { fetchHealth, fetchHealthBody } from '../../lib/api'
+import { fetchAuthSession, loginHref, signupHref, signOut } from '../../lib/auth'
 
 type NavItem = {
   to: string
@@ -136,7 +137,14 @@ function topBarRouteLabel(pathname: string): string {
   return ROUTE_NAMES[pathname] ?? ROUTE_NAMES[`/${pathname.split('/')[1]}`] ?? ''
 }
 
-function TopBar() {
+type TopBarAuthProps = {
+  authLoading: boolean
+  authDisabled: boolean
+  sessionEmail: string | null
+  onSignOut: () => void
+}
+
+function TopBar({ authLoading, authDisabled, sessionEmail, onSignOut }: TopBarAuthProps) {
   const location = useLocation()
   const { theme, setTheme, isConnected } = useAppStore()
   const routeName = topBarRouteLabel(location.pathname)
@@ -149,6 +157,36 @@ function TopBar() {
     <div className="topbar">
       <span className="topbar__title">GAIOL</span>
       <span className="topbar__route">{routeName}</span>
+      <div className="topbar__auth" aria-live="polite">
+        {authLoading ? (
+          <span className="topbar__auth-muted">Checking session…</span>
+        ) : authDisabled ? (
+          <span className="topbar__auth-muted" title="GAIOL_DISABLE_AUTH or equivalent is set on the server">
+            No sign-in required
+          </span>
+        ) : sessionEmail ? (
+          <>
+            <span className="topbar__auth-email" title={sessionEmail}>
+              {sessionEmail}
+            </span>
+            <button type="button" className="topbar__auth-btn" onClick={() => void onSignOut()}>
+              Sign out
+            </button>
+          </>
+        ) : (
+          <>
+            <a className="topbar__auth-link" href={loginHref()}>
+              Sign in
+            </a>
+            <span className="topbar__auth-sep" aria-hidden>
+              ·
+            </span>
+            <a className="topbar__auth-link" href={signupHref()}>
+              Create account
+            </a>
+          </>
+        )}
+      </div>
       <div className="topbar__actions">
         <button
           className="topbar__theme-btn"
@@ -167,6 +205,44 @@ function TopBar() {
 
 export function Layout() {
   const setConnected = useAppStore((s) => s.setConnected)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [authDisabled, setAuthDisabled] = useState(false)
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null)
+
+  const refreshAuth = useCallback(async () => {
+    setAuthLoading(true)
+    try {
+      const h = await fetchHealthBody()
+      setAuthDisabled(!!h.authDisabled)
+      if (h.authDisabled) {
+        setSessionEmail(null)
+        return
+      }
+      const s = await fetchAuthSession()
+      setSessionEmail(s.authenticated ? (s.email ?? 'Signed in') : null)
+    } catch {
+      setSessionEmail(null)
+    } finally {
+      setAuthLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void refreshAuth()
+  }, [refreshAuth])
+
+  useEffect(() => {
+    const onFocus = () => {
+      void refreshAuth()
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [refreshAuth])
+
+  const handleSignOut = useCallback(async () => {
+    await signOut()
+    await refreshAuth()
+  }, [refreshAuth])
 
   useEffect(() => {
     let alive = true
@@ -185,7 +261,12 @@ export function Layout() {
 
   return (
     <div className="layout">
-      <TopBar />
+      <TopBar
+        authLoading={authLoading}
+        authDisabled={authDisabled}
+        sessionEmail={sessionEmail}
+        onSignOut={handleSignOut}
+      />
       <div className="layout__body">
         <Sidebar />
         <main className="layout__main">

@@ -2,21 +2,16 @@
  * Relative paths: Vite dev server proxies /api, /v1, /health to Go (vite.config.ts).
  * Production (e.g. Vercel static): set VITE_API_BASE=https://your-api.example.com at build time.
  */
-const apiOrigin = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '')
+import { getAccessToken } from './auth'
+import { apiUrl } from './apiBase'
 
-function apiUrl(path: string): string {
-  if (!path.startsWith('/')) return path
-  return apiOrigin ? `${apiOrigin}${path}` : path
-}
+export { apiUrl } from './apiBase'
 
 const jsonHeaders = { 'Content-Type': 'application/json' } as const
 
-/** Same key as web/js/api.js — set when signing in via /login or /signup. */
-const ACCESS_TOKEN_KEY = 'gaiol_access_token'
-
 function authHeaders(base: Record<string, string>): Record<string, string> {
   try {
-    const t = localStorage.getItem(ACCESS_TOKEN_KEY)?.trim()
+    const t = getAccessToken()?.trim()
     if (t) return { ...base, Authorization: `Bearer ${t}` }
   } catch {
     /* private mode / SSR */
@@ -117,11 +112,48 @@ export async function apiPost(path: string, body: unknown): Promise<unknown> {
   return data
 }
 
+export async function apiDelete(path: string): Promise<void> {
+  const res = await fetch(apiUrl(path), {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: authHeaders({}),
+  })
+  if (res.status === 204 || res.status === 200) return
+  const text = await res.text()
+  let data: unknown = null
+  if (text) {
+    try {
+      data = JSON.parse(text) as unknown
+    } catch {
+      data = text
+    }
+  }
+  const o = data as Record<string, unknown> | null
+  const msg =
+    (o && typeof o.error === 'string' && o.error) ||
+    (o && typeof o.message === 'string' && o.message) ||
+    text ||
+    res.statusText
+  const code = o && typeof o.code === 'string' ? o.code : undefined
+  throw new ApiError(msg, res.status, code)
+}
+
 export async function fetchHealth(): Promise<boolean> {
   try {
     const res = await fetch(apiUrl('/health'), { credentials: 'include' })
     return res.ok
   } catch {
     return false
+  }
+}
+
+export async function fetchHealthBody(): Promise<{ ok: boolean; authDisabled: boolean }> {
+  try {
+    const res = await fetch(apiUrl('/health'), { credentials: 'include' })
+    if (!res.ok) return { ok: false, authDisabled: false }
+    const data = (await res.json()) as { auth_disabled?: boolean }
+    return { ok: true, authDisabled: !!data.auth_disabled }
+  } catch {
+    return { ok: false, authDisabled: false }
   }
 }

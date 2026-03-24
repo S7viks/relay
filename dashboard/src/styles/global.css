@@ -97,6 +97,61 @@ body,
   font-size: 0.875rem;
 }
 
+.topbar__auth {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  max-width: min(420px, 40vw);
+  font-size: 0.8rem;
+}
+
+.topbar__auth-muted {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar__auth-email {
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.topbar__auth-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.topbar__auth-link:hover {
+  text-decoration: underline;
+}
+
+.topbar__auth-sep {
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.topbar__auth-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.topbar__auth-btn:hover {
+  background: var(--bg-secondary);
+}
+
 .topbar__actions {
   display: flex;
   align-items: center;

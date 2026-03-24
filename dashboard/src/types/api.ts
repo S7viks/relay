@@ -79,9 +79,12 @@ export interface PreferencesResponse {
   strategy?: string
 }
 
+/** Matches keys.ProviderKeyRow from GET /api/settings/provider-keys */
 export interface ProviderKeyRow {
   id?: string
   provider?: string
-  label?: string
+  key_hint?: string
+  is_active?: boolean
   created_at?: string
+  updated_at?: string
 }
