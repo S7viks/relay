@@ -1,12 +1,24 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "echo install skipped",
-  "buildCommand": "npm run build",
-  "outputDirectory": "web",
-  "cleanUrls": true,
+  "installCommand": "cd dashboard && npm ci",
+  "buildCommand": "cd dashboard && npm run build",
+  "outputDirectory": "dashboard/dist",
   "trailingSlash": false,
+  "redirects": [
+    { "source": "/", "destination": "/dashboard/", "permanent": false }
+  ],
   "rewrites": [
-    { "source": "/dashboard", "destination": "/dashboard.html" },
-    { "source": "/dashboard/:path*", "destination": "/dashboard.html" }
+    {
+      "source": "/dashboard/assets/:path*",
+      "destination": "/assets/:path*"
+    },
+    {
+      "source": "/dashboard/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/index.html"
+    }
   ]
 }

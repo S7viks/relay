@@ -6,7 +6,7 @@ Operations procedures for deploying and running the GAIOL web server.
 
 ## Get it online (recommended path)
 
-Deploy the **full app** (API + frontend) on one host. No need to split frontend (e.g. Vercel) and backend unless you want that setup.
+Deploy the **full app** (API + frontend) on one host when possible (Docker on Railway/Fly/Render). Splitting **Vercel (static React) + hosted Go API** is supported; see [Vercel static dashboard](#vercel-static-dashboard-react--hosted-api) below.
 
 1. **Supabase** — Create a project at [supabase.com](https://supabase.com). In SQL Editor, run migrations in order: see [Database migrations](#database-migrations) and [database-setup.md](database-setup.md). In Authentication > URL configuration, set Site URL and Redirect URLs to your app URL (e.g. `https://your-app.up.railway.app`).
 2. **Env** — Generate `GAIOL_ENCRYPTION_KEY` with `openssl rand -hex 32`. You need: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, `GAIOL_ENCRYPTION_KEY`. Optionally `ALLOWED_ORIGINS` (your app URL) and `PORT` (often set by the host).
@@ -17,6 +17,25 @@ Deploy the **full app** (API + frontend) on one host. No need to split frontend 
 4. **Verify** — Open the app URL: sign up, add a provider key in Dashboard > Models, create a GAIOL key in Dashboard > API keys, then call `POST /v1/chat` with the key (see [API.md](../API.md)).
 
 If your repo is in another GitHub account than the one you use for the host: fork the repo into the account connected to Railway/Fly/Render, then deploy from the fork.
+
+### Vercel static dashboard (React + hosted API)
+
+The error **`404: NOT_FOUND` with a `bom1::…` id** on [gaiol.vercel.app](https://gaiol.vercel.app) usually means Vercel had **no matching static output** (old config pointed at `web/dashboard.html`, which was removed in favor of the Vite app).
+
+**Current behavior:** root [`vercel.json`](../vercel.json) builds **`dashboard/`**, publishes **`dashboard/dist`**, and rewrites:
+
+- `/` → `/dashboard/`
+- `/dashboard/assets/*` → `/assets/*` (matches Vite `base: /dashboard/`)
+- `/dashboard` and `/dashboard/*` (non-asset) → `/index.html` (SPA)
+
+**Vercel project settings**
+
+1. **Environment variables (Production + Preview)**  
+   - **`VITE_API_BASE`** — public URL of your Go API **with no trailing slash** (e.g. `https://gaiol-api.onrender.com`). Required so the browser can call `/api/...` on that host from the Vercel origin.  
+2. **API CORS** — on the Go server set **`ALLOWED_ORIGINS`** to include your Vercel origin (e.g. `https://gaiol.vercel.app`).  
+3. Redeploy after changing env vars (they are applied at **build** time for `VITE_*`).
+
+If you only need a landing page without the React build, use a different project or restore a static export; the default repo flow is **dashboard build → `dashboard/dist`**.
 
 ---
 
