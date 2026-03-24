@@ -146,7 +146,7 @@ if dbClient != nil {
 // Protected routes (auth required)
 if dbClient != nil {
     authMiddleware := auth.AuthMiddleware(dbClient)
-    http.Handle("/api/query", authMiddleware(http.HandlerFunc(corsMiddleware(handleQuery))))
+    http.Handle("/api/query", corsMiddleware(authMiddleware(http.HandlerFunc(handleQuery))))
     // ... other protected routes
 }
 ```
@@ -164,4 +164,4 @@ All API routes use `corsMiddleware` which:
 - Route order matters in Go's `http` package
 - Trailing slashes create prefix matches
 - More specific routes must be registered first
-- Middleware chain: CORS → Auth (if protected) → Handler
+- Middleware chain: CORS (outer) → Auth (if protected) → Handler

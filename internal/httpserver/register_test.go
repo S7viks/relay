@@ -196,3 +196,87 @@ func TestV1Chat_GET_NotAllowed(t *testing.T) {
 		t.Fatalf("status %d want 405", resp.StatusCode)
 	}
 }
+
+// CORS runs outside auth so browsers still see Access-Control-Allow-Origin on 401 (credentialed cross-origin fetches).
+func TestCORS_Unauthorized_ProtectedRoute_HasAllowOrigin(t *testing.T) {
+	reg := models.NewEmptyRegistry()
+	tracker := models.NewPerformanceTracker(nil)
+	rtr := models.NewModelRouter(reg, tracker)
+	d := &Deps{
+		Registry:     reg,
+		Router:       rtr,
+		Tracker:      tracker,
+		AuthDisabled: false,
+		DB:           nil,
+		DBAvailable:  false,
+		ReasoningAPI: reasoning.NewReasoningAPI(rtr, monitoring.NewMetricsService()),
+		WorldModel:   reasoning.NewWorldModel(nil),
+		LogLevel:     "error",
+		AllowedOrigins: map[string]struct{}{
+			"https://gaiol.vercel.app": {},
+		},
+	}
+	mux := http.NewServeMux()
+	Register(mux, d)
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/activity", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Origin", "https://gaiol.vercel.app")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("status %d want 401", resp.StatusCode)
+	}
+	if got := resp.Header.Get("Access-Control-Allow-Origin"); got != "https://gaiol.vercel.app" {
+		t.Fatalf("Access-Control-Allow-Origin %q want https://gaiol.vercel.app", got)
+	}
+}
+
+func TestCORS_Preflight_OPTIONS_AllowedOrigin(t *testing.T) {
+	reg := models.NewEmptyRegistry()
+	tracker := models.NewPerformanceTracker(nil)
+	rtr := models.NewModelRouter(reg, tracker)
+	d := &Deps{
+		Registry:     reg,
+		Router:       rtr,
+		Tracker:      tracker,
+		AuthDisabled: true,
+		ReasoningAPI: reasoning.NewReasoningAPI(rtr, monitoring.NewMetricsService()),
+		WorldModel:   reasoning.NewWorldModel(nil),
+		LogLevel:     "error",
+		AllowedOrigins: map[string]struct{}{
+			"https://gaiol.vercel.app": {},
+		},
+	}
+	mux := http.NewServeMux()
+	Register(mux, d)
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	req, err := http.NewRequest(http.MethodOptions, srv.URL+"/api/query/smart", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Origin", "https://gaiol.vercel.app")
+	req.Header.Set("Access-Control-Request-Method", "POST")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("status %d want 204", resp.StatusCode)
+	}
+	if got := resp.Header.Get("Access-Control-Allow-Origin"); got != "https://gaiol.vercel.app" {
+		t.Fatalf("Access-Control-Allow-Origin %q", got)
+	}
+}

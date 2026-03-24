@@ -32,8 +32,8 @@ The error **`404: NOT_FOUND` with a `bom1::…` id** on [gaiol.vercel.app](https
 
 1. **Environment variables (Production + Preview)**  
    - **`VITE_API_BASE`** — public URL of your Go API **with no trailing slash** (e.g. `https://gaiol-api.onrender.com`). Required so the browser can call `/api/...` on that host from the Vercel origin.  
-2. **API CORS** — on the Go server set **`ALLOWED_ORIGINS`** to include your Vercel origin (e.g. `https://gaiol.vercel.app`).  
-3. Redeploy after changing env vars (they are applied at **build** time for `VITE_*`).
+2. **API CORS (Render or any Go host)** — in the host’s **Environment** / variables UI set **`ALLOWED_ORIGINS`** to your exact Vercel origin(s), comma-separated, **no trailing slash** (e.g. `https://gaiol.vercel.app`). Redeploy the Go service so it reloads env. If this variable is set and a browser `Origin` is not listed, the API omits `Access-Control-Allow-Origin` and the browser blocks the response (credentialed `fetch` from the dashboard cannot use `*`).  
+3. Redeploy Vercel after changing env vars (they are applied at **build** time for `VITE_*`).
 
 If you only need a landing page without the React build, use a different project or restore a static export; the default repo flow is **dashboard build → `dashboard/dist`**.
 
@@ -90,7 +90,7 @@ The image includes the `web/` static files and runs as non-root. No `.env` file 
 | Variable | Description |
 |----------|-------------|
 | `PORT` | Listen port (default 8080). |
-| `ALLOWED_ORIGINS` | Comma-separated list of CORS origins (e.g. `https://app.example.com,https://www.example.com`). If unset, `*` is used (allow all). Set in production to restrict browser access. |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed browser `Origin` values (exact match; no trailing slash). **If unset:** non-browser / same-origin requests see `*` when no `Origin` header is sent; browsers sending `Origin` with credentialed fetches get that origin echoed with `Access-Control-Allow-Credentials: true`. **If set:** only listed origins receive CORS allow headers (use for Vercel → Render splits). |
 | `LOG_LEVEL` | `debug`, `info`, `warn`, or `error` (default `info`). At `info`, only 4xx/5xx requests are logged (except health); at `debug`, every request is logged. |
 
 See `.env.example` for a full template. Provider API keys (OpenRouter, etc.) are **not** set in the app environment; tenants add them in the dashboard.
@@ -166,5 +166,5 @@ Set `LOG_LEVEL=debug` for full request logging; use `info` (default) in producti
 
 - Keep `GAIOL_ENCRYPTION_KEY` secret and rotate if compromised (existing encrypted provider keys would need re-entry by tenants).
 - Use HTTPS in production; the app does not enforce TLS.
-- Set `ALLOWED_ORIGINS` in production to your frontend origin(s); otherwise CORS allows any origin (`*`).
+- Set `ALLOWED_ORIGINS` in production to your frontend origin(s) when you want an explicit allowlist; if unset, the server reflects the request `Origin` for credentialed browser calls (see table above; `*` is used only when there is no `Origin` header).
 - Supabase anon key is safe for client-side use; for server-only admin operations use a service role key only in a secure backend (not in the open-source app by default).

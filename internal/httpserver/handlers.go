@@ -48,10 +48,11 @@ func clampTemperature(t float64) float64 {
 	return t
 }
 
-func (d *Deps) corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+// corsMiddleware wraps http.Handler so it can be applied outside auth (CORS headers on errors and OPTIONS).
+func (d *Deps) corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
-		// fetch() uses credentials: 'include' in web/js/api.js. Browsers reject
+		// fetch() uses credentials: 'include' in web/js/api.js and dashboard/src/lib/api.ts. Browsers reject
 		// Access-Control-Allow-Origin: * together with credentialed requests.
 		// Echo a specific origin and set Allow-Credentials when Origin is present.
 		allowOrigin := ""
@@ -80,8 +81,8 @@ func (d *Deps) corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		next(w, r)
-	}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // responseRecorder wraps ResponseWriter to capture status and size for logging.
@@ -168,22 +169,16 @@ func (d *Deps) RequestLogMiddleware(next http.Handler) http.Handler {
 }
 
 // optionalAuthMiddleware wraps auth middleware but allows requests without auth to pass through
-func (d *Deps) optionalAuthMiddleware(authMiddleware func(http.Handler) http.Handler, next http.HandlerFunc) http.Handler {
+func (d *Deps) optionalAuthMiddleware(authMiddleware func(http.Handler) http.Handler, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if auth header is present
 		authHeader := r.Header.Get("Authorization")
-
-		// Also check for cookie-based auth
 		_, cookieErr := r.Cookie("sb-access-token")
 
-		// If NO auth header AND NO auth cookie, allow request without authentication
 		if authHeader == "" && cookieErr != nil {
-			// No authentication provided - proceed without auth
-			next(w, r)
+			next.ServeHTTP(w, r)
 			return
 		}
 
-		// Auth credentials present - validate them using auth middleware
 		authMiddleware(next).ServeHTTP(w, r)
 	})
 }
@@ -887,6 +882,26 @@ func canManageKeys(tc database.TenantContext) bool {
 	return tc.Role == "admin" || tc.Role == "owner" || tc.Role == ""
 }
 
+// mergeAutoProvisionGAIOLJSON appends one-shot gaiol_api_key fields when the tenant had no GAIOL keys.
+// Logs and swallows errors so provider save still succeeds.
+func (d *Deps) mergeAutoProvisionGAIOLJSON(ctx context.Context, tenantCtx database.TenantContext, source string, resp map[string]interface{}) {
+	if d.DB == nil || resp == nil {
+		return
+	}
+	raw, created, err := keys.EnsureDefaultGAIOLKeyIfNone(ctx, d.DB, tenantCtx.TenantID)
+	if err != nil {
+		log.Printf("EnsureDefaultGAIOLKeyIfNone (source=%s tenant=%s): %v", source, tenantCtx.TenantID, err)
+		return
+	}
+	if !created {
+		return
+	}
+	resp["gaiol_api_key"] = raw
+	resp["gaiol_api_key_created"] = true
+	resp["gaiol_api_key_message"] = "GAIOL API key created automatically. Show once and store securely; use as Authorization: Bearer for /v1/chat."
+	_ = d.DB.InsertAuditLog(ctx, tenantCtx.TenantID, tenantCtx.UserID, "gaiol_key_auto_provisioned", map[string]interface{}{"source": source})
+}
+
 func (d *Deps) handleProviderKeys(w http.ResponseWriter, r *http.Request) {
 	tenantCtx, err := database.EnsureTenantContext(r.Context())
 	if err != nil || d.DB == nil {
@@ -923,7 +938,9 @@ func (d *Deps) handleProviderKeys(w http.ResponseWriter, r *http.Request) {
 		_ = d.DB.InsertAuditLog(r.Context(), tenantCtx.TenantID, tenantCtx.UserID, "provider_key_added", map[string]interface{}{"provider": body.Provider})
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"key_hint": hint})
+		resp := map[string]interface{}{"key_hint": hint}
+		d.mergeAutoProvisionGAIOLJSON(r.Context(), tenantCtx, "provider_api_key", resp)
+		json.NewEncoder(w).Encode(resp)
 	case http.MethodDelete:
 		if !canManageKeys(tenantCtx) {
 			http.Error(w, "Forbidden: only admins can manage provider keys", http.StatusForbidden)
@@ -987,7 +1004,9 @@ func (d *Deps) handleCustomProviders(w http.ResponseWriter, r *http.Request) {
 		_ = d.DB.InsertAuditLog(r.Context(), tenantCtx.TenantID, tenantCtx.UserID, "custom_provider_saved", map[string]interface{}{"provider_key": body.ProviderKey})
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"key_hint": hint})
+		resp := map[string]interface{}{"key_hint": hint}
+		d.mergeAutoProvisionGAIOLJSON(r.Context(), tenantCtx, "tenant_provider", resp)
+		json.NewEncoder(w).Encode(resp)
 	case http.MethodDelete:
 		if !canManageKeys(tenantCtx) {
 			http.Error(w, "Forbidden: only admins can manage providers", http.StatusForbidden)
