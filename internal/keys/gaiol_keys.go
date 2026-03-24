@@ -51,6 +51,28 @@ func CreateGAIOLKey(ctx context.Context, db *database.Client, tenantID string, n
 	return rawKey, nil
 }
 
+const AutoProvisionedGAIOLKeyName = "auto-default"
+
+// EnsureDefaultGAIOLKeyIfNone creates one key (name AutoProvisionedGAIOLKeyName) when the tenant has none.
+// Returns rawKey and created=true only for a new insert. Idempotent when the tenant already has any GAIOL key.
+func EnsureDefaultGAIOLKeyIfNone(ctx context.Context, db *database.Client, tenantID string) (rawKey string, created bool, err error) {
+	if tenantID == "" {
+		return "", false, errors.New("tenant id is required")
+	}
+	list, err := ListGAIOLKeys(ctx, db, tenantID)
+	if err != nil {
+		return "", false, err
+	}
+	if len(list) > 0 {
+		return "", false, nil
+	}
+	rawKey, err = CreateGAIOLKey(ctx, db, tenantID, AutoProvisionedGAIOLKeyName)
+	if err != nil {
+		return "", false, err
+	}
+	return rawKey, true, nil
+}
+
 // ListGAIOLKeys returns GAIOL keys for the tenant (id, name, last_used_at, created_at). No key material.
 func ListGAIOLKeys(ctx context.Context, db *database.Client, tenantID string) ([]GAIOLKeyRow, error) {
 	if db == nil || db.Client == nil {
