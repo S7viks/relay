@@ -11,6 +11,19 @@ function apiUrl(path: string): string {
 
 const jsonHeaders = { 'Content-Type': 'application/json' } as const
 
+/** Same key as web/js/api.js — set when signing in via /login or /signup. */
+const ACCESS_TOKEN_KEY = 'gaiol_access_token'
+
+function authHeaders(base: Record<string, string>): Record<string, string> {
+  try {
+    const t = localStorage.getItem(ACCESS_TOKEN_KEY)?.trim()
+    if (t) return { ...base, Authorization: `Bearer ${t}` }
+  } catch {
+    /* private mode / SSR */
+  }
+  return base
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -23,7 +36,10 @@ export class ApiError extends Error {
 }
 
 export async function apiGet(path: string): Promise<unknown> {
-  const res = await fetch(apiUrl(path), { credentials: 'include' })
+  const res = await fetch(apiUrl(path), {
+    credentials: 'include',
+    headers: authHeaders({}),
+  })
   const text = await res.text()
   let data: unknown = null
   if (text) {
@@ -49,7 +65,7 @@ export async function apiPut(path: string, body: unknown): Promise<unknown> {
   const res = await fetch(apiUrl(path), {
     method: 'PUT',
     credentials: 'include',
-    headers: jsonHeaders,
+    headers: authHeaders({ ...jsonHeaders }),
     body: JSON.stringify(body),
   })
   const text = await res.text()
@@ -77,7 +93,7 @@ export async function apiPost(path: string, body: unknown): Promise<unknown> {
   const res = await fetch(apiUrl(path), {
     method: 'POST',
     credentials: 'include',
-    headers: jsonHeaders,
+    headers: authHeaders({ ...jsonHeaders }),
     body: JSON.stringify(body),
   })
   const text = await res.text()
