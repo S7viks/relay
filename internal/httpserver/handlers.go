@@ -1235,6 +1235,39 @@ func (d *Deps) handlePreferences(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleEnsureGAIOLKey auto-provisions a tenant GAIOL API key and returns the raw secret only when creating it.
+// This matches the "reveal the key once" behavior (secret material is never returned on subsequent requests).
+func (d *Deps) handleEnsureGAIOLKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	tenantCtx, err := database.EnsureTenantContext(r.Context())
+	if err != nil || d.DB == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	rawKey, created, err := keys.EnsureDefaultGAIOLKeyIfNone(r.Context(), d.DB, tenantCtx.TenantID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	resp := map[string]interface{}{
+		"gaiol_api_key_created": created,
+	}
+	if created && rawKey != "" {
+		resp["gaiol_api_key"] = rawKey
+		resp["gaiol_api_key_message"] = "GAIOL API key created (shown once). Store it securely; use Authorization: Bearer for /v1/chat."
+	} else {
+		resp["gaiol_api_key_message"] = "GAIOL API key already exists for this tenant; the secret cannot be shown again."
+	}
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
 func (d *Deps) handleUsage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -1583,6 +1616,26 @@ func (d *Deps) noAuthHandlePreferences(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+// noAuthHandleEnsureGAIOLKey is used when auth is disabled (no DB / no tenant context).
+// In this mode, GAIOL keys are not provisioned by the backend.
+func (d *Deps) noAuthHandleEnsureGAIOLKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusBadRequest)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":                    false,
+		"error":                       "GAIOL API keys are not available in local auth_disabled mode; configure provider keys via env and restart, or enable DB auth.",
+		"gaiol_api_key_created":      false,
+		"gaiol_api_key_message":     "Enable auth + DB to provision tenant keys.",
+		"gaiol_api_key":              nil,
+		"gaiol_api_key_hint":         "",
+		"gaiol_api_key_revealable":  false,
+	})
 }
 
 func (d *Deps) handleBillingHistory(w http.ResponseWriter, r *http.Request) {

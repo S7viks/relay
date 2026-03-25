@@ -79,6 +79,7 @@ if (-not $expectJwtProtection) {
     Write-Host "        Use .env with Supabase and omit GAIOL_DISABLE_AUTH to test 401 on protected routes." -ForegroundColor Gray
 } else {
     Test-Endpoint -Name "GET /api/settings/provider-keys" -Method GET -Uri "$base/api/settings/provider-keys" -ExpectStatus 401 | Out-Null
+    Test-Endpoint -Name "POST /api/settings/gaiol-key/ensure" -Method POST -Uri "$base/api/settings/gaiol-key/ensure" -Body '{}' -ExpectStatus 401 | Out-Null
     Test-Endpoint -Name "GET /api/gaiol-keys" -Method GET -Uri "$base/api/gaiol-keys" -ExpectStatus 401 | Out-Null
     Test-Endpoint -Name "POST /api/query/smart" -Method POST -Uri "$base/api/query/smart" -Body '{"prompt":"hi"}' -ExpectStatus 401 | Out-Null
 }

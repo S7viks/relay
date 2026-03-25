@@ -8,6 +8,7 @@ import { ModelsPage } from './pages/ModelsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TracePage } from './pages/TracePage'
 import { TrustPage } from './pages/TrustPage'
+import { OnboardingPage } from './pages/OnboardingPage'
 
 export function App() {
   return (
@@ -24,6 +25,7 @@ export function App() {
           <Route path="metrics" element={<MetricsPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="onboarding" element={<OnboardingPage />} />
           <Route path="eval" element={<EvalPage />} />
         </Route>
       </Routes>

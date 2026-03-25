@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../../store'
 import { ToastContainer } from '../ui/Toast'
-import { fetchHealth, fetchHealthBody } from '../../lib/api'
+import { apiGet, fetchHealth, fetchHealthBody } from '../../lib/api'
 import { fetchAuthSession, loginHref, signupHref, signOut } from '../../lib/auth'
 
 type NavItem = {
@@ -127,6 +127,7 @@ const ROUTE_NAMES: Record<string, string> = {
   '/history': 'History',
   '/settings': 'Settings',
   '/eval': 'Eval',
+  '/onboarding': 'Onboarding',
 }
 
 function topBarRouteLabel(pathname: string): string {
@@ -205,6 +206,8 @@ function TopBar({ authLoading, authDisabled, sessionEmail, onSignOut }: TopBarAu
 
 export function Layout() {
   const setConnected = useAppStore((s) => s.setConnected)
+  const navigate = useNavigate()
+  const location = useLocation()
   const [authLoading, setAuthLoading] = useState(true)
   const [authDisabled, setAuthDisabled] = useState(false)
   const [sessionEmail, setSessionEmail] = useState<string | null>(null)
@@ -258,6 +261,37 @@ export function Layout() {
       window.clearInterval(id)
     }
   }, [setConnected])
+
+  useEffect(() => {
+    if (authLoading) return
+    if (authDisabled) return
+    if (!sessionEmail) return
+
+    const pathname = location.pathname
+    // Depending on React Router basename handling, `pathname` may include or exclude `/dashboard`.
+    const normalizedPathname = pathname.replace(/^\/dashboard/, '')
+    if (normalizedPathname === '/onboarding') return
+    if (normalizedPathname.startsWith('/onboarding/')) return
+
+    ;(async () => {
+      try {
+        const pkRaw = await apiGet('/api/settings/provider-keys')
+        const providerKeys = Array.isArray(pkRaw) ? pkRaw : []
+
+        const gaiolRaw = await apiGet('/api/gaiol-keys')
+        const gaiolKeys = Array.isArray(gaiolRaw) ? gaiolRaw : []
+
+        const complete = providerKeys.length > 0 && gaiolKeys.length > 0
+        if (!complete) {
+          navigate('/onboarding', { replace: true })
+        }
+      } catch {
+        // If setup checks fail (stale token / transient 401), let the onboarding page show the actionable UI.
+      } finally {
+        // no-op
+      }
+    })()
+  }, [apiGet, authDisabled, authLoading, location.pathname, navigate, sessionEmail])
 
   return (
     <div className="layout">

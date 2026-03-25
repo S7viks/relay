@@ -9,6 +9,7 @@ import {
   InMemoryTraceRepository,
   InMemoryTrustRepository,
 } from "../persistence/memory-store.js";
+import { FileTrustRepository } from "../persistence/file-trust-store.js";
 import { OrchestratorPipeline } from "../orchestration/pipeline.js";
 import { buildOrchestratorRegistry } from "../config/registry-from-env.js";
 import { loadOrchestratorPort } from "../config/env.js";
@@ -29,7 +30,8 @@ import type { ModelCallResult } from "../domain/task.js";
 
 export function buildServer() {
   const logger = createLogger();
-  const trust = new InMemoryTrustRepository();
+  const trustPath = process.env.TRUST_STORE_PATH?.trim() || '';
+  const trust = trustPath ? new FileTrustRepository(trustPath) : new InMemoryTrustRepository();
   const traces = new InMemoryTraceRepository();
   const sessions = new InMemorySessionRepository();
   const evaluations = new InMemoryEvaluationRepository();

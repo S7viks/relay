@@ -152,6 +152,7 @@ func Register(mux *http.ServeMux, d *Deps) {
 		mux.Handle("/api/tenant/models", cors(http.HandlerFunc(d.noAuthHandleTenantModels)))
 		mux.Handle("/api/activity", cors(http.HandlerFunc(d.noAuthHandleActivity)))
 		mux.Handle("/api/settings/preferences", cors(http.HandlerFunc(d.noAuthHandlePreferences)))
+		mux.Handle("/api/settings/gaiol-key/ensure", cors(http.HandlerFunc(d.noAuthHandleEnsureGAIOLKey)))
 	} else {
 		reqAuth := auth.AuthMiddleware(d.DB)
 		mux.Handle("/api/query", cors(reqAuth(http.HandlerFunc(d.handleQuery))))
@@ -181,6 +182,7 @@ func Register(mux *http.ServeMux, d *Deps) {
 		mux.Handle("/api/tenant/models", cors(reqAuth(http.HandlerFunc(d.handleTenantModels))))
 		mux.Handle("/api/activity", cors(reqAuth(http.HandlerFunc(d.handleActivity))))
 		mux.Handle("/api/settings/preferences", cors(reqAuth(http.HandlerFunc(d.handlePreferences))))
+		mux.Handle("/api/settings/gaiol-key/ensure", cors(reqAuth(http.HandlerFunc(d.handleEnsureGAIOLKey))))
 	}
 
 	mux.Handle("/v1/chat", cors(http.HandlerFunc(d.handleV1Chat)))
