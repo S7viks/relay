@@ -1,9 +1,9 @@
-import { useEffect } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAppStore } from '../../store'
-import { useAuth } from '../../context/AuthContext'
-import { fetchHealth } from '../../lib/api'
-import { signupHref } from '../../lib/auth'
+import { ToastContainer } from '../ui/Toast'
+import { fetchHealth, fetchHealthBody } from '../../lib/api'
+import { fetchAuthSession, loginHref, signupHref, signOut } from '../../lib/auth'
 
 type NavItem = {
   to: string
@@ -140,12 +140,11 @@ function topBarRouteLabel(pathname: string): string {
 type TopBarAuthProps = {
   authLoading: boolean
   authDisabled: boolean
-  authServiceDown: boolean
   sessionEmail: string | null
   onSignOut: () => void
 }
 
-function TopBar({ authLoading, authDisabled, authServiceDown, sessionEmail, onSignOut }: TopBarAuthProps) {
+function TopBar({ authLoading, authDisabled, sessionEmail, onSignOut }: TopBarAuthProps) {
   const location = useLocation()
   const { theme, setTheme, isConnected } = useAppStore()
   const routeName = topBarRouteLabel(location.pathname)
@@ -161,10 +160,6 @@ function TopBar({ authLoading, authDisabled, authServiceDown, sessionEmail, onSi
       <div className="topbar__auth" aria-live="polite">
         {authLoading ? (
           <span className="topbar__auth-muted">Checking session…</span>
-        ) : authServiceDown ? (
-          <span className="topbar__auth-muted" title="API /health failed — server stopped or wrong URL (check VITE_API_BASE).">
-            API unreachable
-          </span>
         ) : authDisabled ? (
           <span className="topbar__auth-muted" title="GAIOL_DISABLE_AUTH or equivalent is set on the server">
             No sign-in required
@@ -180,9 +175,9 @@ function TopBar({ authLoading, authDisabled, authServiceDown, sessionEmail, onSi
           </>
         ) : (
           <>
-            <Link className="topbar__auth-link" to="/sign-in">
+            <a className="topbar__auth-link" href={loginHref()}>
               Sign in
-            </Link>
+            </a>
             <span className="topbar__auth-sep" aria-hidden>
               ·
             </span>
@@ -210,7 +205,44 @@ function TopBar({ authLoading, authDisabled, authServiceDown, sessionEmail, onSi
 
 export function Layout() {
   const setConnected = useAppStore((s) => s.setConnected)
-  const { authLoading, authDisabled, authServiceDown, sessionEmail, signOutUser } = useAuth()
+  const [authLoading, setAuthLoading] = useState(true)
+  const [authDisabled, setAuthDisabled] = useState(false)
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null)
+
+  const refreshAuth = useCallback(async () => {
+    setAuthLoading(true)
+    try {
+      const h = await fetchHealthBody()
+      setAuthDisabled(!!h.authDisabled)
+      if (h.authDisabled) {
+        setSessionEmail(null)
+        return
+      }
+      const s = await fetchAuthSession()
+      setSessionEmail(s.authenticated ? (s.email ?? 'Signed in') : null)
+    } catch {
+      setSessionEmail(null)
+    } finally {
+      setAuthLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void refreshAuth()
+  }, [refreshAuth])
+
+  useEffect(() => {
+    const onFocus = () => {
+      void refreshAuth()
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [refreshAuth])
+
+  const handleSignOut = useCallback(async () => {
+    await signOut()
+    await refreshAuth()
+  }, [refreshAuth])
 
   useEffect(() => {
     let alive = true
@@ -232,9 +264,8 @@ export function Layout() {
       <TopBar
         authLoading={authLoading}
         authDisabled={authDisabled}
-        authServiceDown={authServiceDown}
         sessionEmail={sessionEmail}
-        onSignOut={signOutUser}
+        onSignOut={handleSignOut}
       />
       <div className="layout__body">
         <Sidebar />
@@ -242,6 +273,7 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+      <ToastContainer />
     </div>
   )
 }
