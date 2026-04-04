@@ -6,8 +6,8 @@ const apiOrigin = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '')
 
 export function apiUrl(path: string): string {
   if (!path.startsWith('/')) return path
-  // Avoid trailing slash on /api/auth/* — Go mux matches exact paths; /signin/ would miss and return 405 from SPA.
-  let p = path
+  // Collapse duplicate slashes (e.g. //api/...) and trim trailing slash on /api/auth/* so POST hits Go routes, not SPA 405.
+  let p = path.replace(/\/{2,}/g, '/')
   if (p.startsWith('/api/auth/') && p.length > '/api/auth/'.length + 1 && p.endsWith('/')) {
     p = p.replace(/\/+$/, '')
   }

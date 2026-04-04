@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -85,17 +86,20 @@ func (d *Deps) corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// NormalizeAuthAPIPath trims a trailing slash on /api/auth/... so requests like POST /api/auth/signin/
-// match mux routes registered as /api/auth/signin. Otherwise net/http falls through to the "/" SPA
-// handler, which only allows GET/HEAD and responds with 405 for POST.
+// NormalizeAuthAPIPath rewrites the request path when path.Clean would change it and the result is still
+// under /api/auth/... Fixes: trailing slash, duplicate slashes (//api/...), and ./ segments so POST
+// reaches mux routes like /api/auth/signin instead of falling through to the "/" SPA (which returns 405).
 func NormalizeAuthAPIPath(next http.Handler) http.Handler {
-	const prefix = "/api/auth/"
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Path
-		if len(p) > len(prefix) && strings.HasPrefix(p, prefix) && p[len(p)-1] == '/' {
+		clean := path.Clean(p)
+		if clean == "." {
+			clean = "/"
+		}
+		if clean != p && (strings.HasPrefix(clean, "/api/auth/") || clean == "/api/auth") {
 			r2 := r.Clone(r.Context())
 			u := *r.URL
-			u.Path = strings.TrimSuffix(p, "/")
+			u.Path = clean
 			r2.URL = &u
 			next.ServeHTTP(w, r2)
 			return
@@ -222,6 +226,9 @@ func serveRootAssets(w http.ResponseWriter, r *http.Request) {
 // serveUnifiedSPA serves the React app: real files from dashboard/dist when present, else index.html.
 func serveUnifiedSPA(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			log.Printf("gaiol: %s %s hit SPA catch-all (no matching API route); rebuild server and check path/normalization", r.Method, r.URL.Path)
+		}
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -2054,7 +2061,14 @@ func (d *Deps) handleQueryModel(w http.ResponseWriter, r *http.Request) {
 // ============================================================================
 
 func (d *Deps) handleSignUp(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead:
+		http.Redirect(w, r, "/signup", http.StatusSeeOther)
+		return
+	case http.MethodPost:
+		// continue below
+	default:
+		w.Header().Set("Allow", "GET, HEAD, POST, OPTIONS")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -2087,7 +2101,14 @@ func (d *Deps) handleSignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Deps) handleRecoverPassword(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead:
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	case http.MethodPost:
+		// continue
+	default:
+		w.Header().Set("Allow", "GET, HEAD, POST, OPTIONS")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -2150,7 +2171,14 @@ func (d *Deps) handleUpdatePassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Deps) handleSignIn(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead:
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	case http.MethodPost:
+		// continue
+	default:
+		w.Header().Set("Allow", "GET, HEAD, POST, OPTIONS")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}

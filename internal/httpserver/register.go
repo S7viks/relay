@@ -59,7 +59,7 @@ func (d *Deps) InitConfigFromEnv() {
 	}
 }
 
-// Register attaches all HTTP routes to mux (use http.DefaultServeMux in production).
+// Register attaches all HTTP routes to mux (use a dedicated http.NewServeMux() in cmd/web-server).
 func Register(mux *http.ServeMux, d *Deps) {
 	cors := d.corsMiddleware
 

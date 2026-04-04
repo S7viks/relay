@@ -125,7 +125,8 @@ func main() {
 		}
 	}
 
-	httpserver.Register(http.DefaultServeMux, deps)
+	mux := http.NewServeMux()
+	httpserver.Register(mux, deps)
 
 	if _, err := os.Stat("dashboard/dist/index.html"); err != nil {
 		log.Println("Web UI: dashboard/dist/index.html not found — open http://localhost:" + coalescePort(os.Getenv("PORT")) + "/ will show a build hint. Run: cd dashboard && npm install && npm run build")
@@ -138,7 +139,7 @@ func main() {
 		port = "8080"
 	}
 
-	var handler http.Handler = http.DefaultServeMux
+	var handler http.Handler = mux
 	handler = httpserver.NormalizeAuthAPIPath(handler)
 	if authDisabled {
 		handler = deps.LocalTenantMiddleware(handler)
