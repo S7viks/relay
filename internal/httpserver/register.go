@@ -72,6 +72,10 @@ func Register(mux *http.ServeMux, d *Deps) {
 	// Legacy bookmarks: /dashboard/* -> /*
 	mux.HandleFunc("/dashboard", redirectLegacyDashboard)
 	mux.HandleFunc("/dashboard/", redirectLegacyDashboard)
+	// Legacy static site and bookmarks pointed here; SPA landing is GET /
+	mux.HandleFunc("/landing.html", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/", http.StatusMovedPermanently)
+	})
 	mux.HandleFunc("/welcome", serveUnifiedSPA)
 
 	// 2. Model Routes (public)
