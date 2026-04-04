@@ -71,9 +71,13 @@ func NewClient() (*Client, error) {
 
 type tenantCtxKey struct{}
 
-// WithTenant returns a context with tenant information
-func WithTenant(ctx context.Context, tenant TenantContext) context.Context {
-	return context.WithValue(ctx, tenantCtxKey{}, tenant)
+// WithTenant returns a context with tenant information.
+// It rejects empty tenant IDs to avoid silently propagating invalid tenant scope.
+func WithTenant(ctx context.Context, tenant TenantContext) (context.Context, error) {
+	if strings.TrimSpace(tenant.TenantID) == "" {
+		return nil, fmt.Errorf("tenant_id is required for tenant context")
+	}
+	return context.WithValue(ctx, tenantCtxKey{}, tenant), nil
 }
 
 // GetTenantFromContext extracts tenant information from context

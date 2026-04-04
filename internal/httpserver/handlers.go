@@ -130,7 +130,12 @@ func (d *Deps) LocalTenantMiddleware(next http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		ctx = database.WithTenant(ctx, localTenant)
+		var err error
+		ctx, err = database.WithTenant(ctx, localTenant)
+		if err != nil {
+			http.Error(w, "failed to set tenant context", http.StatusInternalServerError)
+			return
+		}
 		ctx = auth.WithUser(ctx, localUser)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -1600,13 +1605,13 @@ func (d *Deps) noAuthHandleEnsureGAIOLKey(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":                    false,
-		"error":                       "GAIOL API keys are not available in local auth_disabled mode; configure provider keys via env and restart, or enable DB auth.",
-		"gaiol_api_key_created":      false,
-		"gaiol_api_key_message":     "Enable auth + DB to provision tenant keys.",
-		"gaiol_api_key":              nil,
-		"gaiol_api_key_hint":         "",
-		"gaiol_api_key_revealable":  false,
+		"success":                  false,
+		"error":                    "GAIOL API keys are not available in local auth_disabled mode; configure provider keys via env and restart, or enable DB auth.",
+		"gaiol_api_key_created":    false,
+		"gaiol_api_key_message":    "Enable auth + DB to provision tenant keys.",
+		"gaiol_api_key":            nil,
+		"gaiol_api_key_hint":       "",
+		"gaiol_api_key_revealable": false,
 	})
 }
 
