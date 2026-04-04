@@ -15,11 +15,12 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    to: '/reasoning',
-    label: 'Reasoning',
+    to: '/home',
+    label: 'Home',
     icon: (
       <svg className="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path d="M12 2a8 8 0 1 0 8 8M12 2v4M12 18v4M2 12h4M18 12h4" strokeWidth="2" />
+        <path d="M3 10.5L12 3l9 7.5V21H3V10.5z" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M9 21V12h6v9" strokeWidth="2" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -29,6 +30,15 @@ const navItems: NavItem[] = [
     icon: (
       <svg className="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
         <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" strokeWidth="2" />
+      </svg>
+    ),
+  },
+  {
+    to: '/reasoning',
+    label: 'Reasoning',
+    icon: (
+      <svg className="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M12 2a8 8 0 1 0 8 8M12 2v4M12 18v4M2 12h4M18 12h4" strokeWidth="2" />
       </svg>
     ),
   },
@@ -128,6 +138,7 @@ function Sidebar() {
 }
 
 const ROUTE_NAMES: Record<string, string> = {
+  '/home': 'Home',
   '/chat': 'Chat',
   '/reasoning': 'Reasoning',
   '/trace': 'Trace Viewer',
@@ -279,7 +290,14 @@ export function Layout() {
         const gaiolRaw = await apiGet('/api/gaiol-keys')
         const gaiolKeys = Array.isArray(gaiolRaw) ? gaiolRaw : []
 
-        const complete = providerKeys.length > 0 && gaiolKeys.length > 0
+        const modelsPayload = (await apiGet('/api/settings/models')) as { models?: unknown[] }
+        const tenantModelCount = Array.isArray(modelsPayload.models) ? modelsPayload.models.length : 0
+
+        const prefs = (await apiGet('/api/settings/preferences')) as { default_model_id?: string }
+        const hasDefaultModel = !!(prefs?.default_model_id && String(prefs.default_model_id).trim())
+        const modelsConfigured = tenantModelCount > 0 || hasDefaultModel
+
+        const complete = providerKeys.length > 0 && gaiolKeys.length > 0 && modelsConfigured
         if (!complete) {
           navigate('/onboarding', { replace: true })
         }

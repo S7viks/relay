@@ -19,7 +19,10 @@ In Supabase Dashboard → **Authentication** → **URL configuration**, set **Si
 
 ### Env hygiene
 
-Use the **anon (public) key** for `SUPABASE_ANON_KEY` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, not the service_role key. Trim trailing spaces in `.env`; the server normalizes URL (no trailing slash) and trims keys when connecting.
+- **Go web server (PostgREST / tenant tables):** set **`SUPABASE_SERVICE_ROLE_KEY`**. Row-level security in migrations uses `auth.uid()`; the server’s Supabase client sends a single API key as `Authorization: Bearer …`, not the end-user JWT, so the **anon key cannot satisfy RLS** on tables like `provider_api_keys` and `gaiol_api_keys`. The service role bypasses RLS; **tenant isolation is enforced in Go** (`tenant_id` filters, `EnsureTenantContext`). **Never** put the service role key in frontend env or client bundles.
+- **Supabase Auth calls** (`/auth/v1/user`, sign-in, etc.) still use the **anon / publishable** key as `apikey` where required; keep `SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` available if code paths expect it (the DB client prefers service role when set).
+- Trim trailing spaces in `.env`; the server normalizes URL (no trailing slash) and trims keys when connecting.
+- **`GET /health`** includes `database.using_service_role` so operators can confirm the server is not accidentally on anon-only for PostgREST.
 
 ## Overview
 

@@ -294,7 +294,7 @@
   <script>
     const INJECTED_DATA = null;
 
-    const FALLBACK_DATA = {
+    const SAMPLE_DATA = {
       run_id: "fallback",
       gaiol_version: "1.0",
       total_queries: 1,
@@ -330,13 +330,15 @@
     };
 
     async function loadData() {
-      if (INJECTED_DATA !== null) return INJECTED_DATA;
+      // Try injected data first
+      if (typeof INJECTED_DATA !== "undefined" && INJECTED_DATA) return INJECTED_DATA;
+      // Try fetching from results
       try {
-        const r = await fetch("./results-dashboard-data.json");
-        return await r.json();
-      } catch {
-        return FALLBACK_DATA;
-      }
+        const r = await fetch("../ml_pipeline/results/benchmark_results.json");
+        if (r.ok) return r.json();
+      } catch (e) {}
+      // Fall back to sample data
+      return SAMPLE_DATA;
     }
 
     const DOMAIN_ORDER = [

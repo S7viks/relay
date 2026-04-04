@@ -19,7 +19,7 @@ type StepEndPayload = {
 }
 
 export function ReasoningPage() {
-  const { start, subscribe } = useReasoningSession()
+  const { start, subscribe, sessionId } = useReasoningSession()
   const [started, setStarted] = useState(false)
   const [prompt, setPrompt] = useState('')
   const [targetPrompt, setTargetPrompt] = useState('')
@@ -161,6 +161,11 @@ export function ReasoningPage() {
         </div>
         <div className="reasoning-page__session">
           <span>{statusText}</span>
+          {sessionId && (
+            <span className="reasoning-page__session-id" title="Go /api/reasoning/* session (not a TS orchestrator trace)">
+              session · <code>{sessionId}</code>
+            </span>
+          )}
         </div>
       </header>
 

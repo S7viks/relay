@@ -23,11 +23,11 @@ export function LoginPage() {
         const ad = !!(h && typeof h === 'object' && (h as { auth_disabled?: boolean }).auth_disabled)
         if (!cancelled) setAuthDisabled(ad)
         if (ad) {
-          navigate('/chat', { replace: true })
+          navigate('/home', { replace: true })
           return
         }
         const s = await fetchAuthSession()
-        if (!cancelled && s.authenticated) navigate('/chat', { replace: true })
+        if (!cancelled && s.authenticated) navigate('/home', { replace: true })
       } catch {
         /* ignore */
       }
@@ -43,7 +43,7 @@ export function LoginPage() {
     setLoading(true)
     try {
       await signIn(email, password)
-      navigate('/chat', { replace: true })
+      navigate('/home', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed')
     } finally {

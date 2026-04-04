@@ -11,10 +11,8 @@ export function PublicLayout() {
           <div className="public-nav__links">
             <a href="/#features">Features</a>
             <a href="/#how">How it works</a>
-            <Link to="/chat">Docs</Link>
-            <Link to="/chat">API</Link>
             <Link to="/login">Login</Link>
-            <Link to="/chat">Dashboard</Link>
+            <Link to="/home">Dashboard</Link>
           </div>
           <Link to="/signup" className="public-nav__cta">
             Get your key

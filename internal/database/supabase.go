@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -23,8 +24,9 @@ var (
 // Client wraps Supabase client with multitenant support
 type Client struct {
 	*supabase.Client
-	URL    string
-	APIKey string
+	URL              string
+	APIKey           string
+	UsingServiceRole bool // true when SUPABASE_SERVICE_ROLE_KEY was used (PostgREST bypasses RLS)
 }
 
 // TenantContext holds tenant information for multitenant operations
@@ -35,7 +37,13 @@ type TenantContext struct {
 	Role     string // user_profiles.role: user, admin, owner (admin/owner can manage keys)
 }
 
-// NewClient creates a new Supabase database client
+// NewClient creates a Supabase PostgREST client for the Go server.
+//
+// Set SUPABASE_SERVICE_ROLE_KEY in production: migrations enable RLS on tenant tables
+// using auth.uid(). The anon key does not carry the end-user JWT on server-side requests,
+// so auth.uid() is NULL and RLS blocks reads/writes. The service role bypasses RLS; tenant
+// isolation must be enforced in application code (Filter tenant_id, EnsureTenantContext, etc.).
+// Never expose the service role key to browsers or the dashboard bundle.
 func NewClient() (*Client, error) {
 	// Load .env file if it exists
 	_ = godotenv.Load()
@@ -49,12 +57,21 @@ func NewClient() (*Client, error) {
 	}
 	url = strings.TrimRight(url, "/")
 
-	apiKey := strings.TrimSpace(os.Getenv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY"))
+	serviceRole := strings.TrimSpace(os.Getenv("SUPABASE_SERVICE_ROLE_KEY"))
+	usingServiceRole := serviceRole != ""
+	apiKey := serviceRole
 	if apiKey == "" {
-		apiKey = strings.TrimSpace(os.Getenv("SUPABASE_ANON_KEY"))
+		apiKey = strings.TrimSpace(os.Getenv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY"))
+		if apiKey == "" {
+			apiKey = strings.TrimSpace(os.Getenv("SUPABASE_ANON_KEY"))
+		}
 	}
 	if apiKey == "" {
-		return nil, fmt.Errorf("SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY environment variable is required")
+		return nil, fmt.Errorf("set SUPABASE_SERVICE_ROLE_KEY (recommended for Go server) or SUPABASE_ANON_KEY / NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY")
+	}
+
+	if !usingServiceRole {
+		log.Println("database: SUPABASE_SERVICE_ROLE_KEY not set — using anon/publishable key. PostgREST RLS (auth.uid()) typically blocks tenant tables for the Go API; set SUPABASE_SERVICE_ROLE_KEY on the server for production.")
 	}
 
 	client, err := supabase.NewClient(url, apiKey, nil)
@@ -63,9 +80,10 @@ func NewClient() (*Client, error) {
 	}
 
 	return &Client{
-		Client: client,
-		URL:    url,
-		APIKey: apiKey,
+		Client:           client,
+		URL:              url,
+		APIKey:           apiKey,
+		UsingServiceRole: usingServiceRole,
 	}, nil
 }
 

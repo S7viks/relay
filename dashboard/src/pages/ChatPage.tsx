@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { apiPost, ApiError } from '../lib/api'
+import { apiGet, apiPost, ApiError } from '../lib/api'
 import { useToast } from '../components/ui/Toast'
 import type { SmartQueryResponse } from '../types/api'
 import { useAppStore } from '../store'
@@ -30,6 +30,22 @@ export function ChatPage() {
   const [answer, setAnswer] = useState('')
   const [traceId, setTraceId] = useState<string | null>(null)
   const [rawMeta, setRawMeta] = useState<string>('')
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const p = (await apiGet('/api/settings/preferences')) as { strategy?: string }
+        if (cancelled || !p?.strategy?.trim()) return
+        setStrategy(p.strategy.trim())
+      } catch {
+        /* keep defaults when unauthenticated or API unavailable */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -95,7 +111,8 @@ export function ChatPage() {
         <h1>Chat</h1>
         <p className="page-shell__desc">
           Smart query via <code className="mono-block" style={{ display: 'inline', padding: '2px 6px' }}>POST /api/query/smart</code>.
-          With TS orchestration enabled, use the trace link to inspect the run.
+          With TS orchestration enabled, use the trace link to inspect the run. Strategy defaults load from{' '}
+          <Link to="/settings">Settings</Link> when you open this page.
         </p>
       </div>
 
@@ -118,6 +135,9 @@ export function ChatPage() {
             onChange={(e) => setStrategy(e.target.value)}
             disabled={loading}
           >
+            {!STRATEGIES.includes(strategy as (typeof STRATEGIES)[number]) && strategy ? (
+              <option value={strategy}>{strategy} (from settings)</option>
+            ) : null}
             {STRATEGIES.map((s) => (
               <option key={s} value={s}>
                 {s}

@@ -1,0 +1,95 @@
+{
+  "lambda": 0.98,
+  "queries_total": 500,
+  "avg_stabilization_query": 457,
+  "summary": {
+    "gpt-4": {
+      "analytical_reasoning": {
+        "final_tau": 0.7536609125587401,
+        "stabilization_query": 101
+      },
+      "code_generation": {
+        "final_tau": 0.7356788921399549,
+        "stabilization_query": 351
+      },
+      "multi_step_problem": {
+        "final_tau": 0.7162770361385847,
+        "stabilization_query": 500
+      },
+      "knowledge_retrieval": {
+        "final_tau": 0.7406981785736177,
+        "stabilization_query": 344
+      },
+      "creative_synthesis": {
+        "final_tau": 0.5750227663857793,
+        "stabilization_query": 500
+      }
+    },
+    "gemini-pro": {
+      "analytical_reasoning": {
+        "final_tau": 0.5302383275568381,
+        "stabilization_query": 500
+      },
+      "code_generation": {
+        "final_tau": 0.5750227663857793,
+        "stabilization_query": 500
+      },
+      "multi_step_problem": {
+        "final_tau": 0.6352471025073778,
+        "stabilization_query": 500
+      },
+      "knowledge_retrieval": {
+        "final_tau": 0.5818607921546204,
+        "stabilization_query": 500
+      },
+      "creative_synthesis": {
+        "final_tau": 0.7315405477513224,
+        "stabilization_query": 351
+      }
+    },
+    "claude-3": {
+      "analytical_reasoning": {
+        "final_tau": 0.683807792658175,
+        "stabilization_query": 500
+      },
+      "code_generation": {
+        "final_tau": 0.6875385818275522,
+        "stabilization_query": 500
+      },
+      "multi_step_problem": {
+        "final_tau": 0.6844248630080058,
+        "stabilization_query": 500
+      },
+      "knowledge_retrieval": {
+        "final_tau": 0.6530721955122911,
+        "stabilization_query": 500
+      },
+      "creative_synthesis": {
+        "final_tau": 0.6849838405367341,
+        "stabilization_query": 500
+      }
+    },
+    "mistral-7b": {
+      "analytical_reasoning": {
+        "final_tau": 0.47054842307818695,
+        "stabilization_query": 500
+      },
+      "code_generation": {
+        "final_tau": 0.5037578664146731,
+        "stabilization_query": 500
+      },
+      "multi_step_problem": {
+        "final_tau": 0.46970805997938175,
+        "stabilization_query": 500
+      },
+      "knowledge_retrieval": {
+        "final_tau": 0.4967399529419543,
+        "stabilization_query": 500
+      },
+      "creative_synthesis": {
+        "final_tau": 0.5302383275568381,
+        "stabilization_query": 500
+      }
+    }
+  }
+}

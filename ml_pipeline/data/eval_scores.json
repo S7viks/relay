@@ -1,0 +1,1237 @@
+[
+  {
+    "query_id": "analytical_001",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.76057755336235,
+      "overall": 0.5651443883405876
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_002",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.6786354331705751,
+      "overall": 0.5446588582926437
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_003",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.7911070728759404,
+      "overall": 0.572776768218985
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_004",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.7871718873625531,
+      "overall": 0.5717929718406383
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_005",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.7427007392564043,
+      "overall": 0.5606751848141011
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_006",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.7658150379834059,
+      "overall": 0.5664537594958514
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_007",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.7947452623012939,
+      "overall": 0.5736863155753235
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_008",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.7823369794739835,
+      "overall": 0.5705842448684959
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_009",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.6696504205430754,
+      "overall": 0.5424126051357688
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_010",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.8000942820838411,
+      "overall": 0.5750235705209603
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_011",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.742963791216791,
+      "overall": 0.5607409478041978
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_012",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.6718647024257938,
+      "overall": 0.5429661756064484
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_012",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.7377780920441352,
+      "overall": 0.5594445230110339
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_013",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.6878212199798058,
+      "overall": 0.5469553049949515
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_013",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.7667869019532015,
+      "overall": 0.5666967254883004
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_014",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.7546639298438739,
+      "overall": 0.5636659824609684
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_014",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.7024048085469058,
+      "overall": 0.5506012021367265
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_015",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.7005709581465782,
+      "overall": 0.5501427395366445
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_015",
+    "system": "sys1_gaiol",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.55,
+      "completeness": 0.5,
+      "accuracy": 0.7601618606207138,
+      "overall": 0.5650404651551785
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_001",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7357187856018177,
+      "overall": 0.5782600535433116
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_002",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.698590307103225,
+      "overall": 0.5689779339186634
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_003",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7178540277861127,
+      "overall": 0.5737938640893854
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_004",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.6920848842964461,
+      "overall": 0.5673515782169687
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_005",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.8185890053166556,
+      "overall": 0.5989776084720211
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_006",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7414105420788691,
+      "overall": 0.5796829926625744
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_007",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7120109796802966,
+      "overall": 0.5723331020629313
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_008",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7485591964293689,
+      "overall": 0.5814701562501994
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_009",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7355068780123668,
+      "overall": 0.5782070766459488
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_010",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7311612160186711,
+      "overall": 0.5771206611475249
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_011",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.764566668001737,
+      "overall": 0.5854720241432914
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_012",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7703003084018922,
+      "overall": 0.5869054342433302
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_012",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7187799540955789,
+      "overall": 0.5740253456667519
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_013",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7169672703742128,
+      "overall": 0.5735721747364103
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_013",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7289979321139343,
+      "overall": 0.5765798401713407
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_014",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.47500000000000003,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.6479231534105766,
+      "overall": 0.5625611454955013
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_014",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.47500000000000003,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.679392357512058,
+      "overall": 0.5704284465208715
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_015",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7946749706977809,
+      "overall": 0.5929990998173024
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_015",
+    "system": "sys2_direct_api",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.8057987085400513,
+      "overall": 0.59578003427787
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_001",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.7300385584177449,
+      "overall": 0.5766837467472934
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_002",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.7630622785222306,
+      "overall": 0.5849396767734149
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_003",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.7524500061817414,
+      "overall": 0.5822866086882925
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_004",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.8631552323382095,
+      "overall": 0.6099629152274095
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_005",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.784782996457383,
+      "overall": 0.590369856257203
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_006",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.7348832963407693,
+      "overall": 0.5778949312280495
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_007",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.701778382375983,
+      "overall": 0.5696187027368529
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_008",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.675742147189697,
+      "overall": 0.5631096439402814
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_009",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.7481385454346889,
+      "overall": 0.5812087435015294
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_010",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.7097459701886278,
+      "overall": 0.5716105996900142
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_011",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.6831098516160931,
+      "overall": 0.5649515700468805
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_012",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.7141370846302989,
+      "overall": 0.5727083783004319
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_012",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.6967380798554242,
+      "overall": 0.5683586271067133
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_013",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.8074856654029026,
+      "overall": 0.5960455234935829
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_013",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.775265590277978,
+      "overall": 0.5879905047123517
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_014",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.47500000000000003,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.7396810943473353,
+      "overall": 0.585344380729691
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_014",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.47500000000000003,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.7991977655556011,
+      "overall": 0.6002235485317574
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_015",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.7430947323059047,
+      "overall": 0.5799477902193333
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_015",
+    "system": "sys3_langchain",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.548125,
+      "accuracy": 0.7055486319468695,
+      "overall": 0.5705612651295745
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_001",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.8009249630907863,
+      "overall": 0.5945615979155537
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_002",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7615564017473864,
+      "overall": 0.5847194575797037
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_003",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.6985101538269417,
+      "overall": 0.5689578955995925
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_004",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7323864528766557,
+      "overall": 0.5774269703620211
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_005",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7049752698646097,
+      "overall": 0.5705741746090096
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_006",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.6846880107614266,
+      "overall": 0.5655023598332138
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_007",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7770471019012657,
+      "overall": 0.5885921326181736
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_008",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.8163766656188052,
+      "overall": 0.5984245235475585
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_009",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.6840572970472344,
+      "overall": 0.5653446814046658
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_010",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7625187694676229,
+      "overall": 0.5849600495097629
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_011",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.713974297235127,
+      "overall": 0.5728239314516389
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_012",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7205149846494121,
+      "overall": 0.5744591033052102
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_012",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7163042430304453,
+      "overall": 0.5734064179004684
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_013",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7054403692128074,
+      "overall": 0.570690449446059
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_013",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7419408651177931,
+      "overall": 0.5798155734223054
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_014",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.47500000000000003,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7067619953435584,
+      "overall": 0.5772708559787467
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_014",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.47500000000000003,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7508182730311935,
+      "overall": 0.5882849254006555
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_015",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7379904756220345,
+      "overall": 0.5788279760483658
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_015",
+    "system": "sys4_openrouter",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7304420781253436,
+      "overall": 0.576940876674193
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_001",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7036974535183361,
+      "overall": 0.5702547205224412
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_002",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7169291467772667,
+      "overall": 0.5735626438371738
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_003",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7702156490330302,
+      "overall": 0.5868842694011147
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_004",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7600366875049752,
+      "overall": 0.5843395290191009
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_005",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.700897790208058,
+      "overall": 0.5695548046948716
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_006",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.743973292217169,
+      "overall": 0.5803236801971494
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_007",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7700554849348715,
+      "overall": 0.586844228376575
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_008",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.6732237887551451,
+      "overall": 0.5626363043316434
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_009",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7617344076951974,
+      "overall": 0.5847639590666565
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_010",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7134950496421661,
+      "overall": 0.5727041195533986
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_011",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7628239467437263,
+      "overall": 0.5850363438287887
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_012",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7094696337382993,
+      "overall": 0.571697765577432
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_012",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.6678047159734193,
+      "overall": 0.561281536136212
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_013",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.6748983024846735,
+      "overall": 0.5630549327640255
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_013",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7419233978664552,
+      "overall": 0.5798112066094709
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_014",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.47500000000000003,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7503889000688593,
+      "overall": 0.5881775821600719
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_014",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.47500000000000003,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7038273349958236,
+      "overall": 0.576537190891813
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_015",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.7655436983510949,
+      "overall": 0.5857162817306308
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  },
+  {
+    "query_id": "analytical_015",
+    "system": "sys5_multi_wrap",
+    "scores": {
+      "relevance": 0.45,
+      "coherence": 0.5785714285714286,
+      "completeness": 0.54875,
+      "accuracy": 0.6735391975092416,
+      "overall": 0.5627151565201676
+    },
+    "eval_model": "gpt-4",
+    "eval_timestamp": "2026-04-04T15:08:55.500853+00:00"
+  }
+]

@@ -275,6 +275,7 @@ func (d *Deps) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"connected": d.DBAvailable,
 	}
 	if d.DB != nil {
+		dbPayload["using_service_role"] = d.DB.UsingServiceRole
 		pingCtx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
 		err := d.DB.PingREST(pingCtx)
 		cancel()
@@ -2192,13 +2193,13 @@ func (d *Deps) handleSignOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
 		http.Error(w, "Invalid authorization header", http.StatusUnauthorized)
 		return
 	}
 
-	err = d.AuthAPI.SignOut(r.Context(), parts[1])
+	err = d.AuthAPI.SignOut(r.Context(), strings.TrimSpace(parts[1]))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -2246,10 +2247,10 @@ func (d *Deps) handleGetSession(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
 	var userInfo *auth.UserInfo
 	if authHeader != "" && d.AuthAPI != nil {
-		parts := strings.Split(authHeader, " ")
-		if len(parts) == 2 && parts[0] == "Bearer" {
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
 			// Fetch full user info from Supabase
-			if fullUser, err := d.AuthAPI.GetUser(r.Context(), parts[1]); err == nil {
+			if fullUser, err := d.AuthAPI.GetUser(r.Context(), strings.TrimSpace(parts[1])); err == nil {
 				userInfo = fullUser
 			}
 		}
@@ -2367,10 +2368,10 @@ func (d *Deps) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
 	var userInfo *auth.UserInfo
 	if authHeader != "" && d.AuthAPI != nil {
-		parts := strings.Split(authHeader, " ")
-		if len(parts) == 2 && parts[0] == "Bearer" {
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
 			// Fetch full user info from Supabase
-			if fullUser, err := d.AuthAPI.GetUser(r.Context(), parts[1]); err == nil {
+			if fullUser, err := d.AuthAPI.GetUser(r.Context(), strings.TrimSpace(parts[1])); err == nil {
 				userInfo = fullUser
 			}
 		}

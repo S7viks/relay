@@ -12,9 +12,12 @@ This guide explains how to set up Supabase database connection with multitenancy
 Create a `.env` file in the project root with your Supabase credentials:
 
 ```env
-# Replace with your own Supabase project URL and anon key (from Supabase Dashboard → Settings → API)
+# Replace with your own Supabase project URL and keys (from Supabase Dashboard → Settings → API)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your-anon-key-here
+
+# Go web server: required for tenant tables under RLS (see docs/authentication.md)
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 
 # Optional: Alternative variable names
 SUPABASE_URL=https://your-project-id.supabase.co

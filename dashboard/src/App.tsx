@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { PublicLayout } from './components/layout/PublicLayout'
 import { ChatPage } from './pages/ChatPage'
+import { HomePage } from './pages/HomePage'
 import { EvalPage } from './pages/EvalPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { LandingPage } from './pages/LandingPage'
@@ -30,8 +31,9 @@ export function App() {
         </Route>
 
         <Route element={<Layout />}>
+          <Route path="home" element={<HomePage />} />
           <Route path="chat" element={<ChatPage />} />
-          <Route path="trace" element={<Navigate to="/trace/demo" replace />} />
+          <Route path="trace" element={<TracePage />} />
           <Route path="trace/:id" element={<TracePage />} />
           <Route path="trust" element={<TrustPage />} />
           <Route path="models" element={<ModelsPage />} />
