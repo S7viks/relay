@@ -221,6 +221,12 @@ export class OrchestratorPipeline {
       const trustMeans = Object.fromEntries(
         Object.entries(trustState).map(([id, v]) => [id, v.mean]),
       );
+      const trustRecords = Object.fromEntries(
+        Object.entries(trustState).map(([id, v]) => {
+          const dist = v.record?.distribution ?? UNIFORM_PRIOR;
+          return [id, { alpha: dist.alpha, beta: dist.beta }];
+        }),
+      );
 
       const consensusScores: Record<string, number> = {};
       for (const p of kept) {
@@ -234,6 +240,7 @@ export class OrchestratorPipeline {
         scores: consensusScores,
         staticWeights: cfg.staticWeights,
         trustMeans: trustMeansForMode(cfg.consensusMode, trustMeans),
+        trustRecords: cfg.consensusMode === "abtc" ? trustRecords : undefined,
         abtcConsensusExponent:
           cfg.consensusMode === "abtc" ? cfg.abtc.consensusTrustExponent : undefined,
       });

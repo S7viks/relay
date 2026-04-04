@@ -3,6 +3,7 @@ package httpserver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -92,7 +93,8 @@ func (d *Deps) tryQuerySmartViaTSOrchestrator(
 		return false
 	}
 
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
 	traceID := uuid.New().String()
 	explore := tsExplorePathsDefaultOn()
 	if strings.EqualFold(strings.TrimSpace(strategy), "beam") {
@@ -127,8 +129,24 @@ func (d *Deps) tryQuerySmartViaTSOrchestrator(
 
 	res, err := d.TSOrchestrator.Orchestrate(ctx, reqV1)
 	if err != nil {
-		log.Printf("TS orchestrator delegate failed (falling back to Go reasoning): %v", err)
-		return false
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) {
+			log.Printf("ERROR: TS orchestrator timeout: %v", err)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusGatewayTimeout)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error": "orchestrator timeout",
+				"code":  "TIMEOUT",
+			})
+			return true
+		}
+		log.Printf("ERROR: TS orchestrator upstream error: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadGateway)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": "orchestrator error",
+			"code":  "UPSTREAM_ERROR",
+		})
+		return true
 	}
 
 	metrics := orchestratorv1.SummarizeOrchestrationTrace(&res.Trace, 0)

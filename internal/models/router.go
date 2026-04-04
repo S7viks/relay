@@ -3,6 +3,8 @@ package models
 import (
 	"context"
 	"fmt"
+	"math"
+	"sort"
 
 	"gaiol/internal/uaip"
 )
@@ -14,6 +16,18 @@ const (
 	StrategyHighestQuality RoutingStrategy = "highest_quality"
 	StrategyBalanced       RoutingStrategy = "balanced"
 	StrategyFreeOnly       RoutingStrategy = "free_only"
+	StrategyAuto           RoutingStrategy = "auto"
+	StrategyAdaptive       RoutingStrategy = "adaptive"
+	// Aliases used by external strategy configs.
+	StrategyMinCost           RoutingStrategy = "min-cost"
+	StrategyQualityWeighted   RoutingStrategy = "quality-weighted"
+	StrategyBudgetConstrained RoutingStrategy = "budget-constrained"
+)
+
+const (
+	FitnessWeightCapability = 0.4
+	FitnessWeightHistory    = 0.4
+	FitnessWeightCost       = 0.2
 )
 
 type RoutingConfig struct {
@@ -29,6 +43,113 @@ type RoutingConfig struct {
 type ModelRouter struct {
 	registry *Registry
 	tracker  *PerformanceTracker // NEW: For learned quality scores
+}
+
+// computeFitness implements Algorithm 4 fitness function:
+//   fitness(m, t) = 0.4·CapMatch + 0.4·HistAcc + 0.2·(1 - normalizedCost)
+func computeFitness(adapter ModelAdapter, taskType TaskType, histAcc float64, maxCostPerToken float64) float64 {
+	caps := adapter.SupportedTasks()
+	capMatch := 0.5 // neutral if capability metadata is unavailable
+	if len(caps) > 0 {
+		if contains(caps, taskType) {
+			capMatch = 1.0
+		} else {
+			capMatch = 0.0
+		}
+	}
+
+	if histAcc < 0 {
+		histAcc = 0
+	}
+	if histAcc > 1 {
+		histAcc = 1
+	}
+
+	costNorm := 0.0
+	if maxCostPerToken > 0 {
+		costNorm = adapter.GetCost().CostPerToken / maxCostPerToken
+		if costNorm > 1 {
+			costNorm = 1
+		}
+	}
+
+	return FitnessWeightCapability*capMatch +
+		FitnessWeightHistory*histAcc +
+		FitnessWeightCost*(1-costNorm)
+}
+
+func contains(caps []TaskType, t TaskType) bool {
+	for _, c := range caps {
+		if c == t {
+			return true
+		}
+	}
+	return false
+}
+
+// selectDiverseTopK implements the diversity constraint from Algorithm 4:
+// no more than ceil(k/2) models from the same provider.
+type scoredAdapter struct {
+	modelID  ModelID
+	adapter  ModelAdapter
+	score    float64
+	provider string
+}
+
+func selectDiverseTopK(candidates []scoredAdapter, k int) []scoredAdapter {
+	if k <= 0 {
+		return nil
+	}
+	if k == 1 {
+		if len(candidates) == 0 {
+			return nil
+		}
+		best := candidates[0]
+		for _, c := range candidates[1:] {
+			if c.score > best.score {
+				best = c
+			}
+		}
+		return []scoredAdapter{best}
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].score > candidates[j].score
+	})
+
+	maxPerProvider := int(math.Ceil(float64(k) / 2.0))
+	providerCount := map[string]int{}
+	selected := make([]scoredAdapter, 0, k)
+
+	for _, c := range candidates {
+		if len(selected) >= k {
+			break
+		}
+		if providerCount[c.provider] < maxPerProvider {
+			selected = append(selected, c)
+			providerCount[c.provider]++
+		}
+	}
+
+	if len(selected) < k {
+		for _, c := range candidates {
+			if len(selected) >= k {
+				break
+			}
+			already := false
+			for _, s := range selected {
+				if s.modelID == c.modelID {
+					already = true
+					break
+				}
+			}
+			if !already {
+				selected = append(selected, c)
+			}
+		}
+	}
+
+	return selected
 }
 
 func NewModelRouter(registry *Registry, tracker *PerformanceTracker) *ModelRouter {
@@ -80,11 +201,11 @@ func (mr *ModelRouter) Route(config RoutingConfig) (*ModelMetadata, error) {
 	switch config.Strategy {
 	case StrategyFreeOnly:
 		candidates = filterFree(candidates)
-	case StrategyLowestCost:
+	case StrategyLowestCost, StrategyMinCost:
 		candidates = filterByCost(candidates, config.MaxCost)
-	case StrategyHighestQuality:
+	case StrategyHighestQuality, StrategyQualityWeighted:
 		candidates = filterByQuality(candidates, config.MinQuality)
-	case StrategyBalanced:
+	case StrategyBalanced, StrategyBudgetConstrained:
 		candidates = filterBalanced(candidates, config.MaxCost, config.MinQuality)
 	}
 
@@ -109,6 +230,42 @@ func (mr *ModelRouter) Route(config RoutingConfig) (*ModelMetadata, error) {
 
 	if len(candidates) == 0 {
 		return nil, fmt.Errorf("no models after applying filters")
+	}
+
+	// Default to Algorithm 4 fitness + provider diversity when strategy is auto/adaptive.
+	if config.Strategy == "" || config.Strategy == StrategyAuto || config.Strategy == StrategyAdaptive {
+		const kModels = 3
+		maxCostPerToken := 0.0
+		for _, model := range candidates {
+			if model.CostInfo.CostPerToken > maxCostPerToken {
+				maxCostPerToken = model.CostInfo.CostPerToken
+			}
+		}
+
+		scored := make([]scoredAdapter, 0, len(candidates))
+		for _, model := range candidates {
+			histAcc := 0.5
+			if mr.tracker != nil {
+				histAcc = mr.tracker.GetHistoricalAccuracy(string(model.ID), config.Task)
+			}
+			scored = append(scored, scoredAdapter{
+				modelID:  model.ID,
+				adapter:  model.Adapter,
+				score:    computeFitness(model.Adapter, config.Task, histAcc, maxCostPerToken),
+				provider: model.Provider,
+			})
+		}
+
+		selected := selectDiverseTopK(scored, kModels)
+		if len(selected) == 0 {
+			return nil, fmt.Errorf("no models selected by fitness routing")
+		}
+		for i := range candidates {
+			if candidates[i].ID == selected[0].modelID {
+				return &candidates[i], nil
+			}
+		}
+		return nil, fmt.Errorf("selected model not found in candidates")
 	}
 
 	// Return the best match

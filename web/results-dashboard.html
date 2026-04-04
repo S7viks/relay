@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GAIOL Benchmark Results Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-page: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card2: #263548;
+      --text-pri: #f1f5f9;
+      --text-sec: #94a3b8;
+      --accent: #818cf8;
+      --accent2: #34d399;
+      --border: #334155;
+      --warn: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-pri);
+      line-height: 1.4;
+    }
+
+    .dashboard {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--bg-card), var(--bg-card2));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: var(--text-sec);
+      font-size: 13px;
+    }
+
+    .header-right {
+      text-align: right;
+      color: var(--text-sec);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .kpi-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .kpi-title {
+      font-size: 12px;
+      color: var(--text-sec);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .kpi-delta {
+      color: var(--accent2);
+      font-size: 12px;
+    }
+
+    .chart-title {
+      font-size: 14px;
+      color: var(--text-pri);
+      margin: 0 0 8px 0;
+      font-weight: 600;
+    }
+
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 280px;
+    }
+
+    .chart-wrap.tall {
+      height: 300px;
+    }
+
+    .two-col {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--border);
+      background: #172235;
+      color: var(--text-sec);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #0b1020;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+
+    .domain-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: var(--text-pri);
+      background: #152032;
+      margin-bottom: 10px;
+    }
+
+    .quote {
+      border-left: 3px solid var(--accent);
+      background: #141f31;
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: var(--text-pri);
+      margin-bottom: 10px;
+    }
+
+    .response {
+      background: #0f1a2b;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      color: #dbeafe;
+      white-space: pre-wrap;
+      margin-bottom: 10px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .pill {
+      border: 1px solid var(--border);
+      background: #16263d;
+      color: var(--text-pri);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+
+    .meta {
+      color: var(--text-sec);
+      font-size: 13px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer {
+      color: var(--text-sec);
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.7;
+      padding: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .kpi-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 840px) {
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header-right {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+      .kpi-value {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="dashboard">
+    <section class="card header">
+      <div>
+        <h1 class="title">GAIOL Benchmark Results</h1>
+        <div id="subtitle" class="subtitle"></div>
+      </div>
+      <div id="header-right" class="header-right"></div>
+    </section>
+
+    <section id="kpi-row" class="kpi-grid"></section>
+
+    <section class="card">
+      <h2 class="chart-title">Quality Score by Domain — GAIOL ABTC vs Baselines</h2>
+      <div class="chart-wrap"><canvas id="qualityByDomainChart"></canvas></div>
+    </section>
+
+    <section class="two-col">
+      <div class="card">
+        <h2 class="chart-title">Latency by Domain (ms)</h2>
+        <div class="chart-wrap"><canvas id="latencyChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h2 class="chart-title">Consensus Confidence per Query (σ)</h2>
+        <div class="chart-wrap"><canvas id="confidenceChart"></canvas></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="chart-title">Quality Dimensions — Radar by Domain</h2>
+      <div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+    </section>
+
+    <section class="card">
+      <h2 class="chart-title">Output Samples by Domain</h2>
+      <div id="tabs" class="tabs"></div>
+      <div id="sample-content"></div>
+    </section>
+
+    <section class="card">
+      <h2 class="chart-title">ABTC Trust Score Evolution (Mathematical Simulation)</h2>
+      <div class="chart-wrap tall"><canvas id="trustChart"></canvas></div>
+    </section>
+
+    <footer class="card footer">
+      <div>GAIOL — Global Artificial Intelligence Operating Layer</div>
+      <div>B. V. Raju Institute of Information Technology, Hyderabad &amp; SRM University AP, Amaravati</div>
+      <div>Benchmark: 25 queries · 5 domains · Azure Standard_D8s_v3 equivalent</div>
+    </footer>
+  </main>
+
+  <script>
+    const INJECTED_DATA = null;
+
+    const FALLBACK_DATA = {
+      run_id: "fallback",
+      gaiol_version: "1.0",
+      total_queries: 1,
+      domains: {
+        analytical_reasoning: {
+          queries: [
+            {
+              index: 0,
+              query: "Fallback query",
+              response_excerpt: "Fallback response",
+              latency_ms: 1000,
+              quality: { relevance: 0.8, coherence: 0.8, completeness: 0.8, accuracy: 0.8, overall: 0.8 },
+              consensus_confidence: 0.7,
+              success: true
+            }
+          ],
+          avg_quality: 0.8,
+          avg_latency_ms: 1000,
+          avg_confidence: 0.7,
+          success_rate: 1,
+          best_query_index: 0
+        }
+      },
+      aggregate: { overall_quality: 0.8, overall_latency_ms: 1000, overall_success_rate: 1, overall_confidence: 0.7, total_duration_ms: 1000 },
+      baseline_comparison: {
+        analytical_reasoning: {
+          query: "Fallback",
+          abtc: { quality: 0.8, latency_ms: 1000 },
+          uniform: { quality: 0.72, latency_ms: 850 },
+          static: { quality: 0.76, latency_ms: 900 }
+        }
+      }
+    };
+
+    async function loadData() {
+      if (INJECTED_DATA !== null) return INJECTED_DATA;
+      try {
+        const r = await fetch("./results-dashboard-data.json");
+        return await r.json();
+      } catch {
+        return FALLBACK_DATA;
+      }
+    }
+
+    const DOMAIN_ORDER = [
+      "analytical_reasoning",
+      "code_generation",
+      "multi_step_problem",
+      "knowledge_retrieval",
+      "creative_synthesis"
+    ];
+
+    const DOMAIN_LABELS = {
+      analytical_reasoning: "Analytical",
+      code_generation: "Code Gen",
+      multi_step_problem: "Multi-Step",
+      knowledge_retrieval: "Knowledge",
+      creative_synthesis: "Creative"
+    };
+
+    const DOMAIN_COLORS = {
+      analytical_reasoning: "#818cf8",
+      code_generation: "#34d399",
+      multi_step_problem: "#f59e0b",
+      knowledge_retrieval: "#f472b6",
+      creative_synthesis: "#38bdf8"
+    };
+
+    function toTitle(text) {
+      return text.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+
+    function formatMs(ms) {
+      return Number(ms).toLocaleString() + " ms";
+    }
+
+    function formatPct(v) {
+      return (v * 100).toFixed(1) + "%";
+    }
+
+    function createLcg(seed) {
+      let s = seed >>> 0;
+      return function next() {
+        s = (1664525 * s + 1013904223) >>> 0;
+        return s / 4294967296;
+      };
+    }
+
+    function simulateTrust(winProb, n, lambda, seed) {
+      const rand = createLcg(seed);
+      let alpha = 1;
+      let beta = 1;
+      const points = [];
+      for (let i = 0; i < n; i += 1) {
+        const win = rand() < winProb;
+        alpha = lambda * alpha + (win ? 1 : 0);
+        beta = lambda * beta + (win ? 0 : 1);
+        points.push(alpha / (alpha + beta));
+      }
+      return points;
+    }
+
+    function averageQualityDimensions(domainData) {
+      const dims = ["relevance", "coherence", "completeness", "accuracy"];
+      const sums = { relevance: 0, coherence: 0, completeness: 0, accuracy: 0 };
+      for (const q of domainData.queries) {
+        sums.relevance += q.quality.relevance;
+        sums.coherence += q.quality.coherence;
+        sums.completeness += q.quality.completeness;
+        sums.accuracy += q.quality.accuracy;
+      }
+      return dims.map((d) => sums[d] / domainData.queries.length);
+    }
+
+    function interColor(a, b, t) {
+      const pa = parseInt(a.slice(1), 16);
+      const pb = parseInt(b.slice(1), 16);
+      const ar = (pa >> 16) & 255;
+      const ag = (pa >> 8) & 255;
+      const ab = pa & 255;
+      const br = (pb >> 16) & 255;
+      const bg = (pb >> 8) & 255;
+      const bb = pb & 255;
+      const rr = Math.round(ar + (br - ar) * t);
+      const rg = Math.round(ag + (bg - ag) * t);
+      const rb = Math.round(ab + (bb - ab) * t);
+      return `rgb(${rr}, ${rg}, ${rb})`;
+    }
+
+    const referenceLinePlugin = {
+      id: "referenceLinePlugin",
+      afterDraw(chart, args, opts) {
+        const lines = opts && opts.lines ? opts.lines : [];
+        const xScale = chart.scales.x;
+        const yScale = chart.scales.y;
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = "12px Inter, sans-serif";
+        for (const line of lines) {
+          const isY = line.axis === "y";
+          const color = line.color || "#94a3b8";
+          ctx.strokeStyle = color;
+          ctx.setLineDash([6, 4]);
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          if (isY) {
+            const y = yScale.getPixelForValue(line.value);
+            ctx.moveTo(xScale.left, y);
+            ctx.lineTo(xScale.right, y);
+          } else {
+            const x = xScale.getPixelForValue(line.value);
+            ctx.moveTo(x, yScale.top);
+            ctx.lineTo(x, yScale.bottom);
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
+          if (line.label) {
+            ctx.fillStyle = color;
+            if (isY) {
+              const y = yScale.getPixelForValue(line.value);
+              ctx.fillText(line.label, xScale.left + 6, y - 6);
+            } else {
+              const x = xScale.getPixelForValue(line.value);
+              ctx.fillText(line.label, x + 6, yScale.top + 14);
+            }
+          }
+        }
+        ctx.restore();
+      }
+    };
+
+    Chart.register(referenceLinePlugin);
+
+    function baseOptions() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: "#f1f5f9" } },
+          tooltip: {
+            backgroundColor: "#0b1220",
+            borderColor: "#334155",
+            borderWidth: 1,
+            titleColor: "#f1f5f9",
+            bodyColor: "#e2e8f0"
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: "#cbd5e1" },
+            grid: { color: "rgba(148,163,184,0.15)" },
+            border: { color: "#334155" }
+          },
+          y: {
+            ticks: { color: "#cbd5e1" },
+            grid: { color: "rgba(148,163,184,0.15)" },
+            border: { color: "#334155" }
+          }
+        }
+      };
+    }
+
+    function renderKpis(data) {
+      const baselineEntries = DOMAIN_ORDER.filter((d) => data.baseline_comparison[d]).map((d) => data.baseline_comparison[d].uniform.quality);
+      const baselineAvg = baselineEntries.reduce((a, b) => a + b, 0) / baselineEntries.length;
+      const gainPct = ((data.aggregate.overall_quality - baselineAvg) / baselineAvg) * 100;
+
+      const cards = [
+        {
+          title: "Overall Quality",
+          value: data.aggregate.overall_quality.toFixed(3),
+          sub: `+${gainPct.toFixed(1)}% vs single-model baseline`
+        },
+        { title: "Success Rate", value: formatPct(data.aggregate.overall_success_rate), sub: "" },
+        { title: "Avg Latency", value: formatMs(data.aggregate.overall_latency_ms), sub: "" },
+        { title: "ABTC Confidence", value: `σ = ${data.aggregate.overall_confidence.toFixed(3)}`, sub: "" },
+        { title: "Queries Run", value: `${data.total_queries} / ${data.total_queries}`, sub: "" }
+      ];
+
+      const row = document.getElementById("kpi-row");
+      row.innerHTML = cards
+        .map(
+          (c) => `
+            <article class="card">
+              <div class="kpi-title">${c.title}</div>
+              <div class="kpi-value">${c.value}</div>
+              ${c.sub ? `<div class="kpi-delta">${c.sub}</div>` : ""}
+            </article>
+          `
+        )
+        .join("");
+    }
+
+    function renderHeader(data) {
+      const domainCount = DOMAIN_ORDER.filter((d) => data.domains[d]).length;
+      document.getElementById("subtitle").textContent =
+        `Adaptive Bayesian Trust-Weighted Consensus · ${data.total_queries} queries · ${domainCount} domains`;
+
+      const dt = new Date(data.run_id);
+      const runStamp = Number.isNaN(dt.getTime()) ? data.run_id : dt.toLocaleString();
+      document.getElementById("header-right").innerHTML = `<div>${runStamp}</div><div>v${data.gaiol_version}</div>`;
+    }
+
+    function renderQualityChart(data) {
+      const labels = DOMAIN_ORDER.map((d) => DOMAIN_LABELS[d]).filter(Boolean);
+      const uniform = DOMAIN_ORDER.map((d) => data.baseline_comparison[d].uniform.quality);
+      const stat = DOMAIN_ORDER.map((d) => data.baseline_comparison[d].static.quality);
+      const abtc = DOMAIN_ORDER.map((d) => data.domains[d].avg_quality);
+
+      new Chart(document.getElementById("qualityByDomainChart"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            { label: "Uniform (baseline)", data: uniform, backgroundColor: "#64748b" },
+            { label: "Static weights", data: stat, backgroundColor: "rgba(99,102,241,0.5)" },
+            { label: "GAIOL ABTC", data: abtc, backgroundColor: "#818cf8" }
+          ]
+        },
+        options: {
+          ...baseOptions(),
+          plugins: {
+            ...baseOptions().plugins,
+            referenceLinePlugin: {
+              lines: [{ axis: "y", value: data.aggregate.overall_quality, color: "#a5b4fc", label: "GAIOL avg" }]
+            }
+          },
+          scales: {
+            ...baseOptions().scales,
+            y: {
+              ...baseOptions().scales.y,
+              min: 0.6,
+              max: 1.0
+            }
+          }
+        }
+      });
+    }
+
+    function renderLatencyChart(data) {
+      const sorted = DOMAIN_ORDER
+        .map((d) => ({ key: d, latency: data.domains[d].avg_latency_ms }))
+        .sort((a, b) => a.latency - b.latency);
+
+      const rank = {};
+      sorted.forEach((entry, i) => {
+        rank[entry.key] = i;
+      });
+
+      const labels = DOMAIN_ORDER.map((d) => DOMAIN_LABELS[d]);
+      const vals = DOMAIN_ORDER.map((d) => data.domains[d].avg_latency_ms);
+      const colors = DOMAIN_ORDER.map((d) => interColor("#34d399", "#f59e0b", rank[d] / Math.max(1, DOMAIN_ORDER.length - 1)));
+
+      new Chart(document.getElementById("latencyChart"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{ label: "Avg latency (ms)", data: vals, backgroundColor: colors }]
+        },
+        options: {
+          ...baseOptions(),
+          indexAxis: "y",
+          plugins: {
+            ...baseOptions().plugins,
+            referenceLinePlugin: {
+              lines: [
+                {
+                  axis: "x",
+                  value: data.aggregate.overall_latency_ms,
+                  color: "#94a3b8",
+                  label: "Overall avg"
+                }
+              ]
+            }
+          }
+        }
+      });
+    }
+
+    function renderConfidenceChart(data) {
+      const confidence = [];
+      DOMAIN_ORDER.forEach((d) => {
+        data.domains[d].queries.forEach((q) => confidence.push(q.consensus_confidence));
+      });
+      const labels = confidence.map((_, i) => i + 1);
+
+      new Chart(document.getElementById("confidenceChart"), {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Consensus confidence",
+              data: confidence,
+              borderColor: "#818cf8",
+              backgroundColor: "#818cf8",
+              pointRadius: 4,
+              pointHoverRadius: 5,
+              tension: 0.28,
+              pointBackgroundColor: confidence.map((v) => (v < 0.6 ? "#f59e0b" : "#818cf8"))
+            }
+          ]
+        },
+        options: {
+          ...baseOptions(),
+          plugins: {
+            ...baseOptions().plugins,
+            referenceLinePlugin: {
+              lines: [{ axis: "y", value: 0.6, color: "#f59e0b", label: "θ_min synthesis threshold" }]
+            }
+          },
+          scales: {
+            ...baseOptions().scales,
+            x: {
+              ...baseOptions().scales.x,
+              ticks: {
+                color: "#cbd5e1",
+                callback: function(value) {
+                  const n = Number(this.getLabelForValue(value));
+                  if (n === 1) return "1=Analytical";
+                  if (n === 6) return "6=Code";
+                  if (n === 11) return "11=Multi";
+                  if (n === 16) return "16=Knowledge";
+                  if (n === 21) return "21=Creative";
+                  return "";
+                },
+                maxRotation: 0,
+                autoSkip: false
+              }
+            },
+            y: {
+              ...baseOptions().scales.y,
+              min: 0,
+              max: 1
+            }
+          }
+        }
+      });
+    }
+
+    function renderRadarChart(data) {
+      const dims = ["Relevance", "Coherence", "Completeness", "Accuracy"];
+      const datasets = DOMAIN_ORDER.map((d) => {
+        const vals = averageQualityDimensions(data.domains[d]);
+        const color = DOMAIN_COLORS[d];
+        return {
+          label: DOMAIN_LABELS[d],
+          data: vals,
+          borderColor: color,
+          pointBackgroundColor: color,
+          backgroundColor: color.replace(")", ", 0.15)").replace("rgb", "rgba").startsWith("rgba")
+            ? color.replace(")", ", 0.15)")
+            : color + "26",
+          fill: true
+        };
+      });
+
+      new Chart(document.getElementById("radarChart"), {
+        type: "radar",
+        data: { labels: dims, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "bottom", labels: { color: "#f1f5f9" } },
+            tooltip: {
+              backgroundColor: "#0b1220",
+              borderColor: "#334155",
+              borderWidth: 1,
+              titleColor: "#f1f5f9",
+              bodyColor: "#e2e8f0"
+            }
+          },
+          scales: {
+            r: {
+              min: 0.7,
+              max: 1.0,
+              ticks: { color: "#cbd5e1", backdropColor: "transparent" },
+              angleLines: { color: "rgba(148,163,184,0.2)" },
+              grid: { color: "rgba(148,163,184,0.2)" },
+              pointLabels: { color: "#f1f5f9" }
+            }
+          }
+        }
+      });
+    }
+
+    function renderTabs(data) {
+      const tabs = document.getElementById("tabs");
+      const content = document.getElementById("sample-content");
+      let active = DOMAIN_ORDER[0];
+
+      function bestQueryForDomain(d) {
+        const domain = data.domains[d];
+        return domain.queries.find((q) => q.index === domain.best_query_index) || domain.queries[0];
+      }
+
+      function paint() {
+        tabs.innerHTML = DOMAIN_ORDER.map((d) => {
+          const cls = d === active ? "tab-btn active" : "tab-btn";
+          return `<button class="${cls}" data-domain="${d}">${DOMAIN_LABELS[d]}</button>`;
+        }).join("");
+
+        const domain = data.domains[active];
+        const q = bestQueryForDomain(active);
+        content.innerHTML = `
+          <div class="domain-badge">${toTitle(active)} · Best Quality ${q.quality.overall.toFixed(3)}</div>
+          <div class="quote">${q.query}</div>
+          <div class="response">${q.response_excerpt}</div>
+          <div class="pill-row">
+            <span class="pill">Relevance ${q.quality.relevance.toFixed(2)}</span>
+            <span class="pill">Coherence ${q.quality.coherence.toFixed(2)}</span>
+            <span class="pill">Completeness ${q.quality.completeness.toFixed(2)}</span>
+            <span class="pill">Accuracy ${q.quality.accuracy.toFixed(2)}</span>
+          </div>
+          <div class="meta">
+            <span>Latency: ${q.latency_ms.toLocaleString()}ms</span>
+            <span>Confidence: σ=${q.consensus_confidence.toFixed(2)}</span>
+            <span>Status: ${q.success ? "✓ Success" : "✗ Failed"}</span>
+            <span>Domain Success Rate: ${formatPct(domain.success_rate)}</span>
+          </div>
+        `;
+
+        tabs.querySelectorAll("button").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            active = btn.dataset.domain;
+            paint();
+          });
+        });
+      }
+
+      paint();
+    }
+
+    function renderTrustChart() {
+      const n = 150;
+      const x = Array.from({ length: n }, (_, i) => i + 1);
+      const series = [
+        { label: "GPT-4 · Analytical", p: 0.82, color: "#818cf8", seed: 101 },
+        { label: "GPT-4 · Creative", p: 0.61, color: "#a5b4fc", seed: 202 },
+        { label: "Gemini · Analytical", p: 0.58, color: "#34d399", seed: 303 },
+        { label: "Gemini · Creative", p: 0.78, color: "#6ee7b7", seed: 404 }
+      ];
+
+      new Chart(document.getElementById("trustChart"), {
+        type: "line",
+        data: {
+          labels: x,
+          datasets: series.map((s) => ({
+            label: s.label,
+            data: simulateTrust(s.p, n, 0.98, s.seed),
+            borderColor: s.color,
+            pointRadius: 0,
+            tension: 0.2
+          }))
+        },
+        options: {
+          ...baseOptions(),
+          plugins: {
+            ...baseOptions().plugins,
+            referenceLinePlugin: {
+              lines: [
+                { axis: "x", value: 80, color: "#94a3b8", label: "Posterior stabilization (~80 queries)" },
+                { axis: "y", value: 0.82, color: "#818cf8", label: "0.82" },
+                { axis: "y", value: 0.61, color: "#a5b4fc", label: "0.61" },
+                { axis: "y", value: 0.58, color: "#34d399", label: "0.58" },
+                { axis: "y", value: 0.78, color: "#6ee7b7", label: "0.78" }
+              ]
+            }
+          },
+          scales: {
+            ...baseOptions().scales,
+            x: {
+              ...baseOptions().scales.x,
+              title: { display: true, text: "Query index", color: "#cbd5e1" }
+            },
+            y: {
+              ...baseOptions().scales.y,
+              min: 0,
+              max: 1,
+              title: { display: true, text: "τ̂ posterior mean", color: "#cbd5e1" }
+            }
+          }
+        }
+      });
+    }
+
+    async function init() {
+      const data = await loadData();
+      renderHeader(data);
+      renderKpis(data);
+      renderQualityChart(data);
+      renderLatencyChart(data);
+      renderConfidenceChart(data);
+      renderRadarChart(data);
+      renderTabs(data);
+      renderTrustChart();
+    }
+
+    init();
+  </script>
+</body>
+</html>

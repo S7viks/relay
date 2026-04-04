@@ -27,9 +27,13 @@ import { summarizeOrchestrationTrace } from "../observability/metrics-summary.js
 import type { TraceId } from "../domain/ids.js";
 import { evaluateAgainstContains, type EvalExample } from "../evaluation/harness.js";
 import type { ModelCallResult } from "../domain/task.js";
+import { DEFAULT_LAMBDA } from "../consensus/abtc.js";
 
 export function buildServer() {
   const logger = createLogger();
+  const consensusMode = "abtc" as const;
+  const beamWidth = 2;
+  const lambda = DEFAULT_LAMBDA;
   const trustPath = process.env.TRUST_STORE_PATH?.trim() || '';
   const trust = trustPath ? new FileTrustRepository(trustPath) : new InMemoryTrustRepository();
   const traces = new InMemoryTraceRepository();
@@ -48,8 +52,8 @@ export function buildServer() {
     evaluations,
     logger,
     config: {
-      consensusMode: "abtc",
-      beamWidth: 2,
+      consensusMode,
+      beamWidth,
       maxParallelCalls: 3,
       maxCostUsdPerRequest: 5,
       abtc: {
@@ -194,14 +198,16 @@ export function buildServer() {
     });
   });
 
-  return { app, orchestrator, trust, traces };
+  return { app, orchestrator, trust, traces, consensusMode, beamWidth, lambda };
 }
 
 async function main() {
-  const { app } = buildServer();
-  const port = loadOrchestratorPort();
-  await app.listen({ port, host: "0.0.0.0" });
-  console.log(`orchestrator listening on :${port}`);
+  const { app: server, consensusMode, beamWidth, lambda } = buildServer();
+  const PORT = loadOrchestratorPort();
+  await server.listen({ port: PORT, host: "0.0.0.0" });
+  console.log(
+    `GAIOL TS Orchestrator started mode=${consensusMode} lambda=${lambda} port=${PORT} beam_width=${beamWidth}`,
+  );
 }
 
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);

@@ -13,6 +13,8 @@ import type {
 export class InMemoryTrustRepository implements TrustRepository {
   private readonly store = new Map<string, TrustRecord>();
 
+  constructor(private readonly maxSize: number = 5000) {}
+
   private key(modelId: string, domain: string) {
     return `${modelId}::${domain}`;
   }
@@ -23,6 +25,10 @@ export class InMemoryTrustRepository implements TrustRepository {
 
   async upsertTrust(record: TrustRecord): Promise<void> {
     this.store.set(this.key(record.modelId, record.domain), record);
+    if (this.store.size > this.maxSize) {
+      const oldestKey = this.store.keys().next().value;
+      if (oldestKey !== undefined) this.store.delete(oldestKey);
+    }
   }
 
   async listByDomain(domain: string): Promise<TrustRecord[]> {
@@ -49,8 +55,14 @@ export class InMemorySessionRepository implements SessionRepository {
 export class InMemoryTraceRepository implements TraceRepository {
   private readonly traces = new Map<TraceId, OrchestrationTrace>();
 
+  constructor(private readonly maxSize: number = 1000) {}
+
   async append(trace: OrchestrationTrace): Promise<void> {
     this.traces.set(trace.traceId, trace);
+    if (this.traces.size > this.maxSize) {
+      const oldestKey = this.traces.keys().next().value;
+      if (oldestKey !== undefined) this.traces.delete(oldestKey);
+    }
   }
 
   async get(traceId: TraceId): Promise<OrchestrationTrace | null> {

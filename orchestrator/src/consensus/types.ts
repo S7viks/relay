@@ -20,6 +20,10 @@ export interface ConsensusInput {
    * Omitted or 1 preserves legacy weighting shape.
    */
   abtcConsensusExponent?: number;
+  /** Optional trust state by model id for ABTC posterior updates. */
+  trustRecords?: Record<string, { alpha: number; beta: number }>;
+  /** Optional ABTC trust decay factor. */
+  lambda?: number;
 }
 
 export interface ConsensusOutput {
@@ -27,5 +31,8 @@ export interface ConsensusOutput {
   chosenModelId: string;
   weights: Record<string, number>;
   agreement: number;
+  confidence?: number;
+  winner?: { modelId: string; content: string };
+  trustUpdates?: Record<string, { alpha: number; beta: number }>;
   notes?: string;
 }

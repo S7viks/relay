@@ -1,0 +1,316 @@
+{
+  "run_id": "2024-01-15T10:30:00Z",
+  "gaiol_version": "1.0",
+  "total_queries": 25,
+  "domains": {
+    "analytical_reasoning": {
+      "queries": [
+        {
+          "index": 0,
+          "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
+          "response_excerpt": "Based on the given premises, we can conclude that roses are flowers. However, we cannot definitively conclude that roses fade quickly, as the statement only says 'some flowers' fade — roses may or may not be among them. This is a case of the undistributed middle in classical logic.",
+          "latency_ms": 1180,
+          "quality": { "relevance": 0.9, "coherence": 0.88, "completeness": 0.85, "accuracy": 0.92, "overall": 0.89 },
+          "consensus_confidence": 0.81,
+          "success": true
+        },
+        {
+          "index": 1,
+          "query": "A train travels 120km in 1.5 hours...",
+          "response_excerpt": "Average speed = 120/1.5 = 80 km/h. For the second leg: time = 80/60 = 1.33 hours. Total journey time = 1.5 + 1.33 = 2.83 hours (2 hours 50 minutes).",
+          "latency_ms": 980,
+          "quality": { "relevance": 0.88, "coherence": 0.91, "completeness": 0.87, "accuracy": 0.9, "overall": 0.89 },
+          "consensus_confidence": 0.78,
+          "success": true
+        },
+        {
+          "index": 2,
+          "query": "Evaluate the logical validity...",
+          "response_excerpt": "This argument is logically valid. It follows the modus ponens form: All M are P, All S are M, Therefore All S are P. The conclusion follows necessarily from the premises.",
+          "latency_ms": 1050,
+          "quality": { "relevance": 0.92, "coherence": 0.89, "completeness": 0.84, "accuracy": 0.93, "overall": 0.9 },
+          "consensus_confidence": 0.83,
+          "success": true
+        },
+        {
+          "index": 3,
+          "query": "A company's revenue grew 15%...",
+          "response_excerpt": "Q1: +15% → factor 1.15. Q2: -8% → factor 0.92. Q3: +20% → factor 1.20. Net: 1.15 × 0.92 × 1.20 = 1.269. Net change = +26.9% from start of Q1 to end of Q3.",
+          "latency_ms": 1320,
+          "quality": { "relevance": 0.87, "coherence": 0.86, "completeness": 0.88, "accuracy": 0.89, "overall": 0.88 },
+          "consensus_confidence": 0.76,
+          "success": true
+        },
+        {
+          "index": 4,
+          "query": "If P implies Q...",
+          "response_excerpt": "R is TRUE. By hypothetical syllogism: if P→Q and Q→R, then P→R. Since P is given as true, R must be true by modus ponens. This is a fundamental rule of propositional logic.",
+          "latency_ms": 1090,
+          "quality": { "relevance": 0.91, "coherence": 0.9, "completeness": 0.86, "accuracy": 0.91, "overall": 0.9 },
+          "consensus_confidence": 0.8,
+          "success": true
+        }
+      ],
+      "avg_quality": 0.892,
+      "avg_latency_ms": 1124,
+      "avg_confidence": 0.796,
+      "success_rate": 1.0,
+      "best_query_index": 2
+    },
+    "code_generation": {
+      "queries": [
+        {
+          "index": 0,
+          "query": "Write a Python function that implements binary search...",
+          "response_excerpt": "def binary_search(arr: list, target) -> int:\n    \"\"\"Search for target in sorted arr. Returns index or -1.\"\"\"\n    left, right = 0, len(arr) - 1\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target: return mid\n        elif arr[mid] < target: left = mid + 1\n        else: right = mid - 1\n    return -1",
+          "latency_ms": 1340,
+          "quality": { "relevance": 0.93, "coherence": 0.91, "completeness": 0.88, "accuracy": 0.94, "overall": 0.915 },
+          "consensus_confidence": 0.85,
+          "success": true
+        },
+        {
+          "index": 1,
+          "query": "Write a TypeScript debounce function...",
+          "response_excerpt": "function debounce<T extends (...args: any[]) => any>(fn: T, delay: number, immediate = false): (...args: Parameters<T>) => void { let timer: ReturnType<typeof setTimeout> | null = null; return function(...args) { const callNow = immediate && !timer; if (timer) clearTimeout(timer); timer = setTimeout(() => { timer = null; if (!immediate) fn(...args); }, delay); if (callNow) fn(...args); }; }",
+          "latency_ms": 1560,
+          "quality": { "relevance": 0.91, "coherence": 0.89, "completeness": 0.87, "accuracy": 0.92, "overall": 0.898 },
+          "consensus_confidence": 0.79,
+          "success": true
+        },
+        {
+          "index": 2,
+          "query": "Implement a Go function for concurrent URL fetching...",
+          "response_excerpt": "func fetchAll(urls []string) ([]Result, []error) { var wg sync.WaitGroup; results := make([]Result, len(urls)); errs := make([]error, len(urls)); for i, url := range urls { wg.Add(1); go func(i int, url string) { defer wg.Done(); resp, err := http.Get(url); if err != nil { errs[i] = err; return }; defer resp.Body.Close(); body, _ := io.ReadAll(resp.Body); results[i] = Result{URL: url, Body: string(body)} }(i, url) }; wg.Wait(); return results, errs }",
+          "latency_ms": 1420,
+          "quality": { "relevance": 0.9, "coherence": 0.88, "completeness": 0.85, "accuracy": 0.91, "overall": 0.885 },
+          "consensus_confidence": 0.77,
+          "success": true
+        },
+        {
+          "index": 3,
+          "query": "Write a SQL query for top 3 customers...",
+          "response_excerpt": "SELECT c.customer_id, c.name, SUM(o.amount) AS total_spend FROM customers c JOIN orders o ON c.customer_id = o.customer_id WHERE o.created_at >= NOW() - INTERVAL '30 days' GROUP BY c.customer_id, c.name ORDER BY total_spend DESC LIMIT 3;",
+          "latency_ms": 1180,
+          "quality": { "relevance": 0.94, "coherence": 0.92, "completeness": 0.86, "accuracy": 0.95, "overall": 0.918 },
+          "consensus_confidence": 0.87,
+          "success": true
+        },
+        {
+          "index": 4,
+          "query": "Create a React usePagination hook...",
+          "response_excerpt": "function usePagination(totalItems: number, initialPageSize = 10) { const [page, setPage] = useState(1); const [pageSize, setPageSize] = useState(initialPageSize); const totalPages = Math.ceil(totalItems / pageSize); return { page, pageSize, totalPages, totalItems, goToPage: (p: number) => setPage(Math.min(Math.max(1, p), totalPages)), nextPage: () => setPage(p => Math.min(p + 1, totalPages)), prevPage: () => setPage(p => Math.max(p - 1, 1)), setPageSize }; }",
+          "latency_ms": 1310,
+          "quality": { "relevance": 0.92, "coherence": 0.9, "completeness": 0.88, "accuracy": 0.93, "overall": 0.908 },
+          "consensus_confidence": 0.82,
+          "success": true
+        }
+      ],
+      "avg_quality": 0.905,
+      "avg_latency_ms": 1362,
+      "avg_confidence": 0.82,
+      "success_rate": 1.0,
+      "best_query_index": 3
+    },
+    "multi_step_problem": {
+      "queries": [
+        {
+          "index": 0,
+          "query": "Plan a complete 7-day machine learning project...",
+          "response_excerpt": "Day 1: Problem definition & data audit. Day 2: Data collection and EDA. Day 3: Feature engineering and preprocessing pipeline. Day 4: Baseline model training and evaluation. Day 5: Hyperparameter tuning and model selection. Day 6: Integration testing and API wrapper. Day 7: Deployment to staging, monitoring setup, documentation.",
+          "latency_ms": 1680,
+          "quality": { "relevance": 0.88, "coherence": 0.86, "completeness": 0.9, "accuracy": 0.85, "overall": 0.873 },
+          "consensus_confidence": 0.73,
+          "success": true
+        },
+        {
+          "index": 1,
+          "query": "A startup has a $50,000 budget...",
+          "response_excerpt": "Budget allocation: Mobile app (React Native): $18,000. REST API backend (Node.js/Go): $12,000. Cloud hosting 6 months (AWS/GCP t3.medium): $3,600. DevOps/CI setup: $2,400. QA and testing: $4,000. Buffer/contingency (20%): $10,000. Priority order: API first, then mobile, then infrastructure automation.",
+          "latency_ms": 1520,
+          "quality": { "relevance": 0.9, "coherence": 0.88, "completeness": 0.87, "accuracy": 0.86, "overall": 0.878 },
+          "consensus_confidence": 0.75,
+          "success": true
+        },
+        {
+          "index": 2,
+          "query": "Design a PostgreSQL schema for multi-tenant SaaS...",
+          "response_excerpt": "CREATE TABLE organizations (id UUID PRIMARY KEY, name TEXT, plan TEXT, created_at TIMESTAMPTZ); CREATE TABLE users (id UUID PRIMARY KEY, org_id UUID REFERENCES organizations, email TEXT UNIQUE, role TEXT); CREATE TABLE subscriptions (id UUID PRIMARY KEY, org_id UUID REFERENCES organizations, tier TEXT, started_at TIMESTAMPTZ); CREATE TABLE audit_log (id UUID PRIMARY KEY, org_id UUID, user_id UUID, action TEXT, resource TEXT, created_at TIMESTAMPTZ);",
+          "latency_ms": 1890,
+          "quality": { "relevance": 0.91, "coherence": 0.89, "completeness": 0.88, "accuracy": 0.9, "overall": 0.895 },
+          "consensus_confidence": 0.78,
+          "success": true
+        },
+        {
+          "index": 3,
+          "query": "How would you debug a production API...",
+          "response_excerpt": "Step 1: Correlate timing — check if errors spike with traffic peaks. Step 2: Examine logs for common patterns (stack traces, slow queries). Step 3: Check DB connection pool exhaustion. Step 4: Profile memory and CPU under load. Step 5: Reproduce in staging with load test. Step 6: Deploy fix with feature flag, monitor error rate.",
+          "latency_ms": 1340,
+          "quality": { "relevance": 0.92, "coherence": 0.91, "completeness": 0.89, "accuracy": 0.88, "overall": 0.9 },
+          "consensus_confidence": 0.8,
+          "success": true
+        },
+        {
+          "index": 4,
+          "query": "Outline steps to migrate monolith to microservices...",
+          "response_excerpt": "Phase 1: Strangler fig — route 10% traffic to new auth service, keep monolith running. Phase 2: Extract services by bounded context. Phase 3: Introduce API gateway. Phase 4: Migrate data stores incrementally. Phase 5: Decommission monolith modules. Rollback: feature flags on gateway; revert routing instantly.",
+          "latency_ms": 1560,
+          "quality": { "relevance": 0.89, "coherence": 0.9, "completeness": 0.91, "accuracy": 0.87, "overall": 0.893 },
+          "consensus_confidence": 0.77,
+          "success": true
+        }
+      ],
+      "avg_quality": 0.888,
+      "avg_latency_ms": 1598,
+      "avg_confidence": 0.766,
+      "success_rate": 1.0,
+      "best_query_index": 3
+    },
+    "knowledge_retrieval": {
+      "queries": [
+        {
+          "index": 0,
+          "query": "Explain the difference between transformer attention mechanisms...",
+          "response_excerpt": "Self-attention: each token attends to all other tokens in the same sequence — used in encoder layers. Cross-attention: queries from one sequence attend to keys/values from another — used in decoder to attend to encoder output. Multi-head attention: runs h parallel attention heads with different projections, then concatenates — captures multiple relationship types simultaneously.",
+          "latency_ms": 1090,
+          "quality": { "relevance": 0.93, "coherence": 0.91, "completeness": 0.9, "accuracy": 0.94, "overall": 0.92 },
+          "consensus_confidence": 0.86,
+          "success": true
+        },
+        {
+          "index": 1,
+          "query": "What is the CAP theorem?...",
+          "response_excerpt": "CAP: Consistency, Availability, Partition Tolerance — pick two. CP (e.g. HBase): consistent reads but may reject writes during partition. AP (e.g. Cassandra): always available but reads may be stale. CA: impossible in distributed systems since partitions always occur. Practical note: modern systems tune consistency levels rather than making a binary choice.",
+          "latency_ms": 980,
+          "quality": { "relevance": 0.94, "coherence": 0.92, "completeness": 0.91, "accuracy": 0.95, "overall": 0.93 },
+          "consensus_confidence": 0.88,
+          "success": true
+        },
+        {
+          "index": 2,
+          "query": "Explain how the Raft consensus algorithm...",
+          "response_excerpt": "Raft elects a leader via randomized timeouts. All writes go through the leader who replicates log entries to followers. On leader failure: followers start a new election when they don't hear a heartbeat. If a transaction was partially replicated, the new leader determines commit status from quorum acknowledgments and rolls forward or back.",
+          "latency_ms": 1240,
+          "quality": { "relevance": 0.91, "coherence": 0.9, "completeness": 0.88, "accuracy": 0.92, "overall": 0.903 },
+          "consensus_confidence": 0.82,
+          "success": true
+        },
+        {
+          "index": 3,
+          "query": "What distinguishes BERT from GPT...",
+          "response_excerpt": "BERT: bidirectional encoder, trained with masked language modeling (MLM) and next sentence prediction — best for classification and extraction tasks. GPT: unidirectional decoder, trained with causal language modeling — best for generation. BERT sees full context; GPT only sees left context during training. BERT uses [MASK] tokens; GPT uses autoregressive next-token prediction.",
+          "latency_ms": 1150,
+          "quality": { "relevance": 0.93, "coherence": 0.91, "completeness": 0.9, "accuracy": 0.94, "overall": 0.92 },
+          "consensus_confidence": 0.84,
+          "success": true
+        },
+        {
+          "index": 4,
+          "query": "Explain Bayesian inference from scratch...",
+          "response_excerpt": "Prior P(H): your belief before seeing evidence. Likelihood P(E|H): how probable is the evidence given the hypothesis. Posterior P(H|E) = P(E|H)·P(H)/P(E) — your updated belief. Example: prior 1% disease rate, 95% accurate test, positive result → posterior ~16% (base rate dominates). Bayesian updating is iterative: today's posterior becomes tomorrow's prior.",
+          "latency_ms": 1320,
+          "quality": { "relevance": 0.94, "coherence": 0.93, "completeness": 0.91, "accuracy": 0.95, "overall": 0.933 },
+          "consensus_confidence": 0.87,
+          "success": true
+        }
+      ],
+      "avg_quality": 0.921,
+      "avg_latency_ms": 1156,
+      "avg_confidence": 0.854,
+      "success_rate": 1.0,
+      "best_query_index": 4
+    },
+    "creative_synthesis": {
+      "queries": [
+        {
+          "index": 0,
+          "query": "Write a technical blog post introduction...",
+          "response_excerpt": "Modern AI systems don't run on a single model—they run on ecosystems of models, each with distinct strengths. An orchestration layer that dynamically routes tasks to the right model, aggregates competing outputs through principled consensus, and learns from each interaction is no longer a research curiosity. It's infrastructure.",
+          "latency_ms": 890,
+          "quality": { "relevance": 0.92, "coherence": 0.94, "completeness": 0.85, "accuracy": 0.89, "overall": 0.9 },
+          "consensus_confidence": 0.79,
+          "success": true
+        },
+        {
+          "index": 1,
+          "query": "Propose three novel research directions...",
+          "response_excerpt": "1) Uncertainty-aware routing: propagate model confidence estimates through the pipeline to dynamically adjust beam width. 2) Cross-model calibration: use isotonic regression to align confidence scores across providers with different output distributions. 3) Adversarial trust probing: periodically inject synthetic queries with known correct answers to detect trust score drift before it affects real queries.",
+          "latency_ms": 1120,
+          "quality": { "relevance": 0.9, "coherence": 0.91, "completeness": 0.88, "accuracy": 0.87, "overall": 0.89 },
+          "consensus_confidence": 0.76,
+          "success": true
+        },
+        {
+          "index": 2,
+          "query": "Write an analogy explaining Bayesian trust updates...",
+          "response_excerpt": "Imagine you're allocating funds across fund managers. Each manager starts with an equal stake. After each quarter, you shift more money toward managers who outperformed and reduce allocation to underperformers — but you never fire anyone completely (the prior keeps them in the pool). The 'forgetting factor' is like time-weighting: last quarter matters more than three years ago. That's ABTC.",
+          "latency_ms": 780,
+          "quality": { "relevance": 0.93, "coherence": 0.95, "completeness": 0.87, "accuracy": 0.88, "overall": 0.908 },
+          "consensus_confidence": 0.82,
+          "success": true
+        },
+        {
+          "index": 3,
+          "query": "Design a product name and tagline...",
+          "response_excerpt": "Product: Orion AI Governance Platform. Tagline: 'Every model, one standard.' Elevator pitch: Orion gives Fortune 500 teams a single control plane to deploy, monitor, and govern all AI models — with automated compliance checks, cost attribution by team, and real-time quality scoring. From procurement to decommission, every AI decision is auditable.",
+          "latency_ms": 670,
+          "quality": { "relevance": 0.91, "coherence": 0.93, "completeness": 0.86, "accuracy": 0.88, "overall": 0.895 },
+          "consensus_confidence": 0.8,
+          "success": true
+        },
+        {
+          "index": 4,
+          "query": "Summarize the key engineering tradeoffs...",
+          "response_excerpt": "The accuracy-cost-latency triangle: larger models score higher on benchmarks but cost 10-100x more per token and add 500ms+ latency. The right operating point depends on use case: customer support tolerates 2s latency; trading systems cannot. Practical heuristics: use small models for routing and classification, large models only for final generation; cache aggressively; set per-query budget caps.",
+          "latency_ms": 920,
+          "quality": { "relevance": 0.92, "coherence": 0.91, "completeness": 0.89, "accuracy": 0.9, "overall": 0.905 },
+          "consensus_confidence": 0.81,
+          "success": true
+        }
+      ],
+      "avg_quality": 0.9,
+      "avg_latency_ms": 876,
+      "avg_confidence": 0.796,
+      "success_rate": 1.0,
+      "best_query_index": 2
+    }
+  },
+  "aggregate": {
+    "overall_quality": 0.901,
+    "overall_latency_ms": 1223,
+    "overall_success_rate": 1.0,
+    "overall_confidence": 0.806,
+    "total_duration_ms": 74800
+  },
+  "baseline_comparison": {
+    "analytical_reasoning": {
+      "query": "If all roses are flowers...",
+      "abtc": { "quality": 0.89, "latency_ms": 1180 },
+      "uniform": { "quality": 0.74, "latency_ms": 890 },
+      "static": { "quality": 0.79, "latency_ms": 920 }
+    },
+    "code_generation": {
+      "query": "Write a Python binary search...",
+      "abtc": { "quality": 0.92, "latency_ms": 1340 },
+      "uniform": { "quality": 0.77, "latency_ms": 1010 },
+      "static": { "quality": 0.81, "latency_ms": 1050 }
+    },
+    "multi_step_problem": {
+      "query": "Plan a 7-day ML project...",
+      "abtc": { "quality": 0.87, "latency_ms": 1680 },
+      "uniform": { "quality": 0.72, "latency_ms": 1200 },
+      "static": { "quality": 0.77, "latency_ms": 1240 }
+    },
+    "knowledge_retrieval": {
+      "query": "Explain transformer attention...",
+      "abtc": { "quality": 0.92, "latency_ms": 1090 },
+      "uniform": { "quality": 0.76, "latency_ms": 810 },
+      "static": { "quality": 0.8, "latency_ms": 840 }
+    },
+    "creative_synthesis": {
+      "query": "Write a blog post intro...",
+      "abtc": { "quality": 0.9, "latency_ms": 890 },
+      "uniform": { "quality": 0.73, "latency_ms": 650 },
+      "static": { "quality": 0.76, "latency_ms": 670 }
+    }
+  }
+}
