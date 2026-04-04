@@ -6,7 +6,12 @@ const apiOrigin = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '')
 
 export function apiUrl(path: string): string {
   if (!path.startsWith('/')) return path
-  return apiOrigin ? `${apiOrigin}${path}` : path
+  // Avoid trailing slash on /api/auth/* — Go mux matches exact paths; /signin/ would miss and return 405 from SPA.
+  let p = path
+  if (p.startsWith('/api/auth/') && p.length > '/api/auth/'.length + 1 && p.endsWith('/')) {
+    p = p.replace(/\/+$/, '')
+  }
+  return apiOrigin ? `${apiOrigin}${p}` : p
 }
 
 /** WebSocket URL for paths like /api/reasoning/ws?session_id=... */

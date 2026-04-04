@@ -58,6 +58,27 @@ func newTestDepsAuthDisabled(t *testing.T) *Deps {
 	}
 }
 
+func TestAuthAPI_TrailingSlash_POST_NotSPA405(t *testing.T) {
+	d := newTestDepsAuthDisabled(t)
+	mux := http.NewServeMux()
+	Register(mux, d)
+	h := NormalizeAuthAPIPath(mux)
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+
+	resp, err := http.Post(srv.URL+"/api/auth/signin/", "application/json", strings.NewReader("{}"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusMethodNotAllowed {
+		t.Fatalf("POST /api/auth/signin/ fell through to SPA (405); normalize trailing slash for /api/auth/*")
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+}
+
 func TestHealth_OK(t *testing.T) {
 	d := newTestDepsAuthDisabled(t)
 	mux := http.NewServeMux()

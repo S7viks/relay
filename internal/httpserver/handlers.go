@@ -85,6 +85,25 @@ func (d *Deps) corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// NormalizeAuthAPIPath trims a trailing slash on /api/auth/... so requests like POST /api/auth/signin/
+// match mux routes registered as /api/auth/signin. Otherwise net/http falls through to the "/" SPA
+// handler, which only allows GET/HEAD and responds with 405 for POST.
+func NormalizeAuthAPIPath(next http.Handler) http.Handler {
+	const prefix = "/api/auth/"
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := r.URL.Path
+		if len(p) > len(prefix) && strings.HasPrefix(p, prefix) && p[len(p)-1] == '/' {
+			r2 := r.Clone(r.Context())
+			u := *r.URL
+			u.Path = strings.TrimSuffix(p, "/")
+			r2.URL = &u
+			next.ServeHTTP(w, r2)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // responseRecorder wraps ResponseWriter to capture status and size for logging.
 type responseRecorder struct {
 	http.ResponseWriter

@@ -139,6 +139,7 @@ func main() {
 	}
 
 	var handler http.Handler = http.DefaultServeMux
+	handler = httpserver.NormalizeAuthAPIPath(handler)
 	if authDisabled {
 		handler = deps.LocalTenantMiddleware(handler)
 	}
