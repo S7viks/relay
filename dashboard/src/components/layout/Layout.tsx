@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../../store'
 import { ToastContainer } from '../ui/Toast'
-import { apiGet, fetchHealth, fetchHealthBody } from '../../lib/api'
-import { fetchAuthSession, loginHref, signupHref, signOut } from '../../lib/auth'
+import { apiGet, ApiError, fetchHealth, fetchHealthBody } from '../../lib/api'
+import { clearAuthStorage, fetchAuthSession, loginHref, signupHref, signOut } from '../../lib/auth'
 
 type NavItem = {
   to: string
@@ -301,8 +301,14 @@ export function Layout() {
         if (!complete) {
           navigate('/onboarding', { replace: true })
         }
-      } catch {
-        // If setup checks fail (stale token / transient 401), let the onboarding page show the actionable UI.
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) {
+          clearAuthStorage()
+          navigate('/login', { replace: true })
+          return
+        }
+        // Network / 404 / 5xx: still send users to onboarding so they see errors instead of a broken home.
+        navigate('/onboarding', { replace: true })
       } finally {
         // no-op
       }

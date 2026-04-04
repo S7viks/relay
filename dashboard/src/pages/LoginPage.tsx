@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchAuthSession } from '../lib/auth'
 import { requestPasswordRecovery, signIn } from '../lib/authApi'
-import { apiGet } from '../lib/api'
+import { fetchHealthBody } from '../lib/api'
+import { apiUrl } from '../lib/apiBase'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -11,6 +12,7 @@ export function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [authDisabled, setAuthDisabled] = useState(false)
+  const [apiUnreachable, setApiUnreachable] = useState(false)
   const [showForgot, setShowForgot] = useState(false)
   const [forgotEmail, setForgotEmail] = useState('')
   const [forgotMsg, setForgotMsg] = useState('')
@@ -19,17 +21,18 @@ export function LoginPage() {
     let cancelled = false
     ;(async () => {
       try {
-        const h = await apiGet('/health')
-        const ad = !!(h && typeof h === 'object' && (h as { auth_disabled?: boolean }).auth_disabled)
-        if (!cancelled) setAuthDisabled(ad)
-        if (ad) {
+        const h = await fetchHealthBody()
+        if (cancelled) return
+        setApiUnreachable(!h.ok)
+        setAuthDisabled(h.authDisabled)
+        if (h.authDisabled) {
           navigate('/home', { replace: true })
           return
         }
         const s = await fetchAuthSession()
         if (!cancelled && s.authenticated) navigate('/home', { replace: true })
       } catch {
-        /* ignore */
+        if (!cancelled) setApiUnreachable(true)
       }
     })()
     return () => {
@@ -80,6 +83,12 @@ export function LoginPage() {
           <div className="auth-header">
             <h1>GAIOL Access Terminal</h1>
             <p>Authenticate to access AI model orchestration.</p>
+            {apiUnreachable && (
+              <p className="error-message" role="alert">
+                Cannot reach the API ({apiUrl('/health')}). If the dashboard is on a different host than the Go server,
+                rebuild with <code>VITE_API_BASE</code> set to your API origin (see <code>.env.example</code>).
+              </p>
+            )}
           </div>
           <div className="term-screen" aria-hidden="true">
             <div className="line comment">session: unauthenticated</div>
@@ -140,7 +149,7 @@ export function LoginPage() {
                 {forgotMsg && <p className="term-message">{forgotMsg}</p>}
               </div>
             )}
-            <button type="submit" className="btn-primary btn-full" disabled={loading || authDisabled}>
+            <button type="submit" className="btn-primary btn-full" disabled={loading || authDisabled || apiUnreachable}>
               {loading ? 'Signing in…' : 'Sign In'}
             </button>
             <div className="auth-divider">
