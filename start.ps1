@@ -61,7 +61,7 @@ try {
     # Server is not running, continue
 }
 
-# Build from repo root (single codebase: cmd/web-server, internal/, web/)
+# Build from repo root (single codebase: cmd/web-server, internal/, dashboard/)
 if ($Build -or -not (Test-Path "web-server.exe")) {
     Write-Host "Building web server..." -ForegroundColor Cyan
     go build -o web-server.exe ./cmd/web-server/
@@ -73,7 +73,7 @@ if ($Build -or -not (Test-Path "web-server.exe")) {
     Write-Host ""
 }
 
-# Start the server (run from repo root so ./web resolves to root web/)
+# Start the server (run from repo root; UI is served from dashboard/dist when built)
 Write-Host "Starting web server..." -ForegroundColor Cyan
 Write-Host ""
 

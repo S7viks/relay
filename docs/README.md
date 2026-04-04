@@ -56,4 +56,4 @@ Entry points at repo root: [README.md](../README.md), [QUICKSTART.md](../QUICKST
 
 Planning checklists, product plans, report templates, and superseded narratives live under **`../_archive/`** (see `_archive/README.md`). They are intentionally excluded from the default documentation index.
 
-The **pre-React static dashboard** (old `web/dashboard.html`, `chat.html`, and related JS) is preserved under **`../archive/web-legacy/`** (see `archive/web-legacy/README.md`); the live app is `dashboard/` + `dashboard/dist/` served at `/dashboard/`.
+The **pre-React static dashboard** (old `web/dashboard.html`, `chat.html`, and related JS) is preserved under **`../archive/web-legacy/`** (see `archive/web-legacy/README.md`); the live app is `dashboard/` + `dashboard/dist/` served at **`/`** (unified SPA; legacy `/dashboard/*` redirects to `/*`).

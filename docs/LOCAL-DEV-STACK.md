@@ -23,7 +23,7 @@ Authoritative runbook for **IN.M1**: running the Go HTTP API, the TS orchestrato
    - `npm run dev`  
    Default **5173** (`dashboard/vite.config.ts`).
 
-**Minimum URLs after step 4:** Go `http://localhost:8080`, orchestrator `http://localhost:8787`, dashboard UI **`http://localhost:5173/dashboard/`** (Vite `base` is `/dashboard/`).
+**Minimum URLs after step 4:** Go `http://localhost:8080`, orchestrator `http://localhost:8787`, dashboard UI **`http://localhost:5173/`** (Vite `base` is `/`).
 
 ## 2. Processes and default ports
 
@@ -31,11 +31,11 @@ Authoritative runbook for **IN.M1**: running the Go HTTP API, the TS orchestrato
 |--------|-------------|-----------------------------------------------|
 | Go API | `http://localhost:8080` | `go run ./cmd/web-server` |
 | TS orchestrator | `http://localhost:8787` | `cd orchestrator && npm install && npm run dev:api` |
-| Vite dashboard | `http://localhost:5173/dashboard/` | `cd dashboard && npm install && npm run dev` |
+| Vite dashboard | `http://localhost:5173/` | `cd dashboard && npm install && npm run dev` |
 
 ## 3. How the dashboard reaches the backend
 
-- **Vite dev server** proxies **`/api`**, **`/v1`**, and **`/health`** to **`http://localhost:8080`** (`dashboard/vite.config.ts`). The SPA is mounted at **`/dashboard/`**; API calls from the app still use `/api/...` on the same origin.
+- **Vite dev server** proxies **`/api`**, **`/v1`**, and **`/health`** to **`http://localhost:8080`** (`dashboard/vite.config.ts`). The SPA is mounted at **`/`**; API calls from the app still use `/api/...` on the same origin.
 - **Go → TS delegation** is not a Vite concern: the Go process calls the orchestrator using **`GAIOL_TS_ORCHESTRATOR_URL`** (see `cmd/web-server/main.go`). The TS service’s listen port is controlled only by **`ORCHESTRATOR_PORT`** on the Node process; keep that URL in sync with `GAIOL_TS_ORCHESTRATOR_URL`.
 - **`GAIOL_USE_TS_ORCHESTRATOR`**: when truthy (`1`, `true`, `yes`, `y`, `on`) **and** `GAIOL_TS_ORCHESTRATOR_URL` is set, Go delegates `POST /api/query/smart` to TS (`internal/httpserver/ts_orchestrator.go`, `tryQuerySmartViaTSOrchestrator`). If delegation is off or TS is unreachable, Go falls back to its own reasoning path (delegate failure logs and returns false so the Go path runs).
 
@@ -75,9 +75,7 @@ Use these to verify each process is up.
 
 **Enabled:** Database required at startup. `auth.AuthMiddleware` validates the Supabase session by calling Supabase’s **`/auth/v1/user`** with the bearer token (preferred path in `internal/auth/supabase.go`), not a locally decoded JWT secret.
 
-**How the legacy web UI obtains credentials:** `web/js/api.js` loads auth mode via **`GET /health`** (`fetchAuthMode`, reads `auth_disabled`). Tokens live in **`localStorage`** under `gaiol_access_token` and `gaiol_refresh_token`; `apiRequest` sends **`Authorization: Bearer <access>`** and **`credentials: 'include'`** for cookies when the endpoint is not public (`web/js/api.js`). Sign-in/sign-up responses apply tokens via `applyAuthTokensFromPayload`.
-
-**React `dashboard/`:** Pages are largely stubs; there is **no** shared API client or JWT flow in `dashboard/src` yet. When implementing, mirror the legacy pattern: read `auth_disabled` from `/health`, then either skip bearer tokens or use stored Supabase session tokens on protected routes.
+**React `dashboard/`:** The SPA reads **`auth_disabled`** from **`GET /health`**, stores tokens in **`localStorage`** (`gaiol_access_token`, `gaiol_refresh_token`), and sends **`Authorization: Bearer`** on API calls via `dashboard/src/lib/api.ts` / `auth.ts`. Sign-in and sign-up use `dashboard/src/lib/authApi.ts`.
 
 ## 7. CORS expectations (summary)
 

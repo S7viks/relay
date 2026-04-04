@@ -107,7 +107,7 @@ ABTC wins with p < 0.01 (paired t-test) across all domains.
 │       ├── contract/v1/    # Wire types, AJV validators, request/response mapping
 │       ├── domain/         # Core IDs, task models, trust records
 │       └── config/         # Env-based registry, adapter construction
-├── web/                    # Vanilla JS/CSS/HTML frontend (37 files)
+├── web/                    # Placeholder README (static UI removed; see archive/web-legacy)
 ├── migrations/             # Supabase SQL schema migrations (14 files)
 ├── scripts/                # Dev/ops/test automation (mostly PowerShell)
 ├── dashboard/              # Optional Vite/React admin UI

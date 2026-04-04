@@ -15,6 +15,15 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
+    to: '/reasoning',
+    label: 'Reasoning',
+    icon: (
+      <svg className="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M12 2a8 8 0 1 0 8 8M12 2v4M12 18v4M2 12h4M18 12h4" strokeWidth="2" />
+      </svg>
+    ),
+  },
+  {
     to: '/chat',
     label: 'Chat',
     icon: (
@@ -120,6 +129,7 @@ function Sidebar() {
 
 const ROUTE_NAMES: Record<string, string> = {
   '/chat': 'Chat',
+  '/reasoning': 'Reasoning',
   '/trace': 'Trace Viewer',
   '/trust': 'Trust Heatmap',
   '/models': 'Models',
@@ -147,16 +157,12 @@ type TopBarAuthProps = {
 
 function TopBar({ authLoading, authDisabled, sessionEmail, onSignOut }: TopBarAuthProps) {
   const location = useLocation()
-  const { theme, setTheme, isConnected } = useAppStore()
+  const { isConnected } = useAppStore()
   const routeName = topBarRouteLabel(location.pathname)
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-  }, [theme])
 
   return (
     <div className="topbar">
-      <span className="topbar__title">GAIOL</span>
+      <span className="topbar__title">gaiol_</span>
       <span className="topbar__route">{routeName}</span>
       <div className="topbar__auth" aria-live="polite">
         {authLoading ? (
@@ -189,12 +195,6 @@ function TopBar({ authLoading, authDisabled, sessionEmail, onSignOut }: TopBarAu
         )}
       </div>
       <div className="topbar__actions">
-        <button
-          className="topbar__theme-btn"
-          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-        >
-          {theme === 'light' ? 'Dark' : 'Light'}
-        </button>
         <div
           className={`status-dot ${isConnected ? 'status-dot--connected' : ''}`}
           title={isConnected ? 'Connected' : 'Disconnected'}
@@ -268,10 +268,8 @@ export function Layout() {
     if (!sessionEmail) return
 
     const pathname = location.pathname
-    // Depending on React Router basename handling, `pathname` may include or exclude `/dashboard`.
-    const normalizedPathname = pathname.replace(/^\/dashboard/, '')
-    if (normalizedPathname === '/onboarding') return
-    if (normalizedPathname.startsWith('/onboarding/')) return
+    if (pathname === '/onboarding') return
+    if (pathname.startsWith('/onboarding/')) return
 
     ;(async () => {
       try {

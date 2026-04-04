@@ -22,11 +22,11 @@ If your repo is in another GitHub account than the one you use for the host: for
 
 The error **`404: NOT_FOUND` with a `bom1::…` id** on [gaiol.vercel.app](https://gaiol.vercel.app) usually means Vercel had **no matching static output** (old config pointed at `web/dashboard.html`, which was removed in favor of the Vite app).
 
-**Current behavior:** root [`vercel.json`](../vercel.json) builds **`dashboard/`**, publishes **`dashboard/dist`**, and rewrites:
+**Current behavior:** root [`vercel.json`](../vercel.json) builds **`dashboard/`**, publishes **`dashboard/dist`**, and:
 
-- `/` → `/dashboard/`
-- `/dashboard/assets/*` → `/assets/*` (matches Vite `base: /dashboard/`)
-- `/dashboard` and `/dashboard/*` (non-asset) → `/index.html` (SPA)
+- Serves static files from `dist` (including `/assets/*`) when present.
+- **Redirects** legacy `/dashboard` and `/dashboard/*` to `/` and `/*` (301).
+- **Rewrites** other routes to `/index.html` for the SPA (Vite `base: /`).
 
 **Vercel project settings**
 
@@ -75,7 +75,7 @@ docker run -e NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co \
   -p 8080:8080 gaiol
 ```
 
-The image includes the `web/` static files and runs as non-root. No `.env` file is baked into the image; set env at runtime.
+The image includes the built UI in `dashboard/dist/` and runs as non-root. No `.env` file is baked into the image; set env at runtime.
 
 ### Environment variables (required)
 

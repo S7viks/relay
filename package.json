@@ -1,7 +1,7 @@
 {
   "name": "gaiol",
   "private": true,
-  "description": "Root package: legacy inject script for web/js (optional). Vercel uses vercel.json to build dashboard/ instead.",
+  "description": "Root package: optional inject script for dashboard/public/gaiol-api-config.js. Vercel builds dashboard/ via vercel.json; prefer VITE_API_BASE for the React SPA.",
   "scripts": {
     "build": "node scripts/inject-gaiol-config.js"
   }

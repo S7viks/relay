@@ -7,8 +7,10 @@ This document describes the routing setup for the GAIOL web server.
 Routes are registered in the following order (important for Go's http package):
 
 1. **Root and System Routes** (public)
-   - `GET /` - File server (serves web UI)
+   - `GET /assets/*` - Vite build assets (JS/CSS)
+   - `GET /` and other non-API paths — unified React SPA (`dashboard/dist/index.html` when no static file matches)
    - `GET /health` - Health check
+   - `GET /dashboard`, `/dashboard/*` — permanent redirect to `/` / `/*` (legacy bookmarks)
 
 2. **Model Routes** (public, specific first)
    - `GET /api/models/free` - List free models (registered first to avoid conflict)
@@ -42,7 +44,7 @@ Routes are registered in the following order (important for Go's http package):
 - All routes under `/api/models*`
 - All routes under `/api/auth/*`
 - `/health`
-- `/` (file server)
+- `/` (SPA shell; client-side routes under same origin)
 
 **Protected Routes** (authentication required):
 - `/api/query`
@@ -55,7 +57,7 @@ The `AuthMiddleware` automatically:
 - Skips authentication for public routes:
   - `/health`
   - `/` (root)
-  - `/web/*` (static files)
+  - `/web/*` (legacy path prefix; optional)
   - `/api/models/*` (model listing)
   - `/api/auth/*` (authentication endpoints)
 - Validates JWT tokens for protected routes
@@ -77,8 +79,8 @@ If database connection fails:
    - **Solution**: Register `/api/models/free` before `/api/models/`
    - **Status**: ✅ Fixed
 
-2. **File server vs API routes**
-   - **Solution**: File server only serves from `./web` directory, API routes have `/api/` prefix
+2. **SPA vs API routes**
+   - **Solution**: API and `/assets/` are registered before the catch-all SPA handler; API uses `/api/` prefix
    - **Status**: ✅ No conflict
 
 3. **Auth middleware skipping**
@@ -127,28 +129,11 @@ curl -X POST http://localhost:8080/api/query/smart \
 ## Route Registration Code
 
 ```go
-// Public routes (no auth required)
-http.HandleFunc("/", noCacheFileServer)
+// Simplified — see internal/httpserver/register.go for the full mux.
+http.HandleFunc("/assets/", serveRootAssets)
 http.HandleFunc("/health", handleHealth)
-
-// Model routes - specific first
-http.HandleFunc("/api/models/free", corsMiddleware(handleListFreeModels))
-http.HandleFunc("/api/models", corsMiddleware(handleListModels))
-http.HandleFunc("/api/models/", corsMiddleware(handleModelsByProvider))
-
-// Authentication routes (public)
-if dbClient != nil {
-    authAPI := auth.NewAuthAPI(dbClient)
-    http.HandleFunc("/api/auth/signup", corsMiddleware(handleSignUp(authAPI)))
-    // ... other auth routes
-}
-
-// Protected routes (auth required)
-if dbClient != nil {
-    authMiddleware := auth.AuthMiddleware(dbClient)
-    http.Handle("/api/query", corsMiddleware(authMiddleware(http.HandlerFunc(handleQuery))))
-    // ... other protected routes
-}
+// Model routes (specific before prefix), /api/auth/*, protected /api/*, /v1/chat, …
+http.HandleFunc("/", serveUnifiedSPA) // last: React SPA from dashboard/dist
 ```
 
 ## CORS Configuration

@@ -2,7 +2,7 @@
 
 Prerequisites: Go API on 8080, TS orchestrator on 8787, `.env` with `GAIOL_TS_ORCHESTRATOR_URL` and `GAIOL_USE_TS_ORCHESTRATOR=1`, dashboard `npm run dev` on 5173. See [LOCAL-DEV-STACK.md](LOCAL-DEV-STACK.md).
 
-1. Open `http://localhost:5173/dashboard/chat`.
+1. Open `http://localhost:5173/chat`.
 2. Confirm the top bar shows a green connectivity dot (Go `/health` OK).
 3. Enter a short prompt; set strategy to something other than `go_reasoning` (e.g. `balanced`). Send.
 4. When the response returns, click the **trace id** link (or copy it).

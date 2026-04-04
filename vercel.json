@@ -5,20 +5,9 @@
   "outputDirectory": "dashboard/dist",
   "trailingSlash": false,
   "redirects": [
-    { "source": "/", "destination": "/dashboard/", "permanent": false }
+    { "source": "/dashboard", "destination": "/chat", "permanent": true },
+    { "source": "/dashboard/", "destination": "/chat", "permanent": true },
+    { "source": "/dashboard/:path*", "destination": "/:path*", "permanent": true }
   ],
-  "rewrites": [
-    {
-      "source": "/dashboard/assets/:path*",
-      "destination": "/assets/:path*"
-    },
-    {
-      "source": "/dashboard/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/dashboard",
-      "destination": "/index.html"
-    }
-  ]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

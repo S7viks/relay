@@ -52,7 +52,7 @@ func clampTemperature(t float64) float64 {
 func (d *Deps) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
-		// fetch() uses credentials: 'include' in web/js/api.js and dashboard/src/lib/api.ts. Browsers reject
+		// fetch() uses credentials: 'include' in dashboard/src/lib/api.ts. Browsers reject
 		// Access-Control-Allow-Origin: * together with credentialed requests.
 		// Echo a specific origin and set Allow-Credentials when Origin is present.
 		allowOrigin := ""
@@ -184,38 +184,24 @@ func (d *Deps) optionalAuthMiddleware(authMiddleware func(http.Handler) http.Han
 }
 
 // ============================================================================
-// Static page server (for /login, /signup, /dashboard)
+// Unified Vite SPA (base /) — dashboard/dist
 // ============================================================================
 
-func serveStaticPage(filename string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		file, err := os.Open("./web/" + filename)
-		if err != nil {
-			http.Error(w, filename+" not found", http.StatusNotFound)
-			return
-		}
-		defer file.Close()
-		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		http.ServeContent(w, r, filename, time.Time{}, file)
-	}
-}
+const reactAppIndex = "dashboard/dist/index.html"
 
-const reactDashboardIndex = "dashboard/dist/index.html"
-
-// serveReactDashboardAssets serves hashed JS/CSS from the Vite build (base /dashboard/).
-func serveReactDashboardAssets(w http.ResponseWriter, r *http.Request) {
+// serveRootAssets serves hashed JS/CSS from the Vite build at /assets/*.
+func serveRootAssets(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	http.StripPrefix("/dashboard", http.FileServer(http.Dir("dashboard/dist"))).ServeHTTP(w, r)
+	http.StripPrefix("/assets/", http.FileServer(http.Dir("dashboard/dist/assets"))).ServeHTTP(w, r)
 }
 
-// serveReactDashboardSPA serves the Vite React app for /dashboard and client routes under /dashboard/*.
-func serveReactDashboardSPA(w http.ResponseWriter, r *http.Request) {
+// serveUnifiedSPA serves the React app: real files from dashboard/dist when present, else index.html.
+func serveUnifiedSPA(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	rel := strings.TrimPrefix(r.URL.Path, "/dashboard")
+	rel := strings.TrimPrefix(r.URL.Path, "/")
 	rel = strings.Trim(rel, "/")
 	if rel != "" && !strings.Contains(rel, "..") {
 		candidate := filepath.Join("dashboard", "dist", filepath.FromSlash(rel))
@@ -225,11 +211,11 @@ func serveReactDashboardSPA(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	f, err := os.Open(reactDashboardIndex)
+	f, err := os.Open(reactAppIndex)
 	if err != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusServiceUnavailable)
-		_, _ = w.Write([]byte(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>GAIOL Dashboard</title></head><body style="font-family:system-ui;padding:2rem;max-width:40rem"><h1>Dashboard build missing</h1><p>Run <code>cd dashboard &amp;&amp; npm install &amp;&amp; npm run build</code> to generate <code>dashboard/dist/</code>, then restart the server.</p><p><a href="/">Home</a></p></body></html>`))
+		_, _ = w.Write([]byte(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>GAIOL</title></head><body style="font-family:system-ui;padding:2rem;max-width:40rem"><h1>UI build missing</h1><p>Run <code>cd dashboard &amp;&amp; npm install &amp;&amp; npm run build</code> to generate <code>dashboard/dist/</code>, then restart the server.</p><p><a href="/health">Health</a></p></body></html>`))
 		return
 	}
 	defer f.Close()
@@ -238,42 +224,28 @@ func serveReactDashboardSPA(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, "index.html", time.Time{}, f)
 }
 
-func redirectDashboardSlash(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/dashboard" {
-		http.Redirect(w, r, "/dashboard/", http.StatusMovedPermanently)
+// redirectLegacyDashboard maps /dashboard and /dashboard/* to / and /* (permanent).
+func redirectLegacyDashboard(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	http.NotFound(w, r)
-}
-
-// ============================================================================
-// File Server (no cache)
-// ============================================================================
-
-func noCacheFileServer(w http.ResponseWriter, r *http.Request) {
-	// Disable caching
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
-
-	// Root is the public landing page; chat UI is served at /chat (see register.go).
-	if r.URL.Path == "/" || r.URL.Path == "" {
-		file, err := os.Open("./web/landing.html")
-		if err != nil {
-			http.Error(w, "landing.html not found", http.StatusNotFound)
-			return
-		}
-		defer file.Close()
-
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		http.ServeContent(w, r, "landing.html", time.Time{}, file)
+	path := r.URL.Path
+	if path == "/dashboard" || path == "/dashboard/" {
+		http.Redirect(w, r, "/chat", http.StatusMovedPermanently)
 		return
 	}
-
-	// For all other paths, serve from ./web directory
-	// Use StripPrefix to serve files correctly
-	fs := http.FileServer(http.Dir("./web"))
-	http.StripPrefix("/", fs).ServeHTTP(w, r)
+	if !strings.HasPrefix(path, "/dashboard/") {
+		http.NotFound(w, r)
+		return
+	}
+	suffix := strings.TrimPrefix(path, "/dashboard/")
+	suffix = strings.Trim(suffix, "/")
+	if suffix == "" {
+		http.Redirect(w, r, "/chat", http.StatusMovedPermanently)
+		return
+	}
+	http.Redirect(w, r, "/"+suffix, http.StatusMovedPermanently)
 }
 
 // ============================================================================

@@ -25,7 +25,7 @@ export const useAppStore = create<AppState>()(
       sessionId: null,
       queryHistory: [],
       activeModel: 'auto',
-      theme: 'light',
+      theme: 'dark',
       isConnected: false,
       setSessionId: (id) => set({ sessionId: id }),
       addToHistory: (entry) =>

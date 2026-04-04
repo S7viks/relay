@@ -24,7 +24,6 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
 
 COPY --from=builder /app/gaiol .
-COPY --from=builder /app/web ./web
 COPY --from=builder /app/dashboard/dist ./dashboard/dist
 
 EXPOSE 8080

@@ -67,28 +67,12 @@ func Register(mux *http.ServeMux, d *Deps) {
 	// /health must use CORS: the Vercel-hosted UI calls it cross-origin; api.js sends
 	// Content-Type on GET which triggers a preflight OPTIONS.
 	mux.Handle("/health", cors(http.HandlerFunc(d.handleHealth)))
-	if d.AuthDisabled {
-		redirect := func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/", http.StatusFound) }
-		mux.HandleFunc("/login", redirect)
-		mux.HandleFunc("/signup", redirect)
-		mux.HandleFunc("/reset-password", redirect)
-	} else {
-		mux.HandleFunc("/login", serveStaticPage("login.html"))
-		mux.HandleFunc("/signup", serveStaticPage("signup.html"))
-		mux.HandleFunc("/reset-password", serveStaticPage("reset-password.html"))
-	}
-	mux.HandleFunc("/terms", serveStaticPage("terms.html"))
-	// React SPA (Vite): build output in dashboard/dist — see docs/DASHBOARD.md
-	mux.HandleFunc("/dashboard", redirectDashboardSlash)
-	mux.HandleFunc("/dashboard/assets/", serveReactDashboardAssets)
-	mux.HandleFunc("/dashboard/", serveReactDashboardSPA)
-	mux.HandleFunc("/welcome", serveStaticPage("landing.html"))
-	mux.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/dashboard/chat", http.StatusFound)
-	})
-	mux.HandleFunc("/chat/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/chat", http.StatusFound)
-	})
+	// Hashed JS/CSS from Vite (must be before catch-all SPA)
+	mux.HandleFunc("/assets/", serveRootAssets)
+	// Legacy bookmarks: /dashboard/* -> /*
+	mux.HandleFunc("/dashboard", redirectLegacyDashboard)
+	mux.HandleFunc("/dashboard/", redirectLegacyDashboard)
+	mux.HandleFunc("/welcome", serveUnifiedSPA)
 
 	// 2. Model Routes (public)
 	mux.Handle("/api/models/free", cors(http.HandlerFunc(d.handleListFreeModels)))
@@ -187,6 +171,6 @@ func Register(mux *http.ServeMux, d *Deps) {
 
 	mux.Handle("/v1/chat", cors(http.HandlerFunc(d.handleV1Chat)))
 
-	// Static files and HTML pages last so /api, /health, /v1, etc. are never swallowed by the file server.
-	mux.HandleFunc("/", noCacheFileServer)
+	// Unified React SPA last so /api, /health, /v1, /assets, etc. are never swallowed.
+	mux.HandleFunc("/", serveUnifiedSPA)
 }

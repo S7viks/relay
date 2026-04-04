@@ -26,10 +26,8 @@
 ### Frontend — Most Important Files
 | File | Why It Matters |
 |---|---|
-| `dashboard/src/` | **React dashboard** (Vite); built to `dashboard/dist/`, served by Go at `/dashboard/` |
-| `web/js/reasoning-bundle.js` | Legacy **reasoning** page client (`/reasoning.html`) |
-| `web/js/api.js` | HTTP wrapper for **auth** pages (`login` / `signup`) |
-| `web/landing.html` | Marketing / entry shell |
+| `dashboard/src/` | **Unified React SPA** (Vite); built to `dashboard/dist/`, served by Go at **`/`** (`/assets/*` for bundles) |
+| `web/README.md` | Notes: static `web/` UI removed; use `archive/web-legacy/` for historical HTML/JS |
 | `archive/web-legacy/` | Archived pre-React HTML/JS SPA (inactive) |
 
 ---
@@ -47,19 +45,13 @@
 3. **Windows-first automation**  
    Most scripts are `.ps1` or `.bat`. Unix has `start.sh` and `test_agent.sh` / `test_world_model.sh` but full parity is incomplete.
 
-4. **Legacy `web/js` auth uses globals**  
-   `web/js/` uses `window.*` exports and is script-order-sensitive. Not module-bundled. This creates coupling risks when adding new JS functionality.
-
-5. **Chat UX split**  
-   Primary chat is the React **Chat** page at `/dashboard/chat`. The standalone **`/reasoning.html`** flow remains for the Go reasoning WebSocket UI.
-
-6. **Schema lacks tenant columns on some tables**  
+4. **Schema lacks tenant columns on some tables**  
    `documents`, `model_performance`, `world_model_facts` are currently global in migrations (no tenant column / RLS). These rely on application-level partitioning assumptions.
 
-7. **TeX build requires missing dependencies**  
+5. **TeX build requires missing dependencies**  
    `_archive/research-presentation/poster/gaiol-iop.log` (when present) may show `logreq.sty` missing (biblatex workflow). The paper uses a fallback in `gaiol-iop.tex` for `algpseudocode.sty` and `iopjournal.cls`, so it may compile but with degraded formatting without those packages.
 
-8. **Figures referenced but not in repo**  
+6. **Figures referenced but not in repo**  
    The paper references figure files (`figs/Figure_2.png`, `figs/Figure_3.png`, `figs/5.1.png`, `figs/5.4.png`, `figs/consensus_voting.png`, author photos) that have placeholder `\fbox{Missing file}` fallbacks in the TeX.
 
 ### In the Research Paper

@@ -128,9 +128,9 @@ func main() {
 	httpserver.Register(http.DefaultServeMux, deps)
 
 	if _, err := os.Stat("dashboard/dist/index.html"); err != nil {
-		log.Println("Dashboard UI: dashboard/dist/index.html not found — open http://localhost:" + coalescePort(os.Getenv("PORT")) + "/dashboard/ will show a build hint. Run: cd dashboard && npm install && npm run build")
+		log.Println("Web UI: dashboard/dist/index.html not found — open http://localhost:" + coalescePort(os.Getenv("PORT")) + "/ will show a build hint. Run: cd dashboard && npm install && npm run build")
 	} else {
-		log.Println("Dashboard UI: serving React app at /dashboard/ (from dashboard/dist/)")
+		log.Println("Web UI: serving unified React app at / (from dashboard/dist/)")
 	}
 
 	port := os.Getenv("PORT")

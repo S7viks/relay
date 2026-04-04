@@ -159,7 +159,7 @@ Refresh an access token using a refresh token.
 
 ### JavaScript API Functions
 
-The frontend API client (`web/js/api.js`) provides the following authentication functions:
+The React SPA (`dashboard/src/lib/authApi.ts` and `api.ts`) provides the following authentication flows:
 
 #### `signUp(email, password, metadata)`
 Create a new user account.
