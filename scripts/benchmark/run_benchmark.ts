@@ -1,6 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  abtcConvergenceCurve,
+  type ModelResponse,
+  type SweepQuery,
+} from "../../orchestrator/src/evaluation/sensitivity.js";
 
 type DomainName =
   | "analytical_reasoning"
@@ -818,6 +823,109 @@ async function runFaultToleranceSweep(resultsDir: string): Promise<FaultToleranc
   return rows;
 }
 
+// ─── ABTC convergence curve (Section 6.4) ────────────────────────────────────
+
+const CONVERGENCE_ROUNDS = 20;
+const CONVERGENCE_LAMBDA = 0.9;
+const CONVERGENCE_DOMAIN: DomainName = "analytical_reasoning";
+
+interface ConvergenceCurvePoint {
+  round: number;
+  model_id: string;
+  posterior_mean: number;
+}
+
+function extractModelResponsesFromTrace(data: BenchmarkOrchestrateResponse): ModelResponse[] {
+  const out: ModelResponse[] = [];
+  const trace = data.trace;
+  if (!trace || typeof trace !== "object") return out;
+
+  const subtasks = (trace as Record<string, unknown>).subtasks;
+  if (!Array.isArray(subtasks)) return out;
+
+  for (const sub of subtasks) {
+    if (!sub || typeof sub !== "object") continue;
+    const calls = (sub as Record<string, unknown>).calls;
+    if (!Array.isArray(calls)) continue;
+
+    for (const call of calls) {
+      if (!call || typeof call !== "object") continue;
+      const rec = call as Record<string, unknown>;
+      const modelId = safeString(rec.model_id ?? rec.modelId).trim();
+      const text = safeString(rec.text).trim();
+      const error = safeString(rec.error).trim();
+      if (!modelId || error || !text) continue;
+      out.push({ modelId, text });
+    }
+  }
+
+  return out;
+}
+
+function buildConvergenceQueries(rounds: number): SweepQuery[] {
+  const pool = Object.values(DOMAINS).flat();
+  const queries: SweepQuery[] = [];
+  for (let i = 0; i < rounds; i++) {
+    queries.push({ query: pool[i % pool.length]! });
+  }
+  return queries;
+}
+
+async function runConvergenceCurve(resultsDir: string): Promise<ConvergenceCurvePoint[]> {
+  console.log(
+    `\n[Convergence] Starting — ${CONVERGENCE_ROUNDS} sequential rounds, λ=${CONVERGENCE_LAMBDA}, domain=${CONVERGENCE_DOMAIN}`,
+  );
+
+  const queries = buildConvergenceQueries(CONVERGENCE_ROUNDS);
+  let roundIndex = 0;
+
+  const runModels = async (query: string): Promise<ModelResponse[]> => {
+    const traceId = `convergence-r${roundIndex}-${Date.now()}`;
+    roundIndex++;
+
+    const payload: Record<string, unknown> = {
+      schema_version: "1.0",
+      trace_id: traceId,
+      domain: CONVERGENCE_DOMAIN,
+      task_kind: DOMAIN_TASK_KIND[CONVERGENCE_DOMAIN],
+      objective: query,
+      messages: [{ role: "user", content: query }],
+      consensus_mode: "abtc",
+      beam_width: 3,
+      explore_paths: true,
+      abtc_decay: round2(1 - CONVERGENCE_LAMBDA),
+    };
+
+    const res = await postOrchestrate(payload, TIMEOUT_MS);
+    if (!res.ok) {
+      console.warn(`    round ${roundIndex}: orchestration failed — ${res.error}`);
+      return [];
+    }
+
+    const responses = extractModelResponsesFromTrace(res.data);
+    console.log(`    round ${roundIndex}/${CONVERGENCE_ROUNDS}: ${responses.length} model response(s)`);
+    await sleep(INTER_QUERY_DELAY_MS);
+    return responses;
+  };
+
+  const curve = await abtcConvergenceCurve(queries, runModels, CONVERGENCE_LAMBDA);
+  const points: ConvergenceCurvePoint[] = curve.map((p) => ({
+    round: p.round,
+    model_id: p.modelId,
+    posterior_mean: round2(p.posteriorMean),
+  }));
+
+  await saveJson(path.join(resultsDir, "convergence_curve.json"), {
+    lambda: CONVERGENCE_LAMBDA,
+    domain: CONVERGENCE_DOMAIN,
+    rounds: CONVERGENCE_ROUNDS,
+    points,
+  });
+
+  console.log(`\n[Convergence] Done. ${points.length} posterior snapshots saved.`);
+  return points;
+}
+
 // ─── Console summary helper ───────────────────────────────────────────────────
 
 function renderSweepSummary<T>(
@@ -844,6 +952,7 @@ function renderSweepSummary<T>(
 
 async function main(): Promise<void> {
   const runSweepsOnly = process.argv.includes("--sweeps-only");
+  const runConvergenceOnly = process.argv.includes("--convergence");
   const skipSweeps = process.argv.includes("--no-sweeps");
 
   await assertOrchestratorHealthy();
@@ -855,6 +964,13 @@ async function main(): Promise<void> {
   const samplesPath = path.join(resultsDir, "output_samples.md");
 
   await ensureResultsDirectory(resultsDir);
+
+  if (runConvergenceOnly) {
+    await runConvergenceCurve(resultsDir);
+    console.log("\n[GAIOL Benchmark] Convergence phase complete.");
+    console.log(`  Results written to: ${path.join(resultsDir, "convergence_curve.json")}`);
+    return;
+  }
 
   if (!runSweepsOnly) {
     const domainNames = Object.keys(DOMAINS) as DomainName[];
@@ -959,6 +1075,7 @@ async function main(): Promise<void> {
     await runLambdaSweep(resultsDir);
     await runBeamWidthSweep(resultsDir);
     await runFaultToleranceSweep(resultsDir);
+    await runConvergenceCurve(resultsDir);
   }
 
   console.log("\n[GAIOL Benchmark] All phases complete.");
@@ -970,6 +1087,7 @@ async function main(): Promise<void> {
   console.log("    sensitivity_lambda.json  — λ ∈ {0.50,0.70,0.90,0.95,0.99} quality sweep");
   console.log("    sensitivity_beamwidth.json — beam_width ∈ {1..5} quality/latency tradeoff");
   console.log("    fault_tolerance.json     — graceful degradation under real timeout pressure");
+  console.log("    convergence_curve.json   — ABTC posterior mean per round (Section 6.4)");
 }
 
 await main();

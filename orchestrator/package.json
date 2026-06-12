@@ -11,7 +11,10 @@
     "test:watch": "vitest",
     "dev:api": "tsx src/api/server.ts",
     "start": "tsx src/api/server.ts",
-    "cli": "tsx src/cli/index.ts"
+    "cli": "tsx src/cli/index.ts",
+    "benchmark": "tsx ../scripts/benchmark/run_benchmark.ts",
+    "benchmark:sweeps": "tsx ../scripts/benchmark/run_benchmark.ts --sweeps-only",
+    "benchmark:convergence": "tsx ../scripts/benchmark/run_benchmark.ts --convergence"
   },
   "engines": {
     "node": ">=20"

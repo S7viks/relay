@@ -1,0 +1,13 @@
+---
+description: GAIOL product scope and repo map for Cursor agents
+alwaysApply: true
+---
+
+# GAIOL
+
+- **Product:** Single-tenant-facing API key; routes to LLM providers using keys stored per user/tenant; Supabase auth + Postgres.
+- **Backend:** Go module `gaiol`, main entry `cmd/web-server/main.go`, implementation under `internal/`.
+- **Frontend:** `dashboard/` — Vite, React, TypeScript. API origin via `VITE_API_BASE` when frontend and API are on different hosts.
+- **Do not treat as default scope:** `archive/`, paper/LaTeX, `eval/` and benchmark tooling — only when the user task names them.
+- **Docs of record for setup:** `QUICKSTART.md`, `docs/database-setup.md`, `docs/LOCAL-DEV-STACK.md`.
+- **Prefer** small, targeted diffs; extend existing packages instead of parallel implementations.

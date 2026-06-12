@@ -69,3 +69,26 @@ test_results.txt
 TEST_LOG.txt
 test_errors.txt
 reasoning.a
+
+# Python virtualenv
+.venv/
+
+# LaTeX scratch and figure generation artifacts
+MI_Synopsis_*.pdf
+_clean_plain_pdf.py
+_create_*.py
+_extract_images.py
+_insert_*.py
+_keep_logos.py
+_remove_images.py
+_extracted_images/
+generated_figs/
+neat_figs/
+images/
+base_pdf_text.txt
+captions.txt
+drawings.txt
+figures_context.txt
+img_details.txt
+img_list*.txt
+toc.txt
