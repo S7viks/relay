@@ -16,6 +16,7 @@ import { loadOrchestratorPort } from "../config/env.js";
 import type { OrchestrationRequest } from "../domain/task.js";
 import {
   consensusModeV1ToConfigPartial,
+  abtcDecayV1ToConfigPartial,
   orchestrateRequestV1ToDomain,
   toOrchestrateResponseV1,
   validateOrchestrateRequestV1,
@@ -164,9 +165,13 @@ export function buildServer() {
       const v1 = body as import("../contract/v1/wire-types.js").OrchestrateRequestV1;
       const orchestrationReq = orchestrateRequestV1ToDomain(v1);
       const modePartial = consensusModeV1ToConfigPartial(v1.consensus_mode);
+      const decayPartial = abtcDecayV1ToConfigPartial(v1.abtc_decay);
+      const configOverride = modePartial || decayPartial
+        ? { ...(modePartial ?? {}), ...(decayPartial ?? {}) }
+        : undefined;
       const result = await orchestrator.run(
         orchestrationReq,
-        modePartial ? { configOverride: modePartial } : undefined,
+        configOverride ? { configOverride } : undefined,
       );
       const out = toOrchestrateResponseV1({
         trace: result.trace,

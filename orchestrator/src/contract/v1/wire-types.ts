@@ -42,6 +42,8 @@ export interface OrchestrateRequestV1 {
   explore_paths?: boolean;
   beam_width?: number;
   consensus_mode?: ConsensusModeV1;
+  /** ABTC temporal decay (λ = 1 − abtc_decay). Overrides server default for this request only. */
+  abtc_decay?: number;
 }
 
 export interface BetaDistributionV1 {

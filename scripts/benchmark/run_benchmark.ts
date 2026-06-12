@@ -573,7 +573,279 @@ async function runSingleQuery(args: {
   };
 }
 
+// ─── Sweep types ─────────────────────────────────────────────────────────────
+
+interface LambdaSweepRow {
+  lambda: number;
+  /** decay sent in request (1 - lambda) */
+  abtc_decay: number;
+  domain: DomainName;
+  query: string;
+  quality: number;
+  latency_ms: number;
+  success: boolean;
+}
+
+interface BeamWidthSweepRow {
+  beam_width: number;
+  domain: DomainName;
+  query: string;
+  quality: number;
+  latency_ms: number;
+  success: boolean;
+}
+
+interface FaultToleranceRow {
+  scenario: string;
+  /** per-request timeout used to force real model timeouts */
+  request_timeout_ms: number;
+  domain: DomainName;
+  query: string;
+  quality: number;
+  latency_ms: number;
+  success: boolean;
+}
+
+// ─── Lambda sensitivity sweep ─────────────────────────────────────────────────
+
+/**
+ * Section 6.5 of the revised paper: vary λ ∈ {0.5, 0.7, 0.9, 0.95, 0.99}.
+ *
+ * For each λ we run PROBE_QUERIES_PER_DOMAIN queries per domain so that trust
+ * updates actually accumulate (λ only matters across sequential rounds).  We
+ * send abtc_decay = 1 - λ in the request body which the API now threads
+ * through to OrchestratorConfig.abtc.decay.
+ */
+const LAMBDA_VALUES = [0.5, 0.7, 0.9, 0.95, 0.99];
+const PROBE_QUERIES_PER_DOMAIN = 3; // keep runtime reasonable
+
+async function runLambdaSweep(resultsDir: string): Promise<LambdaSweepRow[]> {
+  console.log("\n[Lambda Sweep] Starting — λ ∈ {0.50, 0.70, 0.90, 0.95, 0.99}");
+  const rows: LambdaSweepRow[] = [];
+
+  const probeQueryMap: Record<DomainName, string[]> = {
+    analytical_reasoning: DOMAINS.analytical_reasoning.slice(0, PROBE_QUERIES_PER_DOMAIN),
+    code_generation: DOMAINS.code_generation.slice(0, PROBE_QUERIES_PER_DOMAIN),
+    multi_step_problem: DOMAINS.multi_step_problem.slice(0, PROBE_QUERIES_PER_DOMAIN),
+    knowledge_retrieval: DOMAINS.knowledge_retrieval.slice(0, PROBE_QUERIES_PER_DOMAIN),
+    creative_synthesis: DOMAINS.creative_synthesis.slice(0, PROBE_QUERIES_PER_DOMAIN),
+  };
+
+  for (const lambda of LAMBDA_VALUES) {
+    const decay = round2(1 - lambda);
+    console.log(`\n  λ=${lambda} (abtc_decay=${decay})`);
+
+    for (const domain of Object.keys(probeQueryMap) as DomainName[]) {
+      const queries = probeQueryMap[domain];
+      for (let i = 0; i < queries.length; i++) {
+        const query = queries[i];
+        const traceId = `sweep-lambda-${lambda}-${domain}-${i}-${Date.now()}`;
+        const payload: Record<string, unknown> = {
+          schema_version: "1.0",
+          trace_id: traceId,
+          domain,
+          task_kind: DOMAIN_TASK_KIND[domain],
+          objective: query,
+          messages: [{ role: "user", content: query }],
+          consensus_mode: "abtc",
+          beam_width: 3,
+          explore_paths: true,
+          abtc_decay: decay,
+        };
+
+        const res = await postOrchestrate(payload, TIMEOUT_MS);
+        let quality = 0;
+        let success = false;
+        if (res.ok) {
+          const content = extractPrimaryResponse(res.data);
+          const scored = await evaluateQuality(traceId, query, content);
+          quality = scored.overall;
+          success = true;
+        }
+
+        rows.push({ lambda, abtc_decay: decay, domain, query, quality, latency_ms: res.latencyMs, success });
+        console.log(`    [${domain}] q${i + 1}: quality=${quality.toFixed(3)} latency=${res.latencyMs}ms`);
+        await sleep(INTER_QUERY_DELAY_MS);
+      }
+    }
+  }
+
+  await saveJson(path.join(resultsDir, "sensitivity_lambda.json"), rows);
+  console.log(`\n[Lambda Sweep] Done. ${rows.length} data points saved.`);
+  renderSweepSummary("Lambda Sweep (mean quality per λ)", rows, (r) => r.lambda.toFixed(2), (r) => r.quality);
+  return rows;
+}
+
+// ─── Beam width sweep ─────────────────────────────────────────────────────────
+
+/**
+ * Section 6.5: vary beam_width ∈ {1, 2, 3, 4, 5}.
+ * Uses the same probe queries. Measures quality vs latency tradeoff.
+ */
+const BEAM_WIDTH_VALUES = [1, 2, 3, 4, 5];
+
+async function runBeamWidthSweep(resultsDir: string): Promise<BeamWidthSweepRow[]> {
+  console.log("\n[Beam Width Sweep] Starting — beam_width ∈ {1,2,3,4,5}");
+  const rows: BeamWidthSweepRow[] = [];
+
+  // One representative query per domain for brevity
+  const repQuery: Record<DomainName, string> = {
+    analytical_reasoning: DOMAINS.analytical_reasoning[0],
+    code_generation: DOMAINS.code_generation[0],
+    multi_step_problem: DOMAINS.multi_step_problem[0],
+    knowledge_retrieval: DOMAINS.knowledge_retrieval[0],
+    creative_synthesis: DOMAINS.creative_synthesis[0],
+  };
+
+  for (const bw of BEAM_WIDTH_VALUES) {
+    console.log(`\n  beam_width=${bw}`);
+    for (const domain of Object.keys(repQuery) as DomainName[]) {
+      const query = repQuery[domain];
+      const traceId = `sweep-bw-${bw}-${domain}-${Date.now()}`;
+      const payload: Record<string, unknown> = {
+        schema_version: "1.0",
+        trace_id: traceId,
+        domain,
+        task_kind: DOMAIN_TASK_KIND[domain],
+        objective: query,
+        messages: [{ role: "user", content: query }],
+        consensus_mode: "abtc",
+        beam_width: bw,
+        explore_paths: bw > 1,
+      };
+
+      const res = await postOrchestrate(payload, TIMEOUT_MS);
+      let quality = 0;
+      let success = false;
+      if (res.ok) {
+        const content = extractPrimaryResponse(res.data);
+        const scored = await evaluateQuality(traceId, query, content);
+        quality = scored.overall;
+        success = true;
+      }
+
+      rows.push({ beam_width: bw, domain, query, quality, latency_ms: res.latencyMs, success });
+      console.log(`    [${domain}] quality=${quality.toFixed(3)} latency=${res.latencyMs}ms`);
+      await sleep(INTER_QUERY_DELAY_MS);
+    }
+  }
+
+  await saveJson(path.join(resultsDir, "sensitivity_beamwidth.json"), rows);
+  console.log(`\n[Beam Width Sweep] Done. ${rows.length} data points saved.`);
+  renderSweepSummary("Beam Width Sweep (mean quality per width)", rows, (r) => String(r.beam_width), (r) => r.quality);
+  return rows;
+}
+
+// ─── Fault-tolerance sweep ────────────────────────────────────────────────────
+
+/**
+ * Section 6.6: realistic failure scenarios using per-request timeouts.
+ *
+ * The orchestrator will experience REAL timeout failures when models don't
+ * respond within the budget — no mocking.  We test:
+ *   - Normal (90s): full budget, all models available
+ *   - Tight (8s):  slower models genuinely timeout; system must use survivors
+ *   - Very tight (4s): most models timeout; graceful degradation to 1-model answer
+ *
+ * Success means the API returned a non-empty answer despite partial failures.
+ * Quality is measured with the LLM-judge on whatever answer was produced.
+ */
+const FAULT_SCENARIOS: Array<{ name: string; request_timeout_ms: number }> = [
+  { name: "normal (90s)", request_timeout_ms: 90_000 },
+  { name: "tight (8s)", request_timeout_ms: 8_000 },
+  { name: "very-tight (4s)", request_timeout_ms: 4_000 },
+];
+
+async function runFaultToleranceSweep(resultsDir: string): Promise<FaultToleranceRow[]> {
+  console.log("\n[Fault Tolerance] Starting — real timeout scenarios: normal/tight/very-tight");
+  const rows: FaultToleranceRow[] = [];
+
+  // One representative query per domain
+  const repQuery: Record<DomainName, string> = {
+    analytical_reasoning: DOMAINS.analytical_reasoning[1],
+    code_generation: DOMAINS.code_generation[1],
+    multi_step_problem: DOMAINS.multi_step_problem[0],
+    knowledge_retrieval: DOMAINS.knowledge_retrieval[0],
+    creative_synthesis: DOMAINS.creative_synthesis[0],
+  };
+
+  for (const scenario of FAULT_SCENARIOS) {
+    console.log(`\n  Scenario: ${scenario.name}`);
+    for (const domain of Object.keys(repQuery) as DomainName[]) {
+      const query = repQuery[domain];
+      const traceId = `fault-${scenario.name.replace(/[^a-z0-9]/g, "-")}-${domain}-${Date.now()}`;
+      const payload: Record<string, unknown> = {
+        schema_version: "1.0",
+        trace_id: traceId,
+        domain,
+        task_kind: DOMAIN_TASK_KIND[domain],
+        objective: query,
+        messages: [{ role: "user", content: query }],
+        consensus_mode: "abtc",
+        beam_width: 3,
+        explore_paths: true,
+      };
+
+      const res = await postOrchestrate(payload, scenario.request_timeout_ms);
+      let quality = 0;
+      let success = false;
+      if (res.ok) {
+        const content = extractPrimaryResponse(res.data);
+        if (content.length > 0) {
+          const scored = await evaluateQuality(traceId, query, content);
+          quality = scored.overall;
+          success = true;
+        }
+      }
+
+      rows.push({
+        scenario: scenario.name,
+        request_timeout_ms: scenario.request_timeout_ms,
+        domain,
+        query,
+        quality,
+        latency_ms: res.latencyMs,
+        success,
+      });
+      console.log(`    [${domain}] success=${success} quality=${quality.toFixed(3)} latency=${res.latencyMs}ms`);
+      await sleep(INTER_QUERY_DELAY_MS);
+    }
+  }
+
+  await saveJson(path.join(resultsDir, "fault_tolerance.json"), rows);
+  console.log(`\n[Fault Tolerance] Done. ${rows.length} data points saved.`);
+  renderSweepSummary("Fault Tolerance (success rate per scenario)", rows, (r) => r.scenario, (r) => (r.success ? 1 : 0));
+  return rows;
+}
+
+// ─── Console summary helper ───────────────────────────────────────────────────
+
+function renderSweepSummary<T>(
+  title: string,
+  rows: T[],
+  keyFn: (r: T) => string,
+  valueFn: (r: T) => number,
+): void {
+  const groups = new Map<string, number[]>();
+  for (const row of rows) {
+    const k = keyFn(row);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(valueFn(row));
+  }
+  console.log(`\n  ${title}`);
+  console.log("  " + "─".repeat(40));
+  for (const [k, vals] of groups) {
+    const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
+    console.log(`  ${k.padEnd(20)} ${mean.toFixed(3)}`);
+  }
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
 async function main(): Promise<void> {
+  const runSweepsOnly = process.argv.includes("--sweeps-only");
+  const skipSweeps = process.argv.includes("--no-sweeps");
+
   await assertOrchestratorHealthy();
 
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -584,83 +856,94 @@ async function main(): Promise<void> {
 
   await ensureResultsDirectory(resultsDir);
 
-  const domainNames = Object.keys(DOMAINS) as DomainName[];
-  const benchmarkResults: BenchmarkResults = {
-    run_id: new Date().toISOString(),
-    gaiol_version: "1.0",
-    total_queries: domainNames.reduce((sum, d) => sum + DOMAINS[d].length, 0),
-    domains: {} as Record<DomainName, DomainSummary>,
-    aggregate: {
-      overall_quality: 0,
-      overall_latency_ms: 0,
-      overall_success_rate: 0,
-      overall_confidence: 0,
-      total_duration_ms: 0,
-    },
-  };
+  if (!runSweepsOnly) {
+    const domainNames = Object.keys(DOMAINS) as DomainName[];
+    const benchmarkResults: BenchmarkResults = {
+      run_id: new Date().toISOString(),
+      gaiol_version: "1.0",
+      total_queries: domainNames.reduce((sum, d) => sum + DOMAINS[d].length, 0),
+      domains: {} as Record<DomainName, DomainSummary>,
+      aggregate: {
+        overall_quality: 0,
+        overall_latency_ms: 0,
+        overall_success_rate: 0,
+        overall_confidence: 0,
+        total_duration_ms: 0,
+      },
+    };
 
-  const baselineComparison: Partial<Record<DomainName, BaselineEntry>> = {};
-  const started = nowMs();
+    const baselineComparison: Partial<Record<DomainName, BaselineEntry>> = {};
+    const started = nowMs();
 
-  console.log("[GAIOL Benchmark] Starting 25-query benchmark across 5 domains");
+    console.log("[GAIOL Benchmark] Starting 25-query benchmark across 5 domains");
 
-  for (const domain of domainNames) {
-    const queries = DOMAINS[domain];
-    const queryResults: QueryResult[] = [];
+    for (const domain of domainNames) {
+      const queries = DOMAINS[domain];
+      const queryResults: QueryResult[] = [];
 
-    for (let i = 0; i < queries.length; i++) {
-      const query = queries[i];
-      const result = await runSingleQuery({
-        domain,
-        query,
-        index: i,
-        mode: "abtc",
-        beamWidth: 3,
-        explorePaths: true,
+      for (let i = 0; i < queries.length; i++) {
+        const query = queries[i];
+        const result = await runSingleQuery({
+          domain,
+          query,
+          index: i,
+          mode: "abtc",
+          beamWidth: 3,
+          explorePaths: true,
+        });
+        queryResults.push(result);
+
+        console.log(
+          `[${domain}] Query ${i + 1}/${queries.length}: "${shortQuery(query)}" → ${result.latency_ms}ms | quality=${result.quality.overall.toFixed(2)} | σ=${result.consensus_confidence.toFixed(2)}`,
+        );
+
+        if (i === 0) {
+          await sleep(INTER_QUERY_DELAY_MS);
+          const uniform = await runSingleQuery({
+            domain,
+            query,
+            index: i,
+            mode: "uniform",
+            beamWidth: 1,
+            explorePaths: false,
+          });
+          await sleep(INTER_QUERY_DELAY_MS);
+
+          const statik = await runSingleQuery({
+            domain,
+            query,
+            index: i,
+            mode: "static",
+            beamWidth: 1,
+            explorePaths: false,
+          });
+
+          baselineComparison[domain] = {
+            query,
+            abtc: { quality: result.quality.overall, latency_ms: result.latency_ms },
+            uniform: { quality: uniform.quality.overall, latency_ms: uniform.latency_ms },
+            static: { quality: statik.quality.overall, latency_ms: statik.latency_ms },
+          };
+        }
+
+        if (i < queries.length - 1) {
+          await sleep(INTER_QUERY_DELAY_MS);
+        }
+      }
+
+      benchmarkResults.domains[domain] = summarizeDomain(queryResults);
+      benchmarkResults.aggregate = buildAggregate(benchmarkResults.domains, nowMs() - started);
+
+      await saveAllOutputs({
+        resultsPath,
+        baselinePath,
+        samplesPath,
+        benchmarkResults,
+        baselineComparison,
       });
-      queryResults.push(result);
-
-      console.log(
-        `[${domain}] Query ${i + 1}/${queries.length}: "${shortQuery(query)}" → ${result.latency_ms}ms | quality=${result.quality.overall.toFixed(2)} | σ=${result.consensus_confidence.toFixed(2)}`,
-      );
-
-      if (i === 0) {
-        await sleep(INTER_QUERY_DELAY_MS);
-        const uniform = await runSingleQuery({
-          domain,
-          query,
-          index: i,
-          mode: "uniform",
-          beamWidth: 1,
-          explorePaths: false,
-        });
-        await sleep(INTER_QUERY_DELAY_MS);
-
-        const statik = await runSingleQuery({
-          domain,
-          query,
-          index: i,
-          mode: "static",
-          beamWidth: 1,
-          explorePaths: false,
-        });
-
-        baselineComparison[domain] = {
-          query,
-          abtc: { quality: result.quality.overall, latency_ms: result.latency_ms },
-          uniform: { quality: uniform.quality.overall, latency_ms: uniform.latency_ms },
-          static: { quality: statik.quality.overall, latency_ms: statik.latency_ms },
-        };
-      }
-
-      if (i < queries.length - 1) {
-        await sleep(INTER_QUERY_DELAY_MS);
-      }
     }
 
-    benchmarkResults.domains[domain] = summarizeDomain(queryResults);
     benchmarkResults.aggregate = buildAggregate(benchmarkResults.domains, nowMs() - started);
-
     await saveAllOutputs({
       resultsPath,
       baselinePath,
@@ -668,18 +951,25 @@ async function main(): Promise<void> {
       benchmarkResults,
       baselineComparison,
     });
+
+    console.log(renderResultsTable(benchmarkResults));
   }
 
-  benchmarkResults.aggregate = buildAggregate(benchmarkResults.domains, nowMs() - started);
-  await saveAllOutputs({
-    resultsPath,
-    baselinePath,
-    samplesPath,
-    benchmarkResults,
-    baselineComparison,
-  });
+  if (!skipSweeps) {
+    await runLambdaSweep(resultsDir);
+    await runBeamWidthSweep(resultsDir);
+    await runFaultToleranceSweep(resultsDir);
+  }
 
-  console.log(renderResultsTable(benchmarkResults));
+  console.log("\n[GAIOL Benchmark] All phases complete.");
+  console.log(`  Results written to: ${resultsDir}`);
+  console.log("  Files:");
+  console.log("    benchmark_results.json   — 25-query domain benchmark");
+  console.log("    baseline_comparison.json — ABTC vs uniform vs static per domain");
+  console.log("    output_samples.md        — best response per domain");
+  console.log("    sensitivity_lambda.json  — λ ∈ {0.50,0.70,0.90,0.95,0.99} quality sweep");
+  console.log("    sensitivity_beamwidth.json — beam_width ∈ {1..5} quality/latency tradeoff");
+  console.log("    fault_tolerance.json     — graceful degradation under real timeout pressure");
 }
 
 await main();

@@ -64,6 +64,12 @@ export function consensusModeV1ToConfigPartial(mode?: ConsensusModeV1): Pick<Orc
   return { consensusMode: mode as ConsensusMode };
 }
 
+export function abtcDecayV1ToConfigPartial(decay?: number): Pick<OrchestratorConfig, "abtc"> | undefined {
+  if (decay === undefined || !Number.isFinite(decay)) return undefined;
+  const clamped = Math.min(0.99, Math.max(0.0, decay));
+  return { abtc: { decay: clamped, strength: 1.5, participantStrength: 0.9 } };
+}
+
 export function orchestrationTraceToV1(t: OrchestrationTrace): OrchestrationTraceV1 {
   return {
     trace_id: t.traceId,
