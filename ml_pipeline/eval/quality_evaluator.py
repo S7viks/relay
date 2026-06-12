@@ -134,8 +134,17 @@ def _heuristic_judge(query: str, domain: str, response: str) -> dict[str, float]
 def _call_openai_json(system_prompt: str, user_prompt: str, temperature: float) -> str:
     from openai import OpenAI  # type: ignore
 
-    model = os.getenv("EVAL_MODEL", "gpt-4")
-    client = OpenAI()
+    openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+    openrouter_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    if openai_key:
+        client = OpenAI(api_key=openai_key)
+        model = os.getenv("EVAL_MODEL", "gpt-4")
+    elif openrouter_key:
+        client = OpenAI(api_key=openrouter_key, base_url="https://openrouter.ai/api/v1")
+        model = os.getenv("EVAL_MODEL", "openai/gpt-4")
+    else:
+        raise RuntimeError("OPENAI_API_KEY or OPENROUTER_API_KEY required")
+
     resp = client.chat.completions.create(
         model=model,
         temperature=temperature,
@@ -147,7 +156,25 @@ def _call_openai_json(system_prompt: str, user_prompt: str, temperature: float) 
     return (resp.choices[0].message.content or "").strip()
 
 
-def _judge_response(query: str, domain: str, response: str) -> dict[str, float]:
+def _call_gemini_json(system_prompt: str, user_prompt: str, temperature: float) -> str:
+    import google.generativeai as genai  # type: ignore
+
+    api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("GOOGLE_API_KEY not configured")
+
+    genai.configure(api_key=api_key)
+    model_name = os.getenv("EVAL_MODEL_GEMINI", "gemini-1.5-flash")
+    model = genai.GenerativeModel(model_name)
+    prompt = f"{system_prompt}\n\n{user_prompt}"
+    response = model.generate_content(
+        prompt,
+        generation_config={"temperature": temperature},
+    )
+    return (response.text or "").strip()
+
+
+def _judge_prompts(query: str, domain: str, response: str) -> tuple[str, str]:
     system_prompt = (
         "You are a strict, calibrated AI evaluator. Score responses 0.0-1.0 on each "
         "dimension. Be consistent and precise. Return ONLY valid JSON."
@@ -169,21 +196,63 @@ Score these dimensions:
 Return ONLY this JSON (no other text):
 {{"relevance": 0.0, "coherence": 0.0, "completeness": 0.0, "accuracy": 0.0, "overall": 0.0}}
 Where overall = (relevance + coherence + completeness + accuracy) / 4"""
+    return system_prompt, user_prompt
 
-    if os.getenv("OPENAI_API_KEY"):
-        for attempt, temp in enumerate((0.2, 0.0), start=1):
-            try:
-                raw = _call_openai_json(system_prompt, user_prompt, temperature=temp)
-                parsed = _extract_json(raw)
-                return _normalize_scores(parsed)
-            except Exception as exc:  # pragma: no cover - API availability dependent
-                if attempt == 2:
-                    print(f"WARN: evaluator parse failed twice: {exc}")
-                    return FALLBACK_SCORES.copy()
-        return FALLBACK_SCORES.copy()
 
-    # Local deterministic fallback if no API key is configured.
-    return _heuristic_judge(query, domain, response)
+def _judge_with_backend(
+    query: str,
+    domain: str,
+    response: str,
+    backend: str,
+) -> dict[str, float] | None:
+    system_prompt, user_prompt = _judge_prompts(query, domain, response)
+    caller = _call_openai_json if backend == "openai" else _call_gemini_json
+
+    for attempt, temp in enumerate((0.2, 0.0), start=1):
+        try:
+            raw = caller(system_prompt, user_prompt, temperature=temp)
+            parsed = _extract_json(raw)
+            return _normalize_scores(parsed)
+        except Exception as exc:  # pragma: no cover - API availability dependent
+            if attempt == 2:
+                print(f"WARN: {backend} evaluator failed twice: {exc}")
+                return None
+    return None
+
+
+def _inter_evaluator_agreement(primary: dict[str, float], secondary: dict[str, float]) -> float:
+    diffs = [
+        abs(primary[k] - secondary[k])
+        for k in ("relevance", "coherence", "completeness", "accuracy", "overall")
+    ]
+    mean_diff = float(np.mean(diffs)) if diffs else 1.0
+    return _clamp(1.0 - mean_diff)
+
+
+def _judge_response(query: str, domain: str, response: str) -> dict[str, float]:
+    primary: dict[str, float] | None = None
+    secondary: dict[str, float] | None = None
+
+    if os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY"):
+        primary = _judge_with_backend(query, domain, response, "openai")
+
+    if os.getenv("GOOGLE_API_KEY"):
+        secondary = _judge_with_backend(query, domain, response, "gemini")
+
+    if primary is None and secondary is None:
+        return _heuristic_judge(query, domain, response)
+
+    if primary is None:
+        primary = secondary or FALLBACK_SCORES.copy()
+    if secondary is None:
+        secondary = primary
+
+    merged = primary.copy()
+    merged["evaluator_primary"] = primary["overall"]
+    merged["evaluator_secondary"] = secondary["overall"]
+    merged["inter_evaluator_agreement"] = _inter_evaluator_agreement(primary, secondary)
+    merged["overall"] = _clamp((primary["overall"] + secondary["overall"]) / 2.0)
+    return merged
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:

@@ -1,4 +1,5 @@
 import json
+import os
 import time
 import uuid
 import urllib.error
@@ -6,7 +7,14 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-ORCHESTRATOR_URL = "http://localhost:3001/v1/orchestrate"
+def _orchestrator_url() -> str:
+    base = os.getenv("GAIOL_ORCHESTRATOR_URL", "http://localhost:3001").strip().rstrip("/")
+    if base.endswith("/v1/orchestrate"):
+        return base
+    return f"{base}/v1/orchestrate"
+
+
+ORCHESTRATOR_URL = _orchestrator_url()
 QUERIES_FILE = Path("ml_pipeline/data/queries.json")
 OUTPUT_FILE = Path("ml_pipeline/data/responses/sys1_gaiol.jsonl")
 MAX_RETRIES = 3

@@ -7,6 +7,7 @@
     "benchmark": "npx tsx scripts/benchmark/run_benchmark.ts",
     "benchmark:sweeps": "npx tsx scripts/benchmark/run_benchmark.ts --sweeps-only",
     "benchmark:convergence": "npx tsx scripts/benchmark/run_benchmark.ts --convergence",
+    "benchmark:cumulative": "npx tsx scripts/benchmark/run_benchmark.ts --cumulative",
     "inject-results": "npx tsx scripts/benchmark/inject_results.ts"
   }
 }

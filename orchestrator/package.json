@@ -14,7 +14,8 @@
     "cli": "tsx src/cli/index.ts",
     "benchmark": "tsx ../scripts/benchmark/run_benchmark.ts",
     "benchmark:sweeps": "tsx ../scripts/benchmark/run_benchmark.ts --sweeps-only",
-    "benchmark:convergence": "tsx ../scripts/benchmark/run_benchmark.ts --convergence"
+    "benchmark:convergence": "tsx ../scripts/benchmark/run_benchmark.ts --convergence",
+    "benchmark:cumulative": "tsx ../scripts/benchmark/run_benchmark.ts --cumulative"
   },
   "engines": {
     "node": ">=20"

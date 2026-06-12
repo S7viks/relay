@@ -6,6 +6,12 @@ import {
   type ModelResponse,
   type SweepQuery,
 } from "../../orchestrator/src/evaluation/sensitivity.js";
+import {
+  BEAM_WIDTH_SWEEP,
+  LAMBDA,
+  LAMBDA_SWEEP,
+} from "../../orchestrator/src/config/paper-constants.js";
+import { LlmJudgeScorer } from "../../orchestrator/src/evaluation/scorer.js";
 
 type DomainName =
   | "analytical_reasoning"
@@ -83,6 +89,62 @@ const ORCHESTRATOR_URL = "http://localhost:3001/v1/orchestrate";
 const HEALTH_URL = "http://localhost:3001/health";
 const TIMEOUT_MS = 90_000;
 const INTER_QUERY_DELAY_MS = 2_000;
+const USE_LLM_JUDGE = process.env.GAIOL_USE_LLM_JUDGE !== "0";
+async function callLlmJudgeApi(systemPrompt: string, userPrompt: string): Promise<string> {
+  const openaiKey = process.env.OPENAI_API_KEY?.trim();
+  const openrouterKey = process.env.OPENROUTER_API_KEY?.trim();
+  if (!openaiKey && !openrouterKey) {
+    throw new Error("No OPENAI_API_KEY or OPENROUTER_API_KEY configured");
+  }
+
+  const url = openaiKey
+    ? "https://api.openai.com/v1/chat/completions"
+    : "https://openrouter.ai/api/v1/chat/completions";
+  const model = process.env.EVAL_MODEL?.trim() ?? (openaiKey ? "gpt-4" : "openai/gpt-4");
+
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    authorization: `Bearer ${openaiKey ?? openrouterKey}`,
+  };
+  if (!openaiKey && openrouterKey) {
+    headers["HTTP-Referer"] = "https://github.com/S7viks/GAIOL";
+    headers["X-Title"] = "GAIOL Benchmark";
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      model,
+      temperature: 0.1,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`LLM judge HTTP ${response.status}: ${errText.slice(0, 300)}`);
+  }
+
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  return (data.choices?.[0]?.message?.content ?? "").trim();
+}
+
+function createLlmJudgeScorer(): LlmJudgeScorer | null {
+  if (!USE_LLM_JUDGE) return null;
+  if (!process.env.OPENAI_API_KEY?.trim() && !process.env.OPENROUTER_API_KEY?.trim()) {
+    return null;
+  }
+  return new LlmJudgeScorer(callLlmJudgeApi);
+}
+
+const llmJudgeScorer = createLlmJudgeScorer();
+
 const FALLBACK_QUALITY: QualityScore = {
   relevance: 0.72,
   coherence: 0.75,
@@ -360,6 +422,22 @@ function buildRequestPayload(args: {
 }
 
 async function evaluateQuality(traceId: string, query: string, responseContent: string): Promise<QualityScore> {
+  if (llmJudgeScorer && responseContent.trim().length > 0) {
+    try {
+      const judged = await llmJudgeScorer.score(query, responseContent);
+      return {
+        relevance: judged.dimensions.relevance,
+        coherence: judged.dimensions.coherence,
+        completeness: judged.dimensions.completeness,
+        accuracy: judged.dimensions.accuracy,
+        overall: judged.overallScore,
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.warn(`[evaluateQuality] LLM judge failed for ${traceId}: ${msg}`);
+    }
+  }
+
   const evaluationPrompt = [
     "You are an expert evaluator. Score the following AI response on four dimensions, each from 0.0 to 1.0.",
     'Return ONLY valid JSON with no other text: {"relevance": 0.0, "coherence": 0.0, "completeness": 0.0, "accuracy": 0.0, "overall": 0.0}',
@@ -614,18 +692,14 @@ interface FaultToleranceRow {
 // ─── Lambda sensitivity sweep ─────────────────────────────────────────────────
 
 /**
- * Section 6.5 of the revised paper: vary λ ∈ {0.5, 0.7, 0.9, 0.95, 0.99}.
- *
- * For each λ we run PROBE_QUERIES_PER_DOMAIN queries per domain so that trust
- * updates actually accumulate (λ only matters across sequential rounds).  We
- * send abtc_decay = 1 - λ in the request body which the API now threads
- * through to OrchestratorConfig.abtc.decay.
+ * Section 6.5 of the revised paper: vary λ per LAMBDA_SWEEP in paper-constants.ts.
  */
-const LAMBDA_VALUES = [0.5, 0.7, 0.9, 0.95, 0.99];
-const PROBE_QUERIES_PER_DOMAIN = 3; // keep runtime reasonable
+const LAMBDA_VALUES: readonly number[] = [...LAMBDA_SWEEP];
+const PROBE_QUERIES_PER_DOMAIN = 3;
 
 async function runLambdaSweep(resultsDir: string): Promise<LambdaSweepRow[]> {
-  console.log("\n[Lambda Sweep] Starting — λ ∈ {0.50, 0.70, 0.90, 0.95, 0.99}");
+  const lambdaLabel = LAMBDA_VALUES.map((v) => v.toFixed(2)).join(", ");
+  console.log(`\n[Lambda Sweep] Starting — λ ∈ {${lambdaLabel}}`);
   const rows: LambdaSweepRow[] = [];
 
   const probeQueryMap: Record<DomainName, string[]> = {
@@ -687,10 +761,11 @@ async function runLambdaSweep(resultsDir: string): Promise<LambdaSweepRow[]> {
  * Section 6.5: vary beam_width ∈ {1, 2, 3, 4, 5}.
  * Uses the same probe queries. Measures quality vs latency tradeoff.
  */
-const BEAM_WIDTH_VALUES = [1, 2, 3, 4, 5];
+const BEAM_WIDTH_VALUES: readonly number[] = [...BEAM_WIDTH_SWEEP];
 
 async function runBeamWidthSweep(resultsDir: string): Promise<BeamWidthSweepRow[]> {
-  console.log("\n[Beam Width Sweep] Starting — beam_width ∈ {1,2,3,4,5}");
+  const bwLabel = BEAM_WIDTH_VALUES.join(",");
+  console.log(`\n[Beam Width Sweep] Starting — beam_width ∈ {${bwLabel}}`);
   const rows: BeamWidthSweepRow[] = [];
 
   // One representative query per domain for brevity
@@ -825,14 +900,23 @@ async function runFaultToleranceSweep(resultsDir: string): Promise<FaultToleranc
 
 // ─── ABTC convergence curve (Section 6.4) ────────────────────────────────────
 
-const CONVERGENCE_ROUNDS = 20;
-const CONVERGENCE_LAMBDA = 0.9;
+const BENCHMARK_CONVERGENCE_ROUNDS = 20;
+const CONVERGENCE_LAMBDA = LAMBDA;
 const CONVERGENCE_DOMAIN: DomainName = "analytical_reasoning";
 
 interface ConvergenceCurvePoint {
   round: number;
   model_id: string;
   posterior_mean: number;
+}
+
+interface CumulativeQualityPoint {
+  round: number;
+  mode: ConsensusMode;
+  query: string;
+  quality: number;
+  cumulative_mean_quality: number;
+  success: boolean;
 }
 
 function extractModelResponsesFromTrace(data: BenchmarkOrchestrateResponse): ModelResponse[] {
@@ -862,21 +946,121 @@ function extractModelResponsesFromTrace(data: BenchmarkOrchestrateResponse): Mod
   return out;
 }
 
-function buildConvergenceQueries(rounds: number): SweepQuery[] {
+function buildSequentialQueries(rounds: number): string[] {
   const pool = Object.values(DOMAINS).flat();
-  const queries: SweepQuery[] = [];
+  const queries: string[] = [];
   for (let i = 0; i < rounds; i++) {
-    queries.push({ query: pool[i % pool.length]! });
+    queries.push(pool[i % pool.length]!);
   }
   return queries;
 }
 
-async function runConvergenceCurve(resultsDir: string): Promise<ConvergenceCurvePoint[]> {
+function buildConvergenceQueries(rounds: number): SweepQuery[] {
+  return buildSequentialQueries(rounds).map((query) => ({ query }));
+}
+
+async function orchestrateForMode(args: {
+  query: string;
+  domain: DomainName;
+  mode: ConsensusMode;
+  round: number;
+  label: string;
+}): Promise<{ ok: boolean; content: string; latencyMs: number }> {
+  const traceId = `${args.label}-r${args.round}-${Date.now()}`;
+  const payload: Record<string, unknown> = {
+    schema_version: "1.0",
+    trace_id: traceId,
+    domain: args.domain,
+    task_kind: DOMAIN_TASK_KIND[args.domain],
+    objective: args.query,
+    messages: [{ role: "user", content: args.query }],
+    consensus_mode: args.mode,
+    beam_width: args.mode === "abtc" ? 3 : 1,
+    explore_paths: args.mode === "abtc",
+    abtc_decay: round2(1 - CONVERGENCE_LAMBDA),
+  };
+
+  const res = await postOrchestrate(payload, TIMEOUT_MS);
+  if (!res.ok) {
+    return { ok: false, content: "", latencyMs: res.latencyMs };
+  }
+  return {
+    ok: true,
+    content: extractPrimaryResponse(res.data),
+    latencyMs: res.latencyMs,
+  };
+}
+
+async function runCumulativeQualityCurve(resultsDir: string): Promise<CumulativeQualityPoint[]> {
+  const modes: ConsensusMode[] = ["abtc", "uniform", "static"];
+  const queries = buildSequentialQueries(BENCHMARK_CONVERGENCE_ROUNDS);
+  const points: CumulativeQualityPoint[] = [];
+
   console.log(
-    `\n[Convergence] Starting — ${CONVERGENCE_ROUNDS} sequential rounds, λ=${CONVERGENCE_LAMBDA}, domain=${CONVERGENCE_DOMAIN}`,
+    `\n[Cumulative Quality] Starting — ${BENCHMARK_CONVERGENCE_ROUNDS} rounds × modes {abtc, uniform, static}`,
   );
 
-  const queries = buildConvergenceQueries(CONVERGENCE_ROUNDS);
+  for (const mode of modes) {
+    let cumulativeSum = 0;
+    let successCount = 0;
+
+    for (let round = 0; round < queries.length; round++) {
+      const query = queries[round]!;
+      const domain = (Object.keys(DOMAINS) as DomainName[]).find((d) => DOMAINS[d].includes(query)) ??
+        CONVERGENCE_DOMAIN;
+
+      const res = await orchestrateForMode({
+        query,
+        domain,
+        mode,
+        round: round + 1,
+        label: `cumulative-${mode}`,
+      });
+
+      let quality = 0;
+      let success = false;
+      if (res.ok && res.content.length > 0) {
+        const scored = await evaluateQuality(`cumulative-${mode}-${round}`, query, res.content);
+        quality = scored.overall;
+        success = true;
+        cumulativeSum += quality;
+        successCount++;
+      }
+
+      const cumulativeMean = successCount > 0 ? cumulativeSum / successCount : 0;
+      points.push({
+        round: round + 1,
+        mode,
+        query,
+        quality,
+        cumulative_mean_quality: round2(cumulativeMean),
+        success,
+      });
+
+      console.log(
+        `    [${mode}] round ${round + 1}: quality=${quality.toFixed(3)} cumulative=${cumulativeMean.toFixed(3)}`,
+      );
+      await sleep(INTER_QUERY_DELAY_MS);
+    }
+  }
+
+  await saveJson(path.join(resultsDir, "cumulative_quality.json"), {
+    rounds: BENCHMARK_CONVERGENCE_ROUNDS,
+    domain_mix: "all-domains-rotating",
+    modes,
+    points,
+  });
+
+  console.log(`\n[Cumulative Quality] Done. ${points.length} data points saved.`);
+  return points;
+}
+
+async function runConvergenceCurve(resultsDir: string): Promise<ConvergenceCurvePoint[]> {
+  console.log(
+    `\n[Convergence] Starting — ${BENCHMARK_CONVERGENCE_ROUNDS} sequential rounds, λ=${CONVERGENCE_LAMBDA}, domain=${CONVERGENCE_DOMAIN}`,
+  );
+
+  const queries = buildConvergenceQueries(BENCHMARK_CONVERGENCE_ROUNDS);
   let roundIndex = 0;
 
   const runModels = async (query: string): Promise<ModelResponse[]> => {
@@ -903,7 +1087,7 @@ async function runConvergenceCurve(resultsDir: string): Promise<ConvergenceCurve
     }
 
     const responses = extractModelResponsesFromTrace(res.data);
-    console.log(`    round ${roundIndex}/${CONVERGENCE_ROUNDS}: ${responses.length} model response(s)`);
+    console.log(`    round ${roundIndex}/${BENCHMARK_CONVERGENCE_ROUNDS}: ${responses.length} model response(s)`);
     await sleep(INTER_QUERY_DELAY_MS);
     return responses;
   };
@@ -918,7 +1102,7 @@ async function runConvergenceCurve(resultsDir: string): Promise<ConvergenceCurve
   await saveJson(path.join(resultsDir, "convergence_curve.json"), {
     lambda: CONVERGENCE_LAMBDA,
     domain: CONVERGENCE_DOMAIN,
-    rounds: CONVERGENCE_ROUNDS,
+    rounds: BENCHMARK_CONVERGENCE_ROUNDS,
     points,
   });
 
@@ -953,9 +1137,16 @@ function renderSweepSummary<T>(
 async function main(): Promise<void> {
   const runSweepsOnly = process.argv.includes("--sweeps-only");
   const runConvergenceOnly = process.argv.includes("--convergence");
+  const runCumulativeOnly = process.argv.includes("--cumulative");
   const skipSweeps = process.argv.includes("--no-sweeps");
 
   await assertOrchestratorHealthy();
+
+  if (llmJudgeScorer) {
+    console.log("[GAIOL Benchmark] Using LLM-as-judge (OpenAI/OpenRouter API key detected)");
+  } else {
+    console.log("[GAIOL Benchmark] LLM judge unavailable — using orchestrator-as-judge fallback");
+  }
 
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
   const resultsDir = path.join(scriptDir, "results");
@@ -969,6 +1160,13 @@ async function main(): Promise<void> {
     await runConvergenceCurve(resultsDir);
     console.log("\n[GAIOL Benchmark] Convergence phase complete.");
     console.log(`  Results written to: ${path.join(resultsDir, "convergence_curve.json")}`);
+    return;
+  }
+
+  if (runCumulativeOnly) {
+    await runCumulativeQualityCurve(resultsDir);
+    console.log("\n[GAIOL Benchmark] Cumulative quality phase complete.");
+    console.log(`  Results written to: ${path.join(resultsDir, "cumulative_quality.json")}`);
     return;
   }
 
@@ -1075,6 +1273,7 @@ async function main(): Promise<void> {
     await runLambdaSweep(resultsDir);
     await runBeamWidthSweep(resultsDir);
     await runFaultToleranceSweep(resultsDir);
+    await runCumulativeQualityCurve(resultsDir);
     await runConvergenceCurve(resultsDir);
   }
 
@@ -1084,9 +1283,10 @@ async function main(): Promise<void> {
   console.log("    benchmark_results.json   — 25-query domain benchmark");
   console.log("    baseline_comparison.json — ABTC vs uniform vs static per domain");
   console.log("    output_samples.md        — best response per domain");
-  console.log("    sensitivity_lambda.json  — λ ∈ {0.50,0.70,0.90,0.95,0.99} quality sweep");
-  console.log("    sensitivity_beamwidth.json — beam_width ∈ {1..5} quality/latency tradeoff");
+  console.log("    sensitivity_lambda.json  — λ sweep quality (paper LAMBDA_SWEEP)");
+  console.log("    sensitivity_beamwidth.json — beam_width quality/latency tradeoff");
   console.log("    fault_tolerance.json     — graceful degradation under real timeout pressure");
+  console.log("    cumulative_quality.json  — ABTC vs static warm-up curves (Section 6.4)");
   console.log("    convergence_curve.json   — ABTC posterior mean per round (Section 6.4)");
 }
 

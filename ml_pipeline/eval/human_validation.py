@@ -13,12 +13,14 @@ DATA_DIR = ROOT / "ml_pipeline" / "data"
 OUTPUT_PATH = DATA_DIR / "human_validation.json"
 
 TARGET_BY_DOMAIN = {
-    "easy": 2,
-    "medium": 4,
-    "hard": 2,
-    "very_hard": 1,
-    "challenge": 1,
+    "easy": 6,
+    "medium": 12,
+    "hard": 6,
+    "very_hard": 3,
+    "challenge": 3,
 }
+
+MAX_HUMAN_VALIDATION_SAMPLES = 175
 
 DOMAINS = [
     "analytical_reasoning",
@@ -145,7 +147,7 @@ def _sample_stratified(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     continue
                 picked = list(np.random.choice(fallback_pool, size=needed, replace=True))
             sampled.extend(picked)
-    return sampled[:50]
+    return sampled[:MAX_HUMAN_VALIDATION_SAMPLES]
 
 
 def main() -> None:

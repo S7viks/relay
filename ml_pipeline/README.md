@@ -50,6 +50,9 @@ From repo root or `orchestrator/`:
 npm run benchmark              # full 25-query benchmark + sweeps
 npm run benchmark:sweeps       # sensitivity + fault-tolerance only
 npm run benchmark:convergence  # ABTC trust convergence curve
+npm run benchmark:cumulative   # ABTC vs uniform vs static warm-up curves
 ```
 
 Results: `scripts/benchmark/results/`.
+
+Set `OPENAI_API_KEY` or `OPENROUTER_API_KEY` for real LLM-as-judge scoring in the benchmark (`GAIOL_USE_LLM_JUDGE=0` to disable). Dual Gemini judging in Python eval uses `GOOGLE_API_KEY` and `EVAL_MODEL_GEMINI`.
