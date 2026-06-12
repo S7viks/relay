@@ -194,6 +194,7 @@ export function buildServer() {
       constraints: body.constraints,
       explorePaths: body.explorePaths,
       beamWidth: body.beamWidth,
+      _debug_faults: (body as any)._debug_faults,
     };
 
     const result = await orchestrator.run(orchestrationReq);

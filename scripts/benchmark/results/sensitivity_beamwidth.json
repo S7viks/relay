@@ -1,0 +1,202 @@
+[
+  {
+    "beam_width": 1,
+    "domain": "analytical_reasoning",
+    "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
+    "quality": 0,
+    "latency_ms": 24,
+    "success": true
+  },
+  {
+    "beam_width": 1,
+    "domain": "code_generation",
+    "query": "Write a Python function that implements binary search on a sorted list. Include edge cases and a docstring.",
+    "quality": 0,
+    "latency_ms": 24,
+    "success": true
+  },
+  {
+    "beam_width": 1,
+    "domain": "multi_step_problem",
+    "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
+    "quality": 0,
+    "latency_ms": 61,
+    "success": true
+  },
+  {
+    "beam_width": 1,
+    "domain": "knowledge_retrieval",
+    "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
+    "quality": 0,
+    "latency_ms": 35,
+    "success": true
+  },
+  {
+    "beam_width": 1,
+    "domain": "creative_synthesis",
+    "query": "Write a technical blog post introduction (150 words) explaining why multi-model AI orchestration matters for production AI systems.",
+    "quality": 0,
+    "latency_ms": 33,
+    "success": true
+  },
+  {
+    "beam_width": 2,
+    "domain": "analytical_reasoning",
+    "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
+    "quality": 0,
+    "latency_ms": 82,
+    "success": true
+  },
+  {
+    "beam_width": 2,
+    "domain": "code_generation",
+    "query": "Write a Python function that implements binary search on a sorted list. Include edge cases and a docstring.",
+    "quality": 0,
+    "latency_ms": 156,
+    "success": true
+  },
+  {
+    "beam_width": 2,
+    "domain": "multi_step_problem",
+    "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
+    "quality": 0,
+    "latency_ms": 179,
+    "success": true
+  },
+  {
+    "beam_width": 2,
+    "domain": "knowledge_retrieval",
+    "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
+    "quality": 0,
+    "latency_ms": 561,
+    "success": true
+  },
+  {
+    "beam_width": 2,
+    "domain": "creative_synthesis",
+    "query": "Write a technical blog post introduction (150 words) explaining why multi-model AI orchestration matters for production AI systems.",
+    "quality": 0,
+    "latency_ms": 110,
+    "success": true
+  },
+  {
+    "beam_width": 3,
+    "domain": "analytical_reasoning",
+    "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
+    "quality": 0,
+    "latency_ms": 204,
+    "success": true
+  },
+  {
+    "beam_width": 3,
+    "domain": "code_generation",
+    "query": "Write a Python function that implements binary search on a sorted list. Include edge cases and a docstring.",
+    "quality": 0,
+    "latency_ms": 259,
+    "success": true
+  },
+  {
+    "beam_width": 3,
+    "domain": "multi_step_problem",
+    "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
+    "quality": 0,
+    "latency_ms": 276,
+    "success": true
+  },
+  {
+    "beam_width": 3,
+    "domain": "knowledge_retrieval",
+    "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
+    "quality": 0,
+    "latency_ms": 332,
+    "success": true
+  },
+  {
+    "beam_width": 3,
+    "domain": "creative_synthesis",
+    "query": "Write a technical blog post introduction (150 words) explaining why multi-model AI orchestration matters for production AI systems.",
+    "quality": 0,
+    "latency_ms": 273,
+    "success": true
+  },
+  {
+    "beam_width": 4,
+    "domain": "analytical_reasoning",
+    "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
+    "quality": 0,
+    "latency_ms": 159,
+    "success": true
+  },
+  {
+    "beam_width": 4,
+    "domain": "code_generation",
+    "query": "Write a Python function that implements binary search on a sorted list. Include edge cases and a docstring.",
+    "quality": 0,
+    "latency_ms": 226,
+    "success": true
+  },
+  {
+    "beam_width": 4,
+    "domain": "multi_step_problem",
+    "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
+    "quality": 0,
+    "latency_ms": 252,
+    "success": true
+  },
+  {
+    "beam_width": 4,
+    "domain": "knowledge_retrieval",
+    "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
+    "quality": 0,
+    "latency_ms": 267,
+    "success": true
+  },
+  {
+    "beam_width": 4,
+    "domain": "creative_synthesis",
+    "query": "Write a technical blog post introduction (150 words) explaining why multi-model AI orchestration matters for production AI systems.",
+    "quality": 0,
+    "latency_ms": 154,
+    "success": true
+  },
+  {
+    "beam_width": 5,
+    "domain": "analytical_reasoning",
+    "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
+    "quality": 0,
+    "latency_ms": 256,
+    "success": true
+  },
+  {
+    "beam_width": 5,
+    "domain": "code_generation",
+    "query": "Write a Python function that implements binary search on a sorted list. Include edge cases and a docstring.",
+    "quality": 0,
+    "latency_ms": 217,
+    "success": true
+  },
+  {
+    "beam_width": 5,
+    "domain": "multi_step_problem",
+    "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
+    "quality": 0,
+    "latency_ms": 259,
+    "success": true
+  },
+  {
+    "beam_width": 5,
+    "domain": "knowledge_retrieval",
+    "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
+    "quality": 0,
+    "latency_ms": 284,
+    "success": true
+  },
+  {
+    "beam_width": 5,
+    "domain": "creative_synthesis",
+    "query": "Write a technical blog post introduction (150 words) explaining why multi-model AI orchestration matters for production AI systems.",
+    "quality": 0,
+    "latency_ms": 144,
+    "success": true
+  }
+]

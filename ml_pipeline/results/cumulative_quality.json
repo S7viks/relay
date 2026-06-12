@@ -1,0 +1,491 @@
+{
+  "rounds": 20,
+  "domain_mix": "all-domains-rotating",
+  "modes": [
+    "abtc",
+    "uniform",
+    "static"
+  ],
+  "points": [
+    {
+      "round": 1,
+      "mode": "abtc",
+      "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 2,
+      "mode": "abtc",
+      "query": "A train travels 120km in 1.5 hours. What is its average speed? If it then travels 80km at 60km/h, what is the total journey time?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 3,
+      "mode": "abtc",
+      "query": "Evaluate the logical validity: P1: All mammals are warm-blooded. P2: Whales are mammals. Conclusion: Whales are warm-blooded.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 4,
+      "mode": "abtc",
+      "query": "A company's revenue grew 15% in Q1, declined 8% in Q2, grew 20% in Q3. What is the net change from start of Q1 to end of Q3?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 5,
+      "mode": "abtc",
+      "query": "If P implies Q, and Q implies R, and we know P is true, what is the truth value of R? Explain your reasoning step by step.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 6,
+      "mode": "abtc",
+      "query": "Write a Python function that implements binary search on a sorted list. Include edge cases and a docstring.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 7,
+      "mode": "abtc",
+      "query": "Write a TypeScript function that debounces an async function call with configurable delay and immediate option.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 8,
+      "mode": "abtc",
+      "query": "Implement a Go function that concurrently fetches multiple URLs using goroutines and returns all results with individual errors.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 9,
+      "mode": "abtc",
+      "query": "Write a SQL query to find the top 3 customers by total purchase amount in the last 30 days, including tie-breaking.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 10,
+      "mode": "abtc",
+      "query": "Create a React hook called usePagination that manages page, pageSize, totalItems state and returns navigation functions.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 11,
+      "mode": "abtc",
+      "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 12,
+      "mode": "abtc",
+      "query": "A startup has a $50,000 budget and needs a mobile app, REST API backend, and 6 months of cloud hosting. Break down realistic costs and build priorities.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 13,
+      "mode": "abtc",
+      "query": "Design a PostgreSQL schema for a multi-tenant SaaS application with users, organizations, subscriptions, and a full audit log. Show the CREATE TABLE statements.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 14,
+      "mode": "abtc",
+      "query": "How would you debug a production API that intermittently returns HTTP 500 errors under load? Walk through your complete methodology from detection to resolution.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 15,
+      "mode": "abtc",
+      "query": "Outline all steps to migrate a monolithic Node.js application to microservices with zero downtime. Include rollback strategy.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 16,
+      "mode": "abtc",
+      "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 17,
+      "mode": "abtc",
+      "query": "What is the CAP theorem? Explain the three properties and give a real-world example of a system that prioritizes each combination.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 18,
+      "mode": "abtc",
+      "query": "Explain how the Raft consensus algorithm achieves distributed agreement and how it handles a leader failure mid-transaction.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 19,
+      "mode": "abtc",
+      "query": "What distinguishes BERT from GPT architectures in terms of training objective, attention masking, and primary use cases?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 20,
+      "mode": "abtc",
+      "query": "Explain Bayesian inference from scratch: what are prior, likelihood, and posterior, and how does Bayes' theorem connect them?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 1,
+      "mode": "uniform",
+      "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 2,
+      "mode": "uniform",
+      "query": "A train travels 120km in 1.5 hours. What is its average speed? If it then travels 80km at 60km/h, what is the total journey time?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 3,
+      "mode": "uniform",
+      "query": "Evaluate the logical validity: P1: All mammals are warm-blooded. P2: Whales are mammals. Conclusion: Whales are warm-blooded.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 4,
+      "mode": "uniform",
+      "query": "A company's revenue grew 15% in Q1, declined 8% in Q2, grew 20% in Q3. What is the net change from start of Q1 to end of Q3?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 5,
+      "mode": "uniform",
+      "query": "If P implies Q, and Q implies R, and we know P is true, what is the truth value of R? Explain your reasoning step by step.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 6,
+      "mode": "uniform",
+      "query": "Write a Python function that implements binary search on a sorted list. Include edge cases and a docstring.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 7,
+      "mode": "uniform",
+      "query": "Write a TypeScript function that debounces an async function call with configurable delay and immediate option.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 8,
+      "mode": "uniform",
+      "query": "Implement a Go function that concurrently fetches multiple URLs using goroutines and returns all results with individual errors.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 9,
+      "mode": "uniform",
+      "query": "Write a SQL query to find the top 3 customers by total purchase amount in the last 30 days, including tie-breaking.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 10,
+      "mode": "uniform",
+      "query": "Create a React hook called usePagination that manages page, pageSize, totalItems state and returns navigation functions.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 11,
+      "mode": "uniform",
+      "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 12,
+      "mode": "uniform",
+      "query": "A startup has a $50,000 budget and needs a mobile app, REST API backend, and 6 months of cloud hosting. Break down realistic costs and build priorities.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 13,
+      "mode": "uniform",
+      "query": "Design a PostgreSQL schema for a multi-tenant SaaS application with users, organizations, subscriptions, and a full audit log. Show the CREATE TABLE statements.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 14,
+      "mode": "uniform",
+      "query": "How would you debug a production API that intermittently returns HTTP 500 errors under load? Walk through your complete methodology from detection to resolution.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 15,
+      "mode": "uniform",
+      "query": "Outline all steps to migrate a monolithic Node.js application to microservices with zero downtime. Include rollback strategy.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 16,
+      "mode": "uniform",
+      "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 17,
+      "mode": "uniform",
+      "query": "What is the CAP theorem? Explain the three properties and give a real-world example of a system that prioritizes each combination.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 18,
+      "mode": "uniform",
+      "query": "Explain how the Raft consensus algorithm achieves distributed agreement and how it handles a leader failure mid-transaction.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 19,
+      "mode": "uniform",
+      "query": "What distinguishes BERT from GPT architectures in terms of training objective, attention masking, and primary use cases?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 20,
+      "mode": "uniform",
+      "query": "Explain Bayesian inference from scratch: what are prior, likelihood, and posterior, and how does Bayes' theorem connect them?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 1,
+      "mode": "static",
+      "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 2,
+      "mode": "static",
+      "query": "A train travels 120km in 1.5 hours. What is its average speed? If it then travels 80km at 60km/h, what is the total journey time?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 3,
+      "mode": "static",
+      "query": "Evaluate the logical validity: P1: All mammals are warm-blooded. P2: Whales are mammals. Conclusion: Whales are warm-blooded.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 4,
+      "mode": "static",
+      "query": "A company's revenue grew 15% in Q1, declined 8% in Q2, grew 20% in Q3. What is the net change from start of Q1 to end of Q3?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 5,
+      "mode": "static",
+      "query": "If P implies Q, and Q implies R, and we know P is true, what is the truth value of R? Explain your reasoning step by step.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 6,
+      "mode": "static",
+      "query": "Write a Python function that implements binary search on a sorted list. Include edge cases and a docstring.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 7,
+      "mode": "static",
+      "query": "Write a TypeScript function that debounces an async function call with configurable delay and immediate option.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 8,
+      "mode": "static",
+      "query": "Implement a Go function that concurrently fetches multiple URLs using goroutines and returns all results with individual errors.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 9,
+      "mode": "static",
+      "query": "Write a SQL query to find the top 3 customers by total purchase amount in the last 30 days, including tie-breaking.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 10,
+      "mode": "static",
+      "query": "Create a React hook called usePagination that manages page, pageSize, totalItems state and returns navigation functions.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 11,
+      "mode": "static",
+      "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 12,
+      "mode": "static",
+      "query": "A startup has a $50,000 budget and needs a mobile app, REST API backend, and 6 months of cloud hosting. Break down realistic costs and build priorities.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 13,
+      "mode": "static",
+      "query": "Design a PostgreSQL schema for a multi-tenant SaaS application with users, organizations, subscriptions, and a full audit log. Show the CREATE TABLE statements.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 14,
+      "mode": "static",
+      "query": "How would you debug a production API that intermittently returns HTTP 500 errors under load? Walk through your complete methodology from detection to resolution.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 15,
+      "mode": "static",
+      "query": "Outline all steps to migrate a monolithic Node.js application to microservices with zero downtime. Include rollback strategy.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 16,
+      "mode": "static",
+      "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 17,
+      "mode": "static",
+      "query": "What is the CAP theorem? Explain the three properties and give a real-world example of a system that prioritizes each combination.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 18,
+      "mode": "static",
+      "query": "Explain how the Raft consensus algorithm achieves distributed agreement and how it handles a leader failure mid-transaction.",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 19,
+      "mode": "static",
+      "query": "What distinguishes BERT from GPT architectures in terms of training objective, attention masking, and primary use cases?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    },
+    {
+      "round": 20,
+      "mode": "static",
+      "query": "Explain Bayesian inference from scratch: what are prior, likelihood, and posterior, and how does Bayes' theorem connect them?",
+      "quality": 0,
+      "cumulative_mean_quality": 0,
+      "success": false
+    }
+  ]
+}

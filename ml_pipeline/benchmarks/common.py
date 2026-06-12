@@ -33,13 +33,15 @@ def load_fixture(name: str) -> list[dict[str, Any]]:
     return data
 
 
-def post_orchestrate(objective: str, task_kind: str = "qa", timeout: int = 90) -> dict[str, Any]:
+def post_orchestrate(objective: str, task_kind: str = "qa", domain: str = "knowledge_retrieval", timeout: int = 90) -> dict[str, Any]:
     payload = {
         "schema_version": "1.0",
         "trace_id": f"bench-{int(time.time() * 1000)}",
+        "domain": domain,
         "task_kind": task_kind,
         "objective": objective,
-        "constraints": {"temperature": 0.2, "max_tokens": 1024},
+        "messages": [{"role": "user", "content": objective}],
+        "constraints": {"temperature": 0.2, "max_output_tokens": 1024},
         "consensus_mode": "abtc",
         "beam_width": 2,
         "explore_paths": True,
@@ -56,6 +58,10 @@ def post_orchestrate(objective: str, task_kind: str = "qa", timeout: int = 90) -
 
 
 def extract_answer(response: dict[str, Any]) -> str:
+    if not isinstance(response, dict):
+        return ""
+    if response.get("answer"):
+        return str(response["answer"])
     result = response.get("result")
     if isinstance(result, dict) and result.get("content"):
         return str(result["content"])
@@ -99,7 +105,7 @@ def run_with_backends(
 
     try:
         if use_gaiol:
-            text = extract_answer(post_orchestrate(prompt, task_kind=task_kind))
+            text = extract_answer(post_orchestrate(prompt, task_kind=task_kind, domain=task_kind if task_kind != "qa" else "knowledge_retrieval"))
         else:
             text = openai_complete(prompt)
     except (urllib.error.URLError, urllib.error.HTTPError, RuntimeError, TimeoutError) as exc:

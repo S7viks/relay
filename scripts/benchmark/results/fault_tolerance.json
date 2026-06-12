@@ -1,0 +1,137 @@
+[
+  {
+    "scenario": "normal (90s)",
+    "request_timeout_ms": 90000,
+    "domain": "analytical_reasoning",
+    "query": "A train travels 120km in 1.5 hours. What is its average speed? If it then travels 80km at 60km/h, what is the total journey time?",
+    "quality": 0,
+    "latency_ms": 394,
+    "success": true
+  },
+  {
+    "scenario": "normal (90s)",
+    "request_timeout_ms": 90000,
+    "domain": "code_generation",
+    "query": "Write a TypeScript function that debounces an async function call with configurable delay and immediate option.",
+    "quality": 0,
+    "latency_ms": 165,
+    "success": true
+  },
+  {
+    "scenario": "normal (90s)",
+    "request_timeout_ms": 90000,
+    "domain": "multi_step_problem",
+    "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
+    "quality": 0,
+    "latency_ms": 251,
+    "success": true
+  },
+  {
+    "scenario": "normal (90s)",
+    "request_timeout_ms": 90000,
+    "domain": "knowledge_retrieval",
+    "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
+    "quality": 0,
+    "latency_ms": 243,
+    "success": true
+  },
+  {
+    "scenario": "normal (90s)",
+    "request_timeout_ms": 90000,
+    "domain": "creative_synthesis",
+    "query": "Write a technical blog post introduction (150 words) explaining why multi-model AI orchestration matters for production AI systems.",
+    "quality": 0,
+    "latency_ms": 166,
+    "success": true
+  },
+  {
+    "scenario": "tight (8s)",
+    "request_timeout_ms": 8000,
+    "domain": "analytical_reasoning",
+    "query": "A train travels 120km in 1.5 hours. What is its average speed? If it then travels 80km at 60km/h, what is the total journey time?",
+    "quality": 0,
+    "latency_ms": 402,
+    "success": true
+  },
+  {
+    "scenario": "tight (8s)",
+    "request_timeout_ms": 8000,
+    "domain": "code_generation",
+    "query": "Write a TypeScript function that debounces an async function call with configurable delay and immediate option.",
+    "quality": 0,
+    "latency_ms": 183,
+    "success": true
+  },
+  {
+    "scenario": "tight (8s)",
+    "request_timeout_ms": 8000,
+    "domain": "multi_step_problem",
+    "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
+    "quality": 0,
+    "latency_ms": 1433,
+    "success": true
+  },
+  {
+    "scenario": "tight (8s)",
+    "request_timeout_ms": 8000,
+    "domain": "knowledge_retrieval",
+    "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
+    "quality": 0,
+    "latency_ms": 628,
+    "success": true
+  },
+  {
+    "scenario": "tight (8s)",
+    "request_timeout_ms": 8000,
+    "domain": "creative_synthesis",
+    "query": "Write a technical blog post introduction (150 words) explaining why multi-model AI orchestration matters for production AI systems.",
+    "quality": 0,
+    "latency_ms": 322,
+    "success": true
+  },
+  {
+    "scenario": "very-tight (4s)",
+    "request_timeout_ms": 4000,
+    "domain": "analytical_reasoning",
+    "query": "A train travels 120km in 1.5 hours. What is its average speed? If it then travels 80km at 60km/h, what is the total journey time?",
+    "quality": 0,
+    "latency_ms": 692,
+    "success": true
+  },
+  {
+    "scenario": "very-tight (4s)",
+    "request_timeout_ms": 4000,
+    "domain": "code_generation",
+    "query": "Write a TypeScript function that debounces an async function call with configurable delay and immediate option.",
+    "quality": 0,
+    "latency_ms": 297,
+    "success": true
+  },
+  {
+    "scenario": "very-tight (4s)",
+    "request_timeout_ms": 4000,
+    "domain": "multi_step_problem",
+    "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
+    "quality": 0,
+    "latency_ms": 446,
+    "success": true
+  },
+  {
+    "scenario": "very-tight (4s)",
+    "request_timeout_ms": 4000,
+    "domain": "knowledge_retrieval",
+    "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
+    "quality": 0,
+    "latency_ms": 545,
+    "success": true
+  },
+  {
+    "scenario": "very-tight (4s)",
+    "request_timeout_ms": 4000,
+    "domain": "creative_synthesis",
+    "query": "Write a technical blog post introduction (150 words) explaining why multi-model AI orchestration matters for production AI systems.",
+    "quality": 0,
+    "latency_ms": 385,
+    "success": true
+  }
+]

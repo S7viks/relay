@@ -546,6 +546,7 @@ export class OrchestratorPipeline {
                 messages,
                 temperature: req.constraints?.temperature,
                 maxOutputTokens: req.constraints?.maxOutputTokens,
+                _debug_faults: req._debug_faults?.[modelId],
               }),
             {
               ...cfg.retry,

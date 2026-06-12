@@ -30,6 +30,14 @@ export interface OrchestrationRequest {
   /** When true, router may fan out to multiple models per subtask. */
   explorePaths?: boolean;
   beamWidth?: number;
+  /** For testing fault tolerance gracefully. */
+  _debug_faults?: {
+    [modelId: string]: {
+      timeoutMs?: number;
+      errorRate?: number;
+      failCompletely?: boolean;
+    };
+  };
 }
 
 export interface SubtaskSpec {

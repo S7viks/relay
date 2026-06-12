@@ -1,0 +1,77 @@
+{
+  "analytical_reasoning": {
+    "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
+    "abtc": {
+      "quality": 0,
+      "latency_ms": 195
+    },
+    "uniform": {
+      "quality": 0,
+      "latency_ms": 4
+    },
+    "static": {
+      "quality": 0,
+      "latency_ms": 6
+    }
+  },
+  "code_generation": {
+    "query": "Write a Python function that implements binary search on a sorted list. Include edge cases and a docstring.",
+    "abtc": {
+      "quality": 0,
+      "latency_ms": 277
+    },
+    "uniform": {
+      "quality": 0,
+      "latency_ms": 7
+    },
+    "static": {
+      "quality": 0,
+      "latency_ms": 4
+    }
+  },
+  "multi_step_problem": {
+    "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
+    "abtc": {
+      "quality": 0,
+      "latency_ms": 223
+    },
+    "uniform": {
+      "quality": 0,
+      "latency_ms": 9
+    },
+    "static": {
+      "quality": 0,
+      "latency_ms": 2
+    }
+  },
+  "knowledge_retrieval": {
+    "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
+    "abtc": {
+      "quality": 0,
+      "latency_ms": 461
+    },
+    "uniform": {
+      "quality": 0,
+      "latency_ms": 8
+    },
+    "static": {
+      "quality": 0,
+      "latency_ms": 6
+    }
+  },
+  "creative_synthesis": {
+    "query": "Write a technical blog post introduction (150 words) explaining why multi-model AI orchestration matters for production AI systems.",
+    "abtc": {
+      "quality": 0,
+      "latency_ms": 165
+    },
+    "uniform": {
+      "quality": 0,
+      "latency_ms": 3
+    },
+    "static": {
+      "quality": 0,
+      "latency_ms": 2
+    }
+  }
+}

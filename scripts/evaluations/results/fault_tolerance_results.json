@@ -1,0 +1,22 @@
+[
+  {
+    "scenarioName": "Baseline (No Faults)",
+    "successRate": 1,
+    "avgQuality": 0.8
+  },
+  {
+    "scenarioName": "Single Model Timeout",
+    "successRate": 1,
+    "avgQuality": 0.8
+  },
+  {
+    "scenarioName": "Dual Model Failure",
+    "successRate": 1,
+    "avgQuality": 0.8
+  },
+  {
+    "scenarioName": "20% Intermittent Error",
+    "successRate": 1,
+    "avgQuality": 0.8
+  }
+]

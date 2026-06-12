@@ -1,0 +1,97 @@
+{
+  "mmlu": {
+    "count": 3,
+    "results": [
+      {
+        "id": "mmlu_001",
+        "subject": "high_school_mathematics",
+        "gold": "A",
+        "gaiol_predicted": "F",
+        "gaiol_correct": false,
+        "gaiol_latency_ms": 3276,
+        "gaiol_failed": false
+      },
+      {
+        "id": "mmlu_002",
+        "subject": "world_history",
+        "gold": "A",
+        "gaiol_predicted": "A",
+        "gaiol_correct": true,
+        "gaiol_latency_ms": 2825,
+        "gaiol_failed": false
+      },
+      {
+        "id": "mmlu_003",
+        "subject": "computer_science",
+        "gold": "B",
+        "gaiol_predicted": "A",
+        "gaiol_correct": false,
+        "gaiol_latency_ms": 2900,
+        "gaiol_failed": false
+      }
+    ],
+    "generated_at": "2026-06-12T14:30:40.557206+00:00"
+  },
+  "humaneval": {
+    "count": 2,
+    "results": [
+      {
+        "task_id": "HumanEval/0",
+        "gaiol_pass": false,
+        "gaiol_latency_ms": 2828,
+        "gaiol_failed": false
+      },
+      {
+        "task_id": "HumanEval/1",
+        "gaiol_pass": false,
+        "gaiol_latency_ms": 2536,
+        "gaiol_failed": false
+      }
+    ],
+    "generated_at": "2026-06-12T14:30:46.161934+00:00"
+  },
+  "mt_bench": {
+    "count": 2,
+    "results": [
+      {
+        "id": "mt_001",
+        "category": "writing",
+        "turns": [
+          {
+            "turn": 1,
+            "latency_ms": 2744,
+            "failed": false,
+            "response_chars": 236
+          },
+          {
+            "turn": 2,
+            "latency_ms": 3005,
+            "failed": false,
+            "response_chars": 1066
+          }
+        ],
+        "turn_count": 2
+      },
+      {
+        "id": "mt_002",
+        "category": "reasoning",
+        "turns": [
+          {
+            "turn": 1,
+            "latency_ms": 2422,
+            "failed": false,
+            "response_chars": 340
+          },
+          {
+            "turn": 2,
+            "latency_ms": 4161,
+            "failed": false,
+            "response_chars": 1646
+          }
+        ],
+        "turn_count": 2
+      }
+    ],
+    "generated_at": "2026-06-12T14:30:58.741588+00:00"
+  }
+}

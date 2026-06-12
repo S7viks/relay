@@ -4,19 +4,21 @@ export interface OpenAIAdapterConfig {
   apiKey: string;
   baseUrl?: string;
   fetchImpl?: typeof fetch;
+  providerId?: string;
 }
 
 /**
  * Minimal OpenAI-compatible chat completions client (no SDK required).
  */
 export class OpenAICompatibleAdapter implements LLMProviderAdapter {
-  readonly providerId = "openai-compatible";
+  readonly providerId: string;
 
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly fetchImpl: typeof fetch;
 
   constructor(cfg: OpenAIAdapterConfig) {
+    this.providerId = cfg.providerId ?? "openai-compatible";
     this.apiKey = cfg.apiKey;
     this.baseUrl = (cfg.baseUrl ?? "https://api.openai.com/v1").replace(/\/$/, "");
     this.fetchImpl = cfg.fetchImpl ?? globalThis.fetch.bind(globalThis);

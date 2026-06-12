@@ -1,0 +1,14 @@
+{
+  "source": "scripts/benchmark/results",
+  "destination": "ml_pipeline/results",
+  "copied": [
+    "benchmark_results.json",
+    "baseline_comparison.json",
+    "sensitivity_lambda.json",
+    "sensitivity_beamwidth.json",
+    "fault_tolerance.json",
+    "cumulative_quality.json",
+    "convergence_curve.json",
+    "standard_benchmarks.json"
+  ]
+}

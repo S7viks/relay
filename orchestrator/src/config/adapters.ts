@@ -32,5 +32,15 @@ export function buildAdaptersFromEnv(env: NodeJS.ProcessEnv = process.env): Map<
     m.set(a.providerId, a);
   }
 
+  const groqKey = env.GROQ_API_KEY;
+  if (groqKey) {
+    const a = new OpenAICompatibleAdapter({
+      apiKey: groqKey,
+      baseUrl: env.GROQ_BASE_URL || "https://api.groq.com/openai/v1",
+      providerId: "groq",
+    });
+    m.set(a.providerId, a);
+  }
+
   return m;
 }

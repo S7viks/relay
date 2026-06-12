@@ -1,0 +1,6 @@
+{
+  "status": "skipped",
+  "reason": "AUTOGEN_ENABLED not set",
+  "protocol": "AutoGen UserProxy + AssistantAgent; compare llm_config base_url direct vs GAIOL proxy",
+  "generated_at": "2026-06-12T14:31:39.550331+00:00"
+}

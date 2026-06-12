@@ -8,6 +8,11 @@ export interface GenerateParams {
   messages: ChatMessage[];
   temperature?: number;
   maxOutputTokens?: number;
+  _debug_faults?: {
+    timeoutMs?: number;
+    errorRate?: number;
+    failCompletely?: boolean;
+  };
 }
 
 export interface GenerateResult {

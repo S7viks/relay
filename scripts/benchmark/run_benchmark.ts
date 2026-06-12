@@ -85,8 +85,12 @@ interface BenchmarkOrchestrateResponse {
   [key: string]: unknown;
 }
 
-const ORCHESTRATOR_URL = "http://localhost:3001/v1/orchestrate";
-const HEALTH_URL = "http://localhost:3001/health";
+const ORCHESTRATOR_BASE = (
+  process.env.GAIOL_ORCHESTRATOR_URL?.trim().replace(/\/v1\/orchestrate\/?$/, "") ||
+  "http://localhost:8787"
+).replace(/\/$/, "");
+const ORCHESTRATOR_URL = `${ORCHESTRATOR_BASE}/v1/orchestrate`;
+const HEALTH_URL = `${ORCHESTRATOR_BASE}/health`;
 const TIMEOUT_MS = 90_000;
 const INTER_QUERY_DELAY_MS = 2_000;
 const USE_LLM_JUDGE = process.env.GAIOL_USE_LLM_JUDGE !== "0";
@@ -1290,4 +1294,7 @@ async function main(): Promise<void> {
   console.log("    convergence_curve.json   — ABTC posterior mean per round (Section 6.4)");
 }
 
-await main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

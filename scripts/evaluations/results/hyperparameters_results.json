@@ -1,0 +1,152 @@
+[
+  {
+    "lambda": 0.9,
+    "beamWidth": 1,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 681.75
+  },
+  {
+    "lambda": 0.9,
+    "beamWidth": 2,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 711
+  },
+  {
+    "lambda": 0.9,
+    "beamWidth": 3,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 755.25
+  },
+  {
+    "lambda": 0.9,
+    "beamWidth": 4,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 326.25
+  },
+  {
+    "lambda": 0.9,
+    "beamWidth": 5,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 555.25
+  },
+  {
+    "lambda": 0.95,
+    "beamWidth": 1,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 404
+  },
+  {
+    "lambda": 0.95,
+    "beamWidth": 2,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 320.5
+  },
+  {
+    "lambda": 0.95,
+    "beamWidth": 3,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 552.75
+  },
+  {
+    "lambda": 0.95,
+    "beamWidth": 4,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 315
+  },
+  {
+    "lambda": 0.95,
+    "beamWidth": 5,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 521
+  },
+  {
+    "lambda": 0.98,
+    "beamWidth": 1,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 303.75
+  },
+  {
+    "lambda": 0.98,
+    "beamWidth": 2,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 343
+  },
+  {
+    "lambda": 0.98,
+    "beamWidth": 3,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 535
+  },
+  {
+    "lambda": 0.98,
+    "beamWidth": 4,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 332.5
+  },
+  {
+    "lambda": 0.98,
+    "beamWidth": 5,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 317.75
+  },
+  {
+    "lambda": 0.99,
+    "beamWidth": 1,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 622
+  },
+  {
+    "lambda": 0.99,
+    "beamWidth": 2,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 314
+  },
+  {
+    "lambda": 0.99,
+    "beamWidth": 3,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 320.5
+  },
+  {
+    "lambda": 0.99,
+    "beamWidth": 4,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 494.25
+  },
+  {
+    "lambda": 0.99,
+    "beamWidth": 5,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 320.5
+  },
+  {
+    "lambda": 1,
+    "beamWidth": 1,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 316.25
+  },
+  {
+    "lambda": 1,
+    "beamWidth": 2,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 578
+  },
+  {
+    "lambda": 1,
+    "beamWidth": 3,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 314.75
+  },
+  {
+    "lambda": 1,
+    "beamWidth": 4,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 311.75
+  },
+  {
+    "lambda": 1,
+    "beamWidth": 5,
+    "avgQuality": 0.8,
+    "avgLatencyMs": 310.25
+  }
+]

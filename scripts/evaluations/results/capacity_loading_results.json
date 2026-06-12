@@ -1,0 +1,20 @@
+[
+  {
+    "concurrency": 1,
+    "durationMs": 395,
+    "successRate": 1,
+    "qps": 2.5316455696202533
+  },
+  {
+    "concurrency": 10,
+    "durationMs": 513,
+    "successRate": 1,
+    "qps": 19.49317738791423
+  },
+  {
+    "concurrency": 100,
+    "durationMs": 3460,
+    "successRate": 1,
+    "qps": 28.90173410404624
+  }
+]

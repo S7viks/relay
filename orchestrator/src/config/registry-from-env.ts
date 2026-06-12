@@ -47,11 +47,44 @@ function liveEntriesFromEnv(env: NodeJS.ProcessEnv): ModelRegistryEntry[] {
     });
   }
 
+  if (env.GROQ_API_KEY) {
+    out.push({
+      modelId: "groq-llama3-8b",
+      providerId: "groq",
+      remoteName: "llama-3.1-8b-instant",
+      capabilities: ["general", "reasoning", "code"],
+      costIndex: 0.1,
+      latencyPriorMs: 300,
+      accuracyPrior: 0.70,
+      available: true,
+    });
+    out.push({
+      modelId: "groq-gemma2-9b",
+      providerId: "groq",
+      remoteName: "gemma2-9b-it",
+      capabilities: ["general", "reasoning", "code"],
+      costIndex: 0.1,
+      latencyPriorMs: 350,
+      accuracyPrior: 0.68,
+      available: true,
+    });
+    out.push({
+      modelId: "groq-mixtral",
+      providerId: "groq",
+      remoteName: "mixtral-8x7b-32768",
+      capabilities: ["general", "reasoning", "code"],
+      costIndex: 0.15,
+      latencyPriorMs: 400,
+      accuracyPrior: 0.72,
+      available: true,
+    });
+  }
+
   return out;
 }
 
 function hasAnyLiveProviderKey(env: NodeJS.ProcessEnv): boolean {
-  return Boolean(env.OPENAI_API_KEY || env.ANTHROPIC_API_KEY || env.GOOGLE_API_KEY);
+  return Boolean(env.OPENAI_API_KEY || env.ANTHROPIC_API_KEY || env.GOOGLE_API_KEY || env.GROQ_API_KEY);
 }
 
 /**
