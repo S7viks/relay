@@ -14,5 +14,5 @@ type Document struct {
 // VectorStore defines the interface for storing and retrieving vectors
 type VectorStore interface {
 	Query(ctx context.Context, vector []float64, limit int) ([]Document, error)
-	Insert(ctx context.Context, doc Document) error
+	Insert(ctx context.Context, tenantID string, content string, embedding []float32, metadata map[string]interface{}) error
 }

@@ -1,5 +1,16 @@
 import type { ConsensusInput, ConsensusOutput } from "./types.js";
-import { tokenJaccard } from "../routing/text-sim.js";
+import {
+  computePosteriorMean,
+  computeCompositeScore,
+  computeConfidence,
+  crossModelAgreement,
+  computeEvaluateQuality,
+  updateTrust,
+  DEFAULT_ALPHA_INIT,
+  DEFAULT_BETA_INIT,
+  DEFAULT_THETA_MIN,
+  DEFAULT_LAMBDA,
+} from "./abtc.js";
 
 function normalizeWeights(raw: Record<string, number>): Record<string, number> {
   const vals = Object.values(raw);
@@ -12,22 +23,24 @@ function normalizeWeights(raw: Record<string, number>): Record<string, number> {
   return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, v / sum]));
 }
 
-function agreementOf(texts: string[]): number {
-  if (texts.length <= 1) return 1;
-  const base = texts[0] ?? "";
-  let acc = 0;
-  for (let i = 1; i < texts.length; i++) {
-    acc += tokenJaccard(base, texts[i] ?? "");
-  }
-  return acc / (texts.length - 1);
+function clamp01(v: number): number {
+  if (!Number.isFinite(v)) return 0;
+  return Math.max(0, Math.min(1, v));
+}
+
+function normalizeQualityScore(raw: number | undefined): number {
+  if (raw === undefined || Number.isNaN(raw)) return 0;
+  const mapped = raw > 1 ? raw / 10 : raw;
+  return clamp01(mapped);
 }
 
 /**
  * Pure consensus aggregation over parallel model outputs.
  */
-export function runConsensus(input: ConsensusInput): ConsensusOutput {
+export async function runConsensus(input: ConsensusInput): Promise<ConsensusOutput> {
+  const successful = input.candidates.filter((c) => !c.error);
   const byId = new Map(input.candidates.map((c) => [c.modelId, c]));
-  const ids = input.candidates.map((c) => c.modelId).filter((id) => !byId.get(id)?.error);
+  const ids = successful.map((c) => c.modelId);
 
   if (ids.length === 0) {
     const first = input.candidates[0];
@@ -38,6 +51,73 @@ export function runConsensus(input: ConsensusInput): ConsensusOutput {
       agreement: 0,
       notes: "no successful candidates",
     };
+  }
+
+  if (input.mode === "abtc") {
+    const trustStore = { ...(input.trustRecords ?? {}) };
+    const query = input.query ?? "";
+
+    // compute EvaluateQuality and CrossModelAgreement asynchronously
+    const scored = await Promise.all(successful.map(async (candidate) => {
+      const prior = trustStore[candidate.modelId];
+      const alpha = prior?.alpha ?? DEFAULT_ALPHA_INIT;
+      const beta = prior?.beta ?? DEFAULT_BETA_INIT;
+      const tauHat = computePosteriorMean(alpha, beta);
+      
+      const quality = await computeEvaluateQuality(candidate.text ?? "", query);
+      
+      const allOtherContents = successful
+        .filter((other) => other.modelId !== candidate.modelId)
+        .map((other) => other.text ?? "");
+      const agreement = await crossModelAgreement(candidate.text ?? "", allOtherContents);
+      
+      const score = computeCompositeScore(quality, agreement, tauHat);
+      return { candidate, score, alpha, beta, tauHat };
+    }));
+
+    scored.sort((a, b) => b.score - a.score);
+    const allScores = scored.map((x) => x.score);
+    const sigma = computeConfidence(allScores);
+
+    const baseWinner = scored[0]!;
+    let winner = baseWinner.candidate;
+    if (sigma < DEFAULT_THETA_MIN && scored.length >= 2) {
+      const top = scored.slice(0, Math.min(3, scored.length));
+      winner = {
+        ...baseWinner.candidate,
+        text: `synthesized: ${top.map((x) => x.candidate.text ?? "").join(" | ")}`,
+      };
+    }
+
+    const trustUpdates: Record<string, { alpha: number; beta: number }> = {};
+    for (const entry of scored) {
+      const isWinner = entry.candidate === baseWinner.candidate || entry.candidate.text === winner.text;
+      const updated = updateTrust(entry.alpha, entry.beta, isWinner, input.lambda ?? DEFAULT_LAMBDA);
+      trustStore[entry.candidate.modelId] = updated;
+      trustUpdates[entry.candidate.modelId] = updated;
+    }
+
+    const winnerAgreement = await crossModelAgreement(
+      winner.text ?? "",
+      successful
+        .filter((candidate) => candidate.modelId !== baseWinner.candidate.modelId)
+        .map((candidate) => candidate.text ?? "")
+    );
+
+    const output: ConsensusOutput = {
+      text: winner.text ?? "",
+      chosenModelId: baseWinner.candidate.modelId,
+      weights: normalizeWeights(
+        Object.fromEntries(scored.map((entry) => [entry.candidate.modelId, Math.max(entry.score, 0)])),
+      ),
+      agreement: winnerAgreement,
+      confidence: sigma,
+      winner: { modelId: baseWinner.candidate.modelId, content: winner.text ?? "" },
+      trustUpdates,
+      notes: sigma < DEFAULT_THETA_MIN && scored.length >= 2 ? "synthesized top candidates" : undefined,
+    };
+    (output as ConsensusOutput & { scores: number[] }).scores = allScores;
+    return output;
   }
 
   let weights: Record<string, number> = {};
@@ -69,14 +149,19 @@ export function runConsensus(input: ConsensusInput): ConsensusOutput {
   }
 
   const texts = ids.map((id) => byId.get(id)?.text ?? "");
-  const agreement = agreementOf(texts);
+  const chosenText = byId.get(bestId)?.text ?? "";
+  const agreement = await crossModelAgreement(
+    chosenText,
+    ids.filter((id) => id !== bestId).map((id) => byId.get(id)?.text ?? ""),
+  );
 
   const weightedText = weightedBlend(texts, ids, weights);
-  const chosenText = byId.get(bestId)?.text ?? "";
 
   return {
     text: input.mode === "uniform" && texts.length > 1 ? weightedText : chosenText,
     chosenModelId: bestId,
+    winner: { modelId: bestId, content: chosenText },
+    confidence: 0,
     weights,
     agreement,
   };

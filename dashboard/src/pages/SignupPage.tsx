@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchAuthSession, getAccessToken } from '../lib/auth'
 import { signUp } from '../lib/authApi'
-import { apiGet } from '../lib/api'
+import { fetchHealthBody } from '../lib/api'
+import { apiUrl } from '../lib/apiBase'
 
 export function SignupPage() {
   const navigate = useNavigate()
@@ -13,22 +14,24 @@ export function SignupPage() {
   const [info, setInfo] = useState('')
   const [loading, setLoading] = useState(false)
   const [authDisabled, setAuthDisabled] = useState(false)
+  const [apiUnreachable, setApiUnreachable] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       try {
-        const h = await apiGet('/health')
-        const ad = !!(h && typeof h === 'object' && (h as { auth_disabled?: boolean }).auth_disabled)
-        if (!cancelled) setAuthDisabled(ad)
-        if (ad) {
-          navigate('/chat', { replace: true })
+        const h = await fetchHealthBody()
+        if (cancelled) return
+        setApiUnreachable(!h.ok)
+        setAuthDisabled(h.authDisabled)
+        if (h.authDisabled) {
+          navigate('/home', { replace: true })
           return
         }
         const s = await fetchAuthSession()
-        if (!cancelled && s.authenticated) navigate('/chat', { replace: true })
+        if (!cancelled && s.authenticated) navigate('/home', { replace: true })
       } catch {
-        /* ignore */
+        if (!cancelled) setApiUnreachable(true)
       }
     })()
     return () => {
@@ -55,7 +58,7 @@ export function SignupPage() {
         setInfo('Check your email: confirm your account from the link we sent, then sign in.')
         return
       }
-      navigate('/chat', { replace: true })
+      navigate('/home', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign up failed')
     } finally {
@@ -76,6 +79,12 @@ export function SignupPage() {
           <div className="auth-header">
             <h1>Create account</h1>
             <p>Get your GAIOL API key and connect providers in the dashboard.</p>
+            {apiUnreachable && (
+              <p className="error-message" role="alert">
+                Cannot reach the API ({apiUrl('/health')}). If the dashboard is on a different host than the Go server,
+                rebuild with <code>VITE_API_BASE</code> set to your API origin (see <code>.env.example</code>).
+              </p>
+            )}
           </div>
           <div className="term-screen" aria-hidden="true">
             <div className="line comment">new tenant registration</div>
@@ -124,7 +133,7 @@ export function SignupPage() {
             <p className="term-muted-small">
               By creating an account you agree to the <Link to="/terms">Terms of Service</Link>.
             </p>
-            <button type="submit" className="btn-primary btn-full" disabled={loading || authDisabled}>
+            <button type="submit" className="btn-primary btn-full" disabled={loading || authDisabled || apiUnreachable}>
               {loading ? 'Creating…' : 'Create account'}
             </button>
             <div className="auth-divider">

@@ -10,8 +10,6 @@ import (
 	"testing"
 
 	"gaiol/internal/models"
-	"gaiol/internal/monitoring"
-	"gaiol/internal/reasoning"
 )
 
 // chdirProjectRoot sets working directory to the repo root (directory containing go.mod)
@@ -51,10 +49,55 @@ func newTestDepsAuthDisabled(t *testing.T) *Deps {
 		Router:         rtr,
 		Tracker:        tracker,
 		AuthDisabled:   true,
-		ReasoningAPI:   reasoning.NewReasoningAPI(rtr, monitoring.NewMetricsService()),
-		WorldModel:     reasoning.NewWorldModel(nil),
 		LogLevel:       "error",
 		AllowedOrigins: nil,
+	}
+}
+
+func TestAuthAPI_TrailingSlash_POST_NotSPA405(t *testing.T) {
+	d := newTestDepsAuthDisabled(t)
+	mux := http.NewServeMux()
+	Register(mux, d)
+	h := NormalizeAuthAPIPath(mux)
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+
+	resp, err := http.Post(srv.URL+"/api/auth/signin/", "application/json", strings.NewReader("{}"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusMethodNotAllowed {
+		t.Fatalf("POST /api/auth/signin/ fell through to SPA (405); normalize trailing slash for /api/auth/*")
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+}
+
+func TestAuthAPI_DoubleSlash_POST_NotSPA405(t *testing.T) {
+	d := newTestDepsAuthDisabled(t)
+	mux := http.NewServeMux()
+	Register(mux, d)
+	h := NormalizeAuthAPIPath(mux)
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+
+	req, err := http.NewRequest(http.MethodPost, srv.URL+"//api/auth/signin", strings.NewReader("{}"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusMethodNotAllowed {
+		t.Fatalf("POST //api/auth/signin fell through to SPA (405)")
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status %d", resp.StatusCode)
 	}
 }
 
@@ -211,8 +254,6 @@ func TestCORS_Unauthorized_ProtectedRoute_HasAllowOrigin(t *testing.T) {
 		AuthDisabled: false,
 		DB:           nil,
 		DBAvailable:  false,
-		ReasoningAPI: reasoning.NewReasoningAPI(rtr, monitoring.NewMetricsService()),
-		WorldModel:   reasoning.NewWorldModel(nil),
 		LogLevel:     "error",
 		AllowedOrigins: map[string]struct{}{
 			"https://gaiol.vercel.app": {},
@@ -251,8 +292,6 @@ func TestCORS_Preflight_OPTIONS_AllowedOrigin(t *testing.T) {
 		Router:       rtr,
 		Tracker:      tracker,
 		AuthDisabled: true,
-		ReasoningAPI: reasoning.NewReasoningAPI(rtr, monitoring.NewMetricsService()),
-		WorldModel:   reasoning.NewWorldModel(nil),
 		LogLevel:     "error",
 		AllowedOrigins: map[string]struct{}{
 			"https://gaiol.vercel.app": {},

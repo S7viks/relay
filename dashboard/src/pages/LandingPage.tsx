@@ -72,7 +72,7 @@ export function LandingPage() {
         <footer className="landing-footer">
           <Link to="/login">Login</Link>
           <span aria-hidden> · </span>
-          <Link to="/chat">Dashboard</Link>
+          <Link to="/home">Dashboard</Link>
           <span aria-hidden> · </span>
           <Link to="/signup">Get your key</Link>
         </footer>

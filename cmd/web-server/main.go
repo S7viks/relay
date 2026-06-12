@@ -17,8 +17,7 @@ import (
 	"gaiol/internal/httpserver"
 	"gaiol/internal/models"
 	"gaiol/internal/models/adapters"
-	"gaiol/internal/monitoring"
-	"gaiol/internal/reasoning"
+
 
 	"github.com/joho/godotenv"
 )
@@ -109,12 +108,6 @@ func main() {
 	deps.Router = models.NewModelRouter(deps.Registry, deps.Tracker)
 	log.Println("Model router initialized")
 
-	deps.WorldModel = reasoning.NewWorldModel(deps.DB)
-	log.Println("World Model initialized")
-
-	deps.ReasoningAPI = reasoning.NewReasoningAPI(deps.Router, monitoring.NewMetricsService())
-	log.Println("Reasoning API initialized")
-
 	if tsURL := strings.TrimSpace(os.Getenv("GAIOL_TS_ORCHESTRATOR_URL")); tsURL != "" {
 		deps.TSOrchestrator = orchestratorv1.NewClient(tsURL)
 		deps.TSOrchestratorDelegate = envBool("GAIOL_USE_TS_ORCHESTRATOR")
@@ -125,7 +118,8 @@ func main() {
 		}
 	}
 
-	httpserver.Register(http.DefaultServeMux, deps)
+	mux := http.NewServeMux()
+	httpserver.Register(mux, deps)
 
 	if _, err := os.Stat("dashboard/dist/index.html"); err != nil {
 		log.Println("Web UI: dashboard/dist/index.html not found — open http://localhost:" + coalescePort(os.Getenv("PORT")) + "/ will show a build hint. Run: cd dashboard && npm install && npm run build")
@@ -138,7 +132,8 @@ func main() {
 		port = "8080"
 	}
 
-	var handler http.Handler = http.DefaultServeMux
+	var handler http.Handler = mux
+	handler = httpserver.NormalizeAuthAPIPath(handler)
 	if authDisabled {
 		handler = deps.LocalTenantMiddleware(handler)
 	}

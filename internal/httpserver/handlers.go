@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -21,7 +22,6 @@ import (
 	"gaiol/internal/keys"
 	"gaiol/internal/models"
 	"gaiol/internal/models/adapters"
-	"gaiol/internal/reasoning"
 	"gaiol/internal/uaip"
 )
 
@@ -85,6 +85,28 @@ func (d *Deps) corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// NormalizeAuthAPIPath rewrites the request path when path.Clean would change it and the result is still
+// under /api/auth/... Fixes: trailing slash, duplicate slashes (//api/...), and ./ segments so POST
+// reaches mux routes like /api/auth/signin instead of falling through to the "/" SPA (which returns 405).
+func NormalizeAuthAPIPath(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := r.URL.Path
+		clean := path.Clean(p)
+		if clean == "." {
+			clean = "/"
+		}
+		if clean != p && (strings.HasPrefix(clean, "/api/auth/") || clean == "/api/auth") {
+			r2 := r.Clone(r.Context())
+			u := *r.URL
+			u.Path = clean
+			r2.URL = &u
+			next.ServeHTTP(w, r2)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // responseRecorder wraps ResponseWriter to capture status and size for logging.
 type responseRecorder struct {
 	http.ResponseWriter
@@ -130,7 +152,12 @@ func (d *Deps) LocalTenantMiddleware(next http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		ctx = database.WithTenant(ctx, localTenant)
+		var err error
+		ctx, err = database.WithTenant(ctx, localTenant)
+		if err != nil {
+			http.Error(w, "failed to set tenant context", http.StatusInternalServerError)
+			return
+		}
 		ctx = auth.WithUser(ctx, localUser)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -198,6 +225,9 @@ func serveRootAssets(w http.ResponseWriter, r *http.Request) {
 // serveUnifiedSPA serves the React app: real files from dashboard/dist when present, else index.html.
 func serveUnifiedSPA(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			log.Printf("gaiol: %s %s hit SPA catch-all (no matching API route); rebuild server and check path/normalization", r.Method, r.URL.Path)
+		}
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -270,6 +300,7 @@ func (d *Deps) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"connected": d.DBAvailable,
 	}
 	if d.DB != nil {
+		dbPayload["using_service_role"] = d.DB.UsingServiceRole
 		pingCtx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
 		err := d.DB.PingREST(pingCtx)
 		cancel()
@@ -703,152 +734,10 @@ func (d *Deps) handleQuerySmart(w http.ResponseWriter, r *http.Request) {
 	if d.tryQuerySmartViaTSOrchestrator(w, r, req.Prompt, req.Task, req.Strategy, req.MaxTokens, req.Temperature, tenantCtx) {
 		return
 	}
-
-	// Local no-auth mode convenience: fail fast with a helpful message when no models are configured.
-	if d.AuthDisabled && (d.Registry == nil || d.Registry.Count() == 0) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"error":   "No models configured. Add provider keys in Settings (Dashboard > Models), or in no-auth mode add OPENROUTER_API_KEY (or GEMINI_API_KEY) to .env and restart.",
-			"success": false,
-		})
-		return
-	}
-
-	// Tenant-scoped inference when auth+DB; local router when no-auth mode
-	var engine *reasoning.ReasoningEngine
-	if !d.AuthDisabled {
-		tenantReg, tenantRouter, buildErr := buildTenantRegistry(r.Context(), d.DB, tenantCtx.TenantID, d.Tracker)
-		if buildErr != nil {
-			log.Printf("❌ Build tenant registry: %v", buildErr)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]interface{}{"error": "Failed to load tenant models/providers", "success": false})
-			return
-		}
-		if tenantReg == nil || tenantRouter == nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"error":   "No tenant models/providers configured. Add built-in provider keys in Dashboard > Models, or register custom providers/models via /api/settings/providers and /api/settings/models.",
-				"success": false,
-			})
-			return
-		}
-		engine = reasoning.NewReasoningEngine(tenantRouter)
-	} else {
-		engine = d.ReasoningAPI.Engine
-	}
-	if engine == nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{"error": "Reasoning engine not initialized", "success": false})
-		return
-	}
-
-	sessionID := engine.InitSession(r.Context(), req.Prompt)
-	log.Printf("🧠 Starting reasoning session: %s", sessionID)
-
-	sm, err := engine.RunSession(r.Context(), sessionID, req.Prompt, []string{})
-	if err != nil {
-		log.Printf("❌ Reasoning failed: %v", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error":   "Reasoning failed: " + err.Error(),
-			"success": false,
-		})
-		return
-	}
-
-	// Extract the final result from the reasoning session
-	finalOutput := ""
-	if sm != nil {
-		// Use composer to assemble final output from selected path (handles multi-step)
-		if len(sm.SelectedPath) > 0 {
-			// Use the composer to properly assemble multi-step outputs
-			composer := reasoning.NewComposer()
-			finalOutput = composer.AssembleFinalOutput(sm.SelectedPath)
-		} else if len(sm.Steps) > 0 {
-			// If no selected path but we have steps, try to extract from step outputs
-			for i := len(sm.Steps) - 1; i >= 0; i-- {
-				if sm.Steps[i].SelectedOutput != nil && sm.Steps[i].SelectedOutput.Response != "" {
-					finalOutput = sm.Steps[i].SelectedOutput.Response
-					break
-				}
-				// Also check all model outputs in case selected output is nil
-				if len(sm.Steps[i].ModelOutputs) > 0 {
-					for _, out := range sm.Steps[i].ModelOutputs {
-						if out.Response != "" {
-							finalOutput = out.Response
-							break
-						}
-					}
-					if finalOutput != "" {
-						break
-					}
-				}
-			}
-		}
-	}
-
-	// If still empty, provide a helpful error message
-	if finalOutput == "" {
-		finalOutput = "⚠️ All AI models are currently unavailable due to API rate limits or service issues.\n\nPossible causes:\n- OpenRouter API rate limit exceeded (429 errors)\n- API key issues or payment required (402 errors)\n- Model not found (404 errors)\n- Ollama service unavailable or timing out\n\nPlease wait a few minutes and try again, or check your API keys and service status."
-	}
-
-	log.Printf("✅ Reasoning completed successfully")
-
-	totalCost := 0.0
-	stepsExecuted := 0
-	if sm != nil {
-		totalCost = sm.TotalCost
-		stepsExecuted = len(sm.Steps)
-	}
-
-	// Usage logging (Phase 4)
-	if d.DB != nil && tenantCtx.TenantID != "" {
-		_ = logUsageToAPIQueries(d.DB, tenantCtx, "reasoning-engine", 0, totalCost, 0, true, "", "")
-	}
-
-	// Build response in the same format as before for frontend compatibility
-	response := map[string]interface{}{
-		"uaip": true,
-		"status": map[string]interface{}{
-			"success": true,
-		},
-		"result": map[string]interface{}{
-			"data":          finalOutput,
-			"tokens_used":   0, // Could aggregate from sm if needed
-			"model_used":    "ReasoningEngine",
-			"processing_ms": 0,
-			"quality":       1.0,
-		},
-		"metadata": map[string]interface{}{
-			"cost_info": map[string]interface{}{
-				"total_cost": totalCost,
-			},
-			"session_id":     sessionID,
-			"steps_executed": stepsExecuted,
-		},
-		// Legacy format for backward compatibility
-		"model_id":    "reasoning-engine",
-		"model_name":  "GAIOL Reasoning Engine",
-		"response":    finalOutput,
-		"tokens_used": 0,
-		"cost":        totalCost,
-		"latency_ms":  0,
-		"quality":     1.0,
-		"strategy":    "reasoning",
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("❌ Failed to encode response: %v", err)
-	}
+	w.WriteHeader(http.StatusServiceUnavailable)
+	json.NewEncoder(w).Encode(map[string]interface{}{"error": "TS Orchestrator is unavailable or disabled. Reasoning requires the TS Orchestrator.", "success": false})
 }
-
 func canManageKeys(tc database.TenantContext) bool {
 	// Empty role (e.g. from RPC that does not return role) treated as owner for backward compatibility
 	return tc.Role == "admin" || tc.Role == "owner" || tc.Role == ""
@@ -1600,13 +1489,13 @@ func (d *Deps) noAuthHandleEnsureGAIOLKey(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":                    false,
-		"error":                       "GAIOL API keys are not available in local auth_disabled mode; configure provider keys via env and restart, or enable DB auth.",
-		"gaiol_api_key_created":      false,
-		"gaiol_api_key_message":     "Enable auth + DB to provision tenant keys.",
-		"gaiol_api_key":              nil,
-		"gaiol_api_key_hint":         "",
-		"gaiol_api_key_revealable":  false,
+		"success":                  false,
+		"error":                    "GAIOL API keys are not available in local auth_disabled mode; configure provider keys via env and restart, or enable DB auth.",
+		"gaiol_api_key_created":    false,
+		"gaiol_api_key_message":    "Enable auth + DB to provision tenant keys.",
+		"gaiol_api_key":            nil,
+		"gaiol_api_key_hint":       "",
+		"gaiol_api_key_revealable": false,
 	})
 }
 
@@ -1776,51 +1665,13 @@ func (d *Deps) handleV1Chat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	engine := reasoning.NewReasoningEngine(tenantRouter)
-	if body.Strategy == "" {
-		if prefs, _ := d.DB.GetTenantSettings(r.Context(), tenantID); prefs != nil && prefs.Strategy != "" {
-			body.Strategy = prefs.Strategy
-		} else {
-			body.Strategy = "balanced"
-		}
-	}
-	sessionID := engine.InitSession(r.Context(), body.Prompt)
-	sm, err := engine.RunSession(r.Context(), sessionID, body.Prompt, []string{})
-	if err != nil {
-		log.Printf("v1/chat tenant_id=%s latency_ms=%d success=false error=%s", tenantID, time.Since(v1Start).Milliseconds(), err.Error())
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{"error": err.Error(), "success": false})
+	if d.tryQuerySmartViaTSOrchestrator(w, r, body.Prompt, body.Task, body.Strategy, body.MaxTokens, body.Temperature, database.TenantContext{TenantID: tenantID, UserID: "", OrgID: ""}) {
 		return
 	}
-	finalOutput := ""
-	if sm != nil && len(sm.SelectedPath) > 0 {
-		composer := reasoning.NewComposer()
-		finalOutput = composer.AssembleFinalOutput(sm.SelectedPath)
-	} else if sm != nil && len(sm.Steps) > 0 {
-		for i := len(sm.Steps) - 1; i >= 0; i-- {
-			if sm.Steps[i].SelectedOutput != nil && sm.Steps[i].SelectedOutput.Response != "" {
-				finalOutput = sm.Steps[i].SelectedOutput.Response
-				break
-			}
-		}
-	}
-	tenantCtx := database.TenantContext{TenantID: tenantID, UserID: "", OrgID: ""}
-	cost := 0.0
-	if sm != nil {
-		cost = sm.TotalCost
-	}
-	_ = logUsageToAPIQueries(d.DB, tenantCtx, "reasoning-engine", 0, cost, 0, true, "", gaiolKeyID)
-	log.Printf("v1/chat tenant_id=%s latency_ms=%d success=true", tenantID, time.Since(v1Start).Milliseconds())
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"result":     finalOutput,
-		"cost":       cost,
-		"session_id": sessionID,
-	})
+	w.WriteHeader(http.StatusServiceUnavailable)
+	json.NewEncoder(w).Encode(map[string]interface{}{"error": "TS Orchestrator is unavailable or disabled. Reasoning requires the TS Orchestrator.", "success": false})
 }
-
 func (d *Deps) handleV1ChatLocal(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		apijson.WriteError(w, http.StatusMethodNotAllowed, "Method not allowed", "method_not_allowed")
@@ -1902,47 +1753,13 @@ func (d *Deps) handleV1ChatLocal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	engine := reasoning.NewReasoningEngine(d.Router)
-	if body.Strategy == "" {
-		body.Strategy = "balanced"
-	}
-	sessionID := engine.InitSession(r.Context(), body.Prompt)
-	sm, err := engine.RunSession(r.Context(), sessionID, body.Prompt, []string{})
-	if err != nil {
-		log.Printf("v1/chat local latency_ms=%d success=false error=%s", time.Since(v1Start).Milliseconds(), err.Error())
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{"error": err.Error(), "success": false})
+	if d.tryQuerySmartViaTSOrchestrator(w, r, body.Prompt, body.Task, body.Strategy, body.MaxTokens, body.Temperature, database.TenantContext{}) {
 		return
 	}
-
-	finalOutput := ""
-	if sm != nil && len(sm.SelectedPath) > 0 {
-		composer := reasoning.NewComposer()
-		finalOutput = composer.AssembleFinalOutput(sm.SelectedPath)
-	} else if sm != nil && len(sm.Steps) > 0 {
-		for i := len(sm.Steps) - 1; i >= 0; i-- {
-			if sm.Steps[i].SelectedOutput != nil && sm.Steps[i].SelectedOutput.Response != "" {
-				finalOutput = sm.Steps[i].SelectedOutput.Response
-				break
-			}
-		}
-	}
-	cost := 0.0
-	if sm != nil {
-		cost = sm.TotalCost
-	}
-
-	log.Printf("v1/chat local latency_ms=%d success=true", time.Since(v1Start).Milliseconds())
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"result":     finalOutput,
-		"cost":       cost,
-		"session_id": sessionID,
-	})
+	w.WriteHeader(http.StatusServiceUnavailable)
+	json.NewEncoder(w).Encode(map[string]interface{}{"error": "TS Orchestrator is unavailable or disabled. Reasoning requires the TS Orchestrator.", "success": false})
 }
-
 func (d *Deps) handleQueryModel(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -2029,7 +1846,14 @@ func (d *Deps) handleQueryModel(w http.ResponseWriter, r *http.Request) {
 // ============================================================================
 
 func (d *Deps) handleSignUp(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead:
+		http.Redirect(w, r, "/signup", http.StatusSeeOther)
+		return
+	case http.MethodPost:
+		// continue below
+	default:
+		w.Header().Set("Allow", "GET, HEAD, POST, OPTIONS")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -2062,7 +1886,14 @@ func (d *Deps) handleSignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Deps) handleRecoverPassword(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead:
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	case http.MethodPost:
+		// continue
+	default:
+		w.Header().Set("Allow", "GET, HEAD, POST, OPTIONS")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -2125,7 +1956,14 @@ func (d *Deps) handleUpdatePassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Deps) handleSignIn(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead:
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	case http.MethodPost:
+		// continue
+	default:
+		w.Header().Set("Allow", "GET, HEAD, POST, OPTIONS")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -2187,13 +2025,13 @@ func (d *Deps) handleSignOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
 		http.Error(w, "Invalid authorization header", http.StatusUnauthorized)
 		return
 	}
 
-	err = d.AuthAPI.SignOut(r.Context(), parts[1])
+	err = d.AuthAPI.SignOut(r.Context(), strings.TrimSpace(parts[1]))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -2241,10 +2079,10 @@ func (d *Deps) handleGetSession(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
 	var userInfo *auth.UserInfo
 	if authHeader != "" && d.AuthAPI != nil {
-		parts := strings.Split(authHeader, " ")
-		if len(parts) == 2 && parts[0] == "Bearer" {
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
 			// Fetch full user info from Supabase
-			if fullUser, err := d.AuthAPI.GetUser(r.Context(), parts[1]); err == nil {
+			if fullUser, err := d.AuthAPI.GetUser(r.Context(), strings.TrimSpace(parts[1])); err == nil {
 				userInfo = fullUser
 			}
 		}
@@ -2362,10 +2200,10 @@ func (d *Deps) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
 	var userInfo *auth.UserInfo
 	if authHeader != "" && d.AuthAPI != nil {
-		parts := strings.Split(authHeader, " ")
-		if len(parts) == 2 && parts[0] == "Bearer" {
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
 			// Fetch full user info from Supabase
-			if fullUser, err := d.AuthAPI.GetUser(r.Context(), parts[1]); err == nil {
+			if fullUser, err := d.AuthAPI.GetUser(r.Context(), strings.TrimSpace(parts[1])); err == nil {
 				userInfo = fullUser
 			}
 		}
@@ -2409,147 +2247,3 @@ func (d *Deps) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// ============================================================================
-// Reasoning Handlers
-// ============================================================================
-
-func (d *Deps) handleReasoningStart(w http.ResponseWriter, r *http.Request) {
-	// Fast-fail when no models (avoids long timeouts and unclear errors)
-	if d.AuthDisabled && (d.Registry == nil || d.Registry.Count() == 0) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "No models configured. Add provider keys in Settings (Dashboard > Models), or in no-auth mode add OPENROUTER_API_KEY (or GEMINI_API_KEY) to .env and restart.",
-		})
-		return
-	}
-	d.ReasoningAPI.HandleStartReasoning(w, r)
-}
-
-func (d *Deps) handleReasoningStatus(w http.ResponseWriter, r *http.Request) {
-	d.ReasoningAPI.HandleGetStatus(w, r)
-}
-
-func (d *Deps) handleReasoningWebSocket(w http.ResponseWriter, r *http.Request) {
-	d.ReasoningAPI.HandleWebSocket(w, r)
-}
-
-func (d *Deps) handleMonitoringStats(w http.ResponseWriter, r *http.Request) {
-	d.ReasoningAPI.HandleGetStats(w, r)
-}
-
-// ============================================================================
-// World Model Routes (NEW)
-// ============================================================================
-
-// Get all facts from world model
-func (d *Deps) handleWorldModelFacts(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	facts := d.WorldModel.ListAll()
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"facts": facts,
-		"count": len(facts),
-	})
-}
-
-// Store a fact manually
-func (d *Deps) handleWorldModelStore(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req struct {
-		Key       string `json:"key"`
-		Value     string `json:"value"`
-		Source    string `json:"source"`
-		SessionID string `json:"session_id"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		return
-	}
-
-	err := d.WorldModel.Store(r.Context(), req.Key, req.Value, req.Source, req.SessionID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Fact stored successfully",
-	})
-}
-
-// Search world model
-func (d *Deps) handleWorldModelSearch(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	query := r.URL.Query().Get("q")
-	if query == "" {
-		http.Error(w, "Query parameter 'q' is required", http.StatusBadRequest)
-		return
-	}
-
-	facts := d.WorldModel.Search(r.Context(), query, 10)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"query": query,
-		"facts": facts,
-		"count": len(facts),
-	})
-}
-
-// Handle multi-agent workflow
-func (d *Deps) handleAgentWorkflow(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req struct {
-		Prompt string `json:"prompt"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		return
-	}
-
-	// Create session
-	sessionID := d.ReasoningAPI.Engine.InitSession(r.Context(), req.Prompt)
-
-	// Create simple workflow with world model (NEW: pass d.WorldModel)
-	workflow := reasoning.NewSimpleAgentWorkflow(d.ReasoningAPI.Engine.Orchestrator.Router, sessionID, d.WorldModel)
-	workflow.OnEvent = d.ReasoningAPI.BroadcastEvent
-
-	// Execute workflow synchronously (caller can use WS for events)
-	result, err := workflow.Execute(r.Context(), req.Prompt)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Return result
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"session_id":   sessionID,
-		"final_output": result.FinalOutput,
-		"steps":        result.Steps,
-		"duration_ms":  result.Duration.Milliseconds(),
-		"agent_count":  len(result.Steps),
-	})
-}

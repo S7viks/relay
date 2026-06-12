@@ -1,0 +1,44 @@
+{
+  "systems": {
+    "sys1_gaiol": {
+      "avg_quality": 0.757,
+      "avg_latency_ms": 0.0,
+      "avg_cost_usd": 0.0,
+      "success_rate": 0.0
+    },
+    "sys2_direct_api": {
+      "avg_quality": 0.757,
+      "avg_latency_ms": 880.35,
+      "avg_cost_usd": 0.022844,
+      "success_rate": 0.978
+    },
+    "sys3_langchain": {
+      "avg_quality": 0.709,
+      "avg_latency_ms": 1682.85,
+      "avg_cost_usd": 0.004543,
+      "success_rate": 0.938
+    },
+    "sys4_openrouter": {
+      "avg_quality": 0.644,
+      "avg_latency_ms": 641.32,
+      "avg_cost_usd": 0.00076,
+      "success_rate": 0.98
+    },
+    "sys5_multi_wrap": {
+      "avg_quality": 0.54,
+      "avg_latency_ms": 1051.83,
+      "avg_cost_usd": 0.000601,
+      "success_rate": 0.98
+    }
+  },
+  "gaiol_improvement": {
+    "vs_single_model_pct": 0.0,
+    "vs_langchain_pct": 6.8,
+    "p_values": {
+      "vs_sys2": 1.0,
+      "vs_sys3": 1.0,
+      "vs_sys4": 1.0,
+      "vs_sys5": 1.0
+    }
+  }
+}

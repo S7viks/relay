@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"gaiol/internal/uaip"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // SupabaseVectorStore implements VectorStore using Supabase pgvector
@@ -41,10 +44,77 @@ func (s *SupabaseVectorStore) Query(ctx context.Context, vector []float64, limit
 	return results, nil
 }
 
-// Insert adds a new document to the store
-func (s *SupabaseVectorStore) Insert(ctx context.Context, doc uaip.Document) error {
-	// Not strictly required for the reasoning engine retrieval yet,
-	// but useful for building the database.
-	// Implementation would involve generating embedding and then inserting.
-	return fmt.Errorf("insert not implemented in SupabaseVectorStore")
+// InsertDocument stores an embedding row in the documents table.
+func (c *Client) InsertDocument(ctx context.Context, tenantID, content string, embedding []float32, metadata map[string]interface{}) error {
+	if tenantID == "" {
+		return fmt.Errorf("InsertDocument: tenantID must not be empty")
+	}
+
+	parts := make([]string, len(embedding))
+	for i, v := range embedding {
+		parts[i] = strconv.FormatFloat(float64(v), 'f', 6, 32)
+	}
+	vecStr := "[" + strings.Join(parts, ",") + "]"
+
+	metaJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return fmt.Errorf("InsertDocument: marshal metadata: %w", err)
+	}
+	metaObj := map[string]interface{}{}
+	if len(metaJSON) > 0 && string(metaJSON) != "null" {
+		if err := json.Unmarshal(metaJSON, &metaObj); err != nil {
+			return fmt.Errorf("InsertDocument: unmarshal metadata: %w", err)
+		}
+	}
+
+	if c == nil || c.Client == nil {
+		return fmt.Errorf("InsertDocument: database client is not initialized")
+	}
+	row := map[string]interface{}{
+		"org_id":     tenantID,
+		"content":    content,
+		"embedding":  vecStr,
+		"metadata":   metaObj,
+		"created_at": time.Now().UTC(),
+	}
+	_, _, err = c.Client.From("documents").Insert(row, false, "", "", "").Execute()
+	return err
+}
+
+// Insert adds a new document row to the documents table for a tenant.
+func (s *SupabaseVectorStore) Insert(ctx context.Context, tenantID string, content string, embedding []float32, metadata map[string]interface{}) error {
+	if s.client == nil || s.client.Client == nil {
+		return fmt.Errorf("supabase client not initialized")
+	}
+	if strings.TrimSpace(tenantID) == "" {
+		return fmt.Errorf("tenantID is required for vector insert")
+	}
+	if metadata == nil {
+		metadata = map[string]interface{}{}
+	}
+
+	row := map[string]interface{}{
+		"org_id":     tenantID,
+		"content":    content,
+		"embedding":  toPGVectorLiteral(embedding),
+		"metadata":   metadata,
+		"created_at": time.Now().UTC(),
+	}
+
+	_, _, err := s.client.Client.From("documents").Insert(row, false, "", "", "").Execute()
+	if err != nil {
+		return fmt.Errorf("failed to insert document for tenant %s: %w", tenantID, err)
+	}
+	return nil
+}
+
+func toPGVectorLiteral(embedding []float32) string {
+	if len(embedding) == 0 {
+		return "[]"
+	}
+	parts := make([]string, len(embedding))
+	for i, v := range embedding {
+		parts[i] = strconv.FormatFloat(float64(v), 'f', -1, 32)
+	}
+	return "[" + strings.Join(parts, ",") + "]"
 }

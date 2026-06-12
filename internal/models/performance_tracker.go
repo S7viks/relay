@@ -61,6 +61,18 @@ func (pt *PerformanceTracker) GetLearnedQuality(modelID string, task TaskType) (
 	return val, ok
 }
 
+// GetHistoricalAccuracy returns the tracked accuracy for a model+task combination.
+// Returns 0.5 (neutral prior) if no history is available.
+func (pt *PerformanceTracker) GetHistoricalAccuracy(modelID string, taskType TaskType) float64 {
+	key := fmt.Sprintf("%s:%s", modelID, taskType)
+	pt.learnedMu.RLock()
+	defer pt.learnedMu.RUnlock()
+	if accuracy, ok := pt.cache[key]; ok {
+		return accuracy
+	}
+	return 0.5
+}
+
 // RefreshCache pulls latest aggregates from DB
 func (pt *PerformanceTracker) RefreshCache(ctx context.Context) error {
 	if pt.db == nil || pt.db.Client == nil {

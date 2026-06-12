@@ -150,7 +150,11 @@ func AuthMiddleware(db *database.Client) func(http.Handler) http.Handler {
 			}
 
 			ctx := WithUser(r.Context(), user)
-			ctx = database.WithTenant(ctx, tenantCtx)
+			ctx, err = database.WithTenant(ctx, tenantCtx)
+			if err != nil {
+				http.Error(w, "Invalid tenant context", http.StatusUnauthorized)
+				return
+			}
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

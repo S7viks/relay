@@ -1,0 +1,54 @@
+{
+  "total_queries": 500,
+  "counts_by_domain": {
+    "analytical_reasoning": 100,
+    "code_generation": 100,
+    "multi_step_problem": 100,
+    "knowledge_retrieval": 100,
+    "creative_synthesis": 100
+  },
+  "counts_by_difficulty": {
+    "easy": 100,
+    "medium": 100,
+    "hard": 100,
+    "very_hard": 100,
+    "challenge": 100
+  },
+  "counts_by_domain_and_difficulty": {
+    "analytical_reasoning": {
+      "easy": 20,
+      "medium": 20,
+      "hard": 20,
+      "very_hard": 20,
+      "challenge": 20
+    },
+    "code_generation": {
+      "easy": 20,
+      "medium": 20,
+      "hard": 20,
+      "very_hard": 20,
+      "challenge": 20
+    },
+    "multi_step_problem": {
+      "easy": 20,
+      "medium": 20,
+      "hard": 20,
+      "very_hard": 20,
+      "challenge": 20
+    },
+    "knowledge_retrieval": {
+      "easy": 20,
+      "medium": 20,
+      "hard": 20,
+      "very_hard": 20,
+      "challenge": 20
+    },
+    "creative_synthesis": {
+      "easy": 20,
+      "medium": 20,
+      "hard": 20,
+      "very_hard": 20,
+      "challenge": 20
+    }
+  }
+}

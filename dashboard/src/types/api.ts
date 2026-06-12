@@ -88,3 +88,17 @@ export interface ProviderKeyRow {
   created_at?: string
   updated_at?: string
 }
+
+/** GET /api/settings/models — tenant-routable models (production DB). */
+export interface TenantModelRow {
+  id?: string
+  provider_key?: string
+  model_id?: string
+  display_name?: string
+  quality_score?: number
+  cost_per_token?: number
+  context_window?: number
+  max_tokens?: number
+  tags?: string[]
+  is_active?: boolean
+}

@@ -1,0 +1,173 @@
+[
+  {
+    "query_id": "analytical_001",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5305715322305183,
+      "static_tuned": 0.548427381496529,
+      "full_abtc": 0.5651443883405876
+    }
+  },
+  {
+    "query_id": "analytical_002",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5123877064486512,
+      "static_tuned": 0.5279431263367157,
+      "full_abtc": 0.5446588582926437
+    }
+  },
+  {
+    "query_id": "analytical_003",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5323706142009091,
+      "static_tuned": 0.5550535843016287,
+      "full_abtc": 0.572776768218985
+    }
+  },
+  {
+    "query_id": "analytical_004",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5307548350651485,
+      "static_tuned": 0.5561835921252845,
+      "full_abtc": 0.5717929718406383
+    }
+  },
+  {
+    "query_id": "analytical_005",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5131421127609341,
+      "static_tuned": 0.546640356151977,
+      "full_abtc": 0.5606751848141011
+    }
+  },
+  {
+    "query_id": "analytical_006",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.522372164133867,
+      "static_tuned": 0.5543241178807623,
+      "full_abtc": 0.5664537594958514
+    }
+  },
+  {
+    "query_id": "analytical_007",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5409588860635881,
+      "static_tuned": 0.5635408689186446,
+      "full_abtc": 0.5736863155753235
+    }
+  },
+  {
+    "query_id": "analytical_008",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5327393639665012,
+      "static_tuned": 0.5562094956482586,
+      "full_abtc": 0.5705842448684959
+    }
+  },
+  {
+    "query_id": "analytical_009",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.49432943124589385,
+      "static_tuned": 0.5289300504655359,
+      "full_abtc": 0.5424126051357688
+    }
+  },
+  {
+    "query_id": "analytical_010",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5370927148745349,
+      "static_tuned": 0.5588027035186816,
+      "full_abtc": 0.5750235705209603
+    }
+  },
+  {
+    "query_id": "analytical_011",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5134936736292629,
+      "static_tuned": 0.5412457415676214,
+      "full_abtc": 0.5607409478041978
+    }
+  },
+  {
+    "query_id": "analytical_012",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5037834604816832,
+      "static_tuned": 0.5231658498535937,
+      "full_abtc": 0.5429661756064484
+    }
+  },
+  {
+    "query_id": "analytical_012",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5195921611311765,
+      "static_tuned": 0.5461570069081588,
+      "full_abtc": 0.5594445230110339
+    }
+  },
+  {
+    "query_id": "analytical_013",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5154380384327782,
+      "static_tuned": 0.535666507775845,
+      "full_abtc": 0.5469553049949515
+    }
+  },
+  {
+    "query_id": "analytical_013",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.534135808709145,
+      "static_tuned": 0.5551776985531774,
+      "full_abtc": 0.5666967254883004
+    }
+  },
+  {
+    "query_id": "analytical_014",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5300283807729855,
+      "static_tuned": 0.5502093096277298,
+      "full_abtc": 0.5636659824609684
+    }
+  },
+  {
+    "query_id": "analytical_014",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5026654339386062,
+      "static_tuned": 0.5358615857340977,
+      "full_abtc": 0.5506012021367265
+    }
+  },
+  {
+    "query_id": "analytical_015",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5162969591604711,
+      "static_tuned": 0.5397340533739797,
+      "full_abtc": 0.5501427395366445
+    }
+  },
+  {
+    "query_id": "analytical_015",
+    "system": "sys1_gaiol",
+    "ablation_variants": {
+      "static_equal": 0.5316617638937352,
+      "static_tuned": 0.5522545617648589,
+      "full_abtc": 0.5650404651551785
+    }
+  }
+]

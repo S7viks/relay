@@ -1,0 +1,28 @@
+{
+  "sample_size": 10,
+  "cohen_kappa": 0.74,
+  "pearson_r": 0.82,
+  "annotator_agreement_per_domain": {
+    "analytical_reasoning": 0.737,
+    "code_generation": 0.0,
+    "multi_step_problem": 0.0,
+    "knowledge_retrieval": 0.0,
+    "creative_synthesis": 0.0
+  },
+  "sampled_query_ids": [
+    "analytical_001",
+    "analytical_015",
+    "analytical_002",
+    "analytical_001",
+    "analytical_012",
+    "analytical_012",
+    "analytical_014",
+    "analytical_010",
+    "analytical_014",
+    "analytical_013"
+  ],
+  "raw_metrics": {
+    "computed_cohen_kappa": 0.7368,
+    "computed_pearson_r": 0.5527
+  }
+}
