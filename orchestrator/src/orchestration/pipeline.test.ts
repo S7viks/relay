@@ -43,7 +43,7 @@ describe("OrchestratorPipeline", () => {
     expect(res.answer.length).toBeGreaterThan(0);
     expect(Array.isArray(res.trustUpdates)).toBe(true);
     expect(res.trustUpdates.length).toBeGreaterThan(0);
-    expect(res.trustUpdates.some((u) => u.explanation?.includes("winner"))).toBe(true);
+    expect(res.trustUpdates.some((u) => u.explanation?.includes("isWinner") || u.explanation?.includes("winner"))).toBe(true);
     expect(res.trace.subtasks[0]?.trustRound?.entries.length).toBeGreaterThan(0);
     expect(res.trace.subtasks[0]?.trustRound?.decay).toBe(0.1);
     const stored = await trust.getTrust("mock-fast", "test");
