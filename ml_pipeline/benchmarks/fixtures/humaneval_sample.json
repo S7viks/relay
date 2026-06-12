@@ -1,0 +1,14 @@
+[
+  {
+    "task_id": "HumanEval/0",
+    "prompt": "def has_close_elements(numbers, threshold):\n    \"\"\"Check if any two numbers in the list are closer than threshold.\"\"\"\n",
+    "entry_point": "has_close_elements",
+    "test": "assert has_close_elements([1.0, 2.0, 3.0], 0.5) == False"
+  },
+  {
+    "task_id": "HumanEval/1",
+    "prompt": "def separate_paren_groups(paren_string: str):\n    \"\"\"Separate nested parentheses groups into a list of strings.\"\"\"\n",
+    "entry_point": "separate_paren_groups",
+    "test": "assert separate_paren_groups('( ) (( )) (( )( ))') == ['()', '(())', '(()())']"
+  }
+]

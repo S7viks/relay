@@ -332,11 +332,18 @@
     async function loadData() {
       // Try injected data first
       if (typeof INJECTED_DATA !== "undefined" && INJECTED_DATA) return INJECTED_DATA;
-      // Try fetching from results
-      try {
-        const r = await fetch("../ml_pipeline/results/benchmark_results.json");
-        if (r.ok) return r.json();
-      } catch (e) {}
+      const sources = [
+        "/api/benchmark/results/benchmark_results.json",
+        "/api/benchmark/results/baseline_comparison.json",
+        "results-dashboard-data.json",
+        "../ml_pipeline/results/benchmark_results.json"
+      ];
+      for (const url of sources) {
+        try {
+          const r = await fetch(url);
+          if (r.ok) return r.json();
+        } catch (e) {}
+      }
       // Fall back to sample data
       return SAMPLE_DATA;
     }

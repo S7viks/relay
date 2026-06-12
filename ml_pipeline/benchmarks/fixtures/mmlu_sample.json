@@ -1,0 +1,28 @@
+[
+  {
+    "id": "mmlu_001",
+    "subject": "high_school_mathematics",
+    "question": "What is the derivative of f(x) = 3x^2 + 2x?",
+    "choices": ["6x + 2", "3x + 2", "6x", "3x^2 + 2"],
+    "answer": "A"
+  },
+  {
+    "id": "mmlu_002",
+    "subject": "world_history",
+    "question": "Which event is most associated with the start of World War I?",
+    "choices": [
+      "Assassination of Archduke Franz Ferdinand",
+      "Invasion of Poland",
+      "Bombing of Pearl Harbor",
+      "Fall of the Berlin Wall"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": "mmlu_003",
+    "subject": "computer_science",
+    "question": "What is the time complexity of binary search on a sorted array of n elements?",
+    "choices": ["O(n)", "O(log n)", "O(n log n)", "O(1)"],
+    "answer": "B"
+  }
+]

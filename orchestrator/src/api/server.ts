@@ -1,5 +1,5 @@
 import Fastify from "fastify";
-import { HeuristicDecomposer } from "../decomposition/engine.js";
+import { buildDecomposerFromEnv } from "../config/decomposer-from-env.js";
 import { newTraceId } from "../observability/trace.js";
 import { createLogger } from "../observability/logger.js";
 import { buildAdaptersFromEnv } from "../config/adapters.js";
@@ -42,9 +42,10 @@ export function buildServer() {
   const evaluations = new InMemoryEvaluationRepository();
   const registry = buildOrchestratorRegistry();
   const adapters = buildAdaptersFromEnv();
+  const decomposer = buildDecomposerFromEnv(process.env, adapters, registry);
 
   const orchestrator = new OrchestratorPipeline({
-    decomposer: new HeuristicDecomposer(),
+    decomposer,
     registry,
     adapters,
     trust,

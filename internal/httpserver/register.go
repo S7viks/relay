@@ -156,6 +156,11 @@ func Register(mux *http.ServeMux, d *Deps) {
 
 	mux.Handle("/v1/chat", cors(http.HandlerFunc(d.handleV1Chat)))
 
+	// Paper benchmark results (static dashboard + JSON artifacts from scripts/benchmark/results/)
+	mux.Handle("/benchmark", cors(http.HandlerFunc(serveBenchmarkDashboard)))
+	mux.Handle("/benchmark/", cors(http.HandlerFunc(serveBenchmarkDashboard)))
+	mux.Handle("/api/benchmark/results/", cors(http.HandlerFunc(serveBenchmarkResultJSON)))
+
 	// Unified React SPA last so /api, /health, /v1, /assets, etc. are never swallowed.
 	mux.HandleFunc("/", serveUnifiedSPA)
 }

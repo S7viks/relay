@@ -56,7 +56,7 @@
 
 ### In the Research Paper
 
-1. **Synthetic benchmark** — not evaluated on standard benchmarks (MMLU, HumanEval, MT-Bench) directly; planned for future work
+1. **Standard benchmarks** — runners in `ml_pipeline/benchmarks/` (MMLU, HumanEval, MT-Bench); use HuggingFace `datasets` for full suites or bundled fixtures offline
 2. **GPT-4 evaluator bias** — self-preference risk; human annotation only 10% of benchmark
 3. **Single-node experiments** — throughput/latency numbers are single-node Azure D8s_v3
 4. **ABTC stationarity assumption** — abrupt model changes not handled (change-point detection planned)

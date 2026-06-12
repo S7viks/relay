@@ -13,6 +13,7 @@ import numpy as np
 
 
 RESULTS_DIR = Path("ml_pipeline/results")
+TS_BENCHMARK_DIR = Path("scripts/benchmark/results")
 FIGURES_DIR = Path("ml_pipeline/figures")
 POSTER_DIR = Path("poster/figs")
 
@@ -40,14 +41,18 @@ TRUST_CURVES = {
 
 
 def _load_benchmark_results():
-    results_path = RESULTS_DIR / "benchmark_results.json"
-    if not results_path.exists():
-        return None
-    try:
-        with results_path.open("r", encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, json.JSONDecodeError):
-        return None
+    for results_path in (
+        TS_BENCHMARK_DIR / "benchmark_results.json",
+        RESULTS_DIR / "benchmark_results.json",
+    ):
+        if not results_path.exists():
+            continue
+        try:
+            with results_path.open("r", encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+    return None
 
 
 def _get_ablation_data():

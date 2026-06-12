@@ -11,6 +11,7 @@ np.random.seed(42)
 ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT / "ml_pipeline" / "data"
 OUTPUT_PATH = DATA_DIR / "human_validation.json"
+ANNOTATIONS_PATH = DATA_DIR / "human_annotations.jsonl"
 
 TARGET_BY_DOMAIN = {
     "easy": 6,
@@ -150,6 +151,89 @@ def _sample_stratified(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sampled[:MAX_HUMAN_VALIDATION_SAMPLES]
 
 
+def _load_real_annotations() -> dict[str, dict[str, list[float]]] | None:
+    """Load human_annotations.jsonl: query_id, annotator_id, overall (0-1)."""
+    if not ANNOTATIONS_PATH.exists():
+        return None
+    by_query: dict[str, dict[str, list[float]]] = {}
+    for row in _read_jsonl(ANNOTATIONS_PATH):
+        qid = str(row.get("query_id", "")).strip()
+        ann = str(row.get("annotator_id", "")).strip()
+        if not qid or not ann:
+            continue
+        score = row.get("overall")
+        if score is None:
+            score = row.get("overall_score")
+        if score is None:
+            continue
+        by_query.setdefault(qid, {}).setdefault(ann, []).append(_clamp(float(score)))
+    if not by_query:
+        return None
+    return by_query
+
+
+def _build_from_real_annotations(
+    sampled: list[dict[str, Any]],
+    eval_scores: dict[str, dict[str, float]],
+    annotations: dict[str, dict[str, list[float]]],
+) -> dict[str, Any] | None:
+    gpt_overall: list[float] = []
+    ann1: list[float] = []
+    ann2: list[float] = []
+    domain_pairs: dict[str, list[tuple[int, int]]] = {d: [] for d in DOMAINS}
+
+    used = 0
+    for row in sampled:
+        qid = str(row.get("query_id"))
+        domain = str(row.get("domain", ""))
+        per_ann = annotations.get(qid)
+        if not per_ann:
+            continue
+        ann_ids = sorted(per_ann.keys())
+        if len(ann_ids) < 2:
+            continue
+        s1 = float(np.mean(per_ann[ann_ids[0]]))
+        s2 = float(np.mean(per_ann[ann_ids[1]]))
+        base = float(eval_scores.get(qid, {}).get("overall", (s1 + s2) / 2.0))
+        gpt_overall.append(base)
+        ann1.append(s1)
+        ann2.append(s2)
+        if domain in domain_pairs:
+            domain_pairs[domain].append((_bin_score(s1), _bin_score(s2)))
+        used += 1
+
+    if used < 10:
+        return None
+
+    a1_bins = [_bin_score(v) for v in ann1]
+    a2_bins = [_bin_score(v) for v in ann2]
+    kappa = _cohen_kappa(a1_bins, a2_bins, labels=5)
+    mean_annotator = (np.array(ann1) + np.array(ann2)) / 2.0
+    pearson_r = _pearson(np.array(gpt_overall), mean_annotator)
+
+    per_domain: dict[str, float] = {}
+    for domain, pairs in domain_pairs.items():
+        if not pairs:
+            per_domain[domain] = 0.0
+            continue
+        d1 = [x[0] for x in pairs]
+        d2 = [x[1] for x in pairs]
+        per_domain[domain] = round(_cohen_kappa(d1, d2, labels=5), 3)
+
+    return {
+        "sample_size": used,
+        "cohen_kappa": round(kappa, 2),
+        "pearson_r": round(pearson_r, 2),
+        "annotator_agreement_per_domain": per_domain,
+        "sampled_query_ids": [str(r.get("query_id", "")) for r in sampled if str(r.get("query_id")) in annotations],
+        "source": "human_annotations.jsonl",
+        "raw_metrics": {
+            "computed_cohen_kappa": round(kappa, 4),
+            "computed_pearson_r": round(pearson_r, 4),
+        },
+    }
+
+
 def main() -> None:
     if OUTPUT_PATH.exists():
         print("Skipping human validation: output already exists.")
@@ -158,6 +242,16 @@ def main() -> None:
     eval_scores = _load_eval_scores()
     responses = _load_sys1_responses()
     sampled = _sample_stratified(responses)
+
+    real_annotations = _load_real_annotations()
+    if real_annotations:
+        real_payload = _build_from_real_annotations(sampled, eval_scores, real_annotations)
+        if real_payload:
+            OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+            OUTPUT_PATH.write_text(json.dumps(real_payload, indent=2), encoding="utf-8")
+            print(f"Saved human validation from real annotations ({real_payload['sample_size']} samples) to {OUTPUT_PATH}")
+            return
+        print("WARNING: human_annotations.jsonl present but insufficient paired labels; falling back to simulation")
 
     gpt_overall: list[float] = []
     ann1: list[float] = []

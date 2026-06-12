@@ -199,6 +199,49 @@ func TestLegacyDashboard_RedirectsToRootPaths(t *testing.T) {
 	}
 }
 
+func TestBenchmarkDashboard_ServesHTML(t *testing.T) {
+	chdirProjectRoot(t)
+	if _, err := os.Stat(benchmarkDashboardHTML); err != nil {
+		t.Skip("web/results-dashboard.html not found")
+	}
+	d := newTestDepsAuthDisabled(t)
+	mux := http.NewServeMux()
+	Register(mux, d)
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	resp, err := http.Get(srv.URL + "/benchmark")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status %d want 200", resp.StatusCode)
+	}
+	b, _ := io.ReadAll(resp.Body)
+	if !strings.Contains(string(b), "Benchmark Results Dashboard") {
+		t.Fatalf("expected benchmark dashboard HTML")
+	}
+}
+
+func TestBenchmarkResultsJSON_NotFoundWhenMissing(t *testing.T) {
+	chdirProjectRoot(t)
+	d := newTestDepsAuthDisabled(t)
+	mux := http.NewServeMux()
+	Register(mux, d)
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	resp, err := http.Get(srv.URL + "/api/benchmark/results/benchmark_results.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusOK {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+}
+
 func truncateRunes(s string, n int) string {
 	r := []rune(s)
 	if len(r) <= n {

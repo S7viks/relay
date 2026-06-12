@@ -1,0 +1,18 @@
+[
+  {
+    "id": "mt_001",
+    "category": "writing",
+    "turns": [
+      "Write a two-sentence summary of photosynthesis for a middle-school audience.",
+      "Now rewrite it using an analogy involving a factory."
+    ]
+  },
+  {
+    "id": "mt_002",
+    "category": "reasoning",
+    "turns": [
+      "A farmer has 17 sheep. All but 9 die. How many are left?",
+      "Explain why this is a common trick question."
+    ]
+  }
+]
