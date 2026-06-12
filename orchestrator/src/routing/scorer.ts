@@ -1,7 +1,7 @@
 import { betaMean, type BetaTrust } from "../domain/trust.js";
 import type { ModelRegistryEntry } from "../domain/registry.js";
 import type { SubtaskSpec } from "../domain/task.js";
-import type { RankedModel, RoutingContext, RoutingWeights } from "./types.js";
+import type { RankedModel, RoutingContext } from "./types.js";
 
 // Paper Eq. 3 fitness weights: fitness = W_C*CapMatch + W_H*HistAcc + W_E*(1-cost)
 const W_C = 0.4; // capability match weight
@@ -31,17 +31,6 @@ function capabilityMatch(entry: ModelRegistryEntry, sub: SubtaskSpec): number {
   }
   return hit / req.length;
 }
-
-/**
- * SelectDiverseTop diversity enforcement weights (not used for ComputeFitness, kept for
- * backwards-compatible ctx.weights passthrough).
- */
-const DEFAULT_WEIGHTS: RoutingWeights = {
-  accuracy: W_H,
-  latency: 0.0,
-  cost: W_E,
-  availability: 0.0,
-};
 
 /**
  * ComputeFitness per paper Eq. 3:

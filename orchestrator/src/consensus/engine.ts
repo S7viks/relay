@@ -23,16 +23,7 @@ function normalizeWeights(raw: Record<string, number>): Record<string, number> {
   return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, v / sum]));
 }
 
-function clamp01(v: number): number {
-  if (!Number.isFinite(v)) return 0;
-  return Math.max(0, Math.min(1, v));
-}
 
-function normalizeQualityScore(raw: number | undefined): number {
-  if (raw === undefined || Number.isNaN(raw)) return 0;
-  const mapped = raw > 1 ? raw / 10 : raw;
-  return clamp01(mapped);
-}
 
 /**
  * Pure consensus aggregation over parallel model outputs.

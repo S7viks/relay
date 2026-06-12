@@ -146,11 +146,11 @@ function parseDecompositionJson(
     const parsed: unknown = JSON.parse(match[0]);
     if (!Array.isArray(parsed)) return null;
     const valid = (parsed as unknown[]).filter(
-      (s): s is { title: string; description: string } =>
-        typeof s === "object" &&
-        s !== null &&
-        typeof (s as Record<string, unknown>).description === "string" &&
-        (s as Record<string, unknown>).description.length > 0,
+      (s): s is { title: string; description: string } => {
+        if (typeof s !== "object" || s === null) return false;
+        const r = s as Record<string, unknown>;
+        return typeof r.title === "string" && typeof r.description === "string" && r.description.length > 0;
+      },
     );
     return valid.length > 0 ? valid : null;
   } catch {

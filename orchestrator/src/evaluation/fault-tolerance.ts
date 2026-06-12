@@ -14,7 +14,6 @@
 import { runConsensus } from "../consensus/engine.js";
 import type { ModelCallResult } from "../domain/task.js";
 import { computeEvaluateQuality } from "../consensus/abtc.js";
-import { DEFAULT_THETA_MIN } from "../consensus/abtc.js";
 
 export interface FaultScenario {
   name: string;

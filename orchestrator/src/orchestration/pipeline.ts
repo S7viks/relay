@@ -2,13 +2,10 @@ import { betaMean } from "../domain/trust.js";
 import { runConsensus } from "../consensus/engine.js";
 import type { ConsensusMode } from "../consensus/types.js";
 import {
-  applyTrustPosteriorStep,
   betaMeanPair,
-  consensusTrustSignal,
-  explainTrustSignal,
   type TrustConsensusRole,
 } from "../consensus/trust-update.js";
-import { updateTrust, DEFAULT_LAMBDA } from "../consensus/abtc.js";
+import { updateTrust } from "../consensus/abtc.js";
 import { scorePaths, pruneBeam, pathIdForModel } from "../beam/path-explore.js";
 import { planSubtaskRouting } from "../routing/plan.js";
 import type { RoutingContext } from "../routing/types.js";
@@ -382,12 +379,11 @@ export class OrchestratorPipeline {
       consensusMode,
       winnerModelId,
       keptCalls,
-      consensusScores,
+      consensusScores: _consensusScores,
       cfg,
     } = args;
 
     const decay = cfg.abtc.decay;
-    const uniformPrior = cfg.abtc.uniformPrior ?? UNIFORM_PRIOR;
     // strengthWinner/strengthParticipant kept for backward-compat trace fields
     const strengthWinner = cfg.abtc.strength;
     const strengthParticipant = cfg.abtc.participantStrength ?? cfg.abtc.strength * 0.6;
@@ -399,7 +395,6 @@ export class OrchestratorPipeline {
       if (c.error) continue;
       const role: TrustConsensusRole =
         winnerModelId !== "none" && c.modelId === winnerModelId ? "winner" : "participant";
-      const quality = consensusScores[c.modelId] ?? 0;
       const isWinner = role === "winner";
 
       // Algorithm 3 (paper): binary update with temporal decay λ:
