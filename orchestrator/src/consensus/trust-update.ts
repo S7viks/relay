@@ -60,16 +60,23 @@ export function applyTrustPosteriorStep(
     domain?: string;
   },
 ): { afterDecay: BetaTrust; posterior: BetaTrust; event?: TrustUpdateEventPayload } {
-  const derivedLambda =
-    opts.lambda ??
-    (opts.decay !== undefined ? clamp01(1 - opts.decay) : DEFAULT_LAMBDA);
+  const derivedDecay = opts.decay !== undefined ? clamp01(opts.decay) : clamp01(1 - (opts.lambda ?? DEFAULT_LAMBDA));
+  const derivedLambda = clamp01(1 - derivedDecay);
   const signal = clamp01(opts.signal ?? (opts.isWinner ? 1 : 0));
   const isWinner = opts.isWinner ?? signal >= 0.5;
+  const uniform = opts.uniformPrior ?? { alpha: 1, beta: 1 };
+  
   const afterDecay: BetaTrust = {
-    alpha: derivedLambda * stored.alpha,
-    beta: derivedLambda * stored.beta,
+    alpha: uniform.alpha + derivedLambda * (stored.alpha - uniform.alpha),
+    beta: uniform.beta + derivedLambda * (stored.beta - uniform.beta),
   };
-  const posterior = updateTrust(stored.alpha, stored.beta, isWinner, derivedLambda);
+  
+  const strength = opts.strength ?? 1.0;
+  const posterior: BetaTrust = {
+    alpha: afterDecay.alpha + strength * signal,
+    beta: afterDecay.beta + strength * (1 - signal),
+  };
+
   if (!opts.modelId || !opts.domain) {
     return { afterDecay, posterior };
   }

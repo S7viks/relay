@@ -9,6 +9,8 @@ services:
       - "8787:8787"
     environment:
       ORCHESTRATOR_PORT: "8787"
+    env_file:
+      - .env
 
   web:
     build:
@@ -21,5 +23,18 @@ services:
       GAIOL_DISABLE_AUTH: "1"
       GAIOL_TS_ORCHESTRATOR_URL: "http://orchestrator:8787"
       GAIOL_USE_TS_ORCHESTRATOR: "1"
+    env_file:
+      - .env
     depends_on:
       - orchestrator
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE: "http://localhost:8080"
+    depends_on:
+      - web

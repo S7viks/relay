@@ -4,6 +4,7 @@ import {
   computeCompositeScore,
   computeConfidence,
   crossModelAgreement,
+  computeEvaluateQuality,
   updateTrust,
   DEFAULT_ALPHA_INIT,
   DEFAULT_BETA_INIT,
@@ -36,7 +37,7 @@ function normalizeQualityScore(raw: number | undefined): number {
 /**
  * Pure consensus aggregation over parallel model outputs.
  */
-export function runConsensus(input: ConsensusInput): ConsensusOutput {
+export async function runConsensus(input: ConsensusInput): Promise<ConsensusOutput> {
   const successful = input.candidates.filter((c) => !c.error);
   const byId = new Map(input.candidates.map((c) => [c.modelId, c]));
   const ids = successful.map((c) => c.modelId);
@@ -54,19 +55,25 @@ export function runConsensus(input: ConsensusInput): ConsensusOutput {
 
   if (input.mode === "abtc") {
     const trustStore = { ...(input.trustRecords ?? {}) };
-    const scored = successful.map((candidate) => {
+    const query = input.query ?? "";
+
+    // compute EvaluateQuality and CrossModelAgreement asynchronously
+    const scored = await Promise.all(successful.map(async (candidate) => {
       const prior = trustStore[candidate.modelId];
       const alpha = prior?.alpha ?? DEFAULT_ALPHA_INIT;
       const beta = prior?.beta ?? DEFAULT_BETA_INIT;
       const tauHat = computePosteriorMean(alpha, beta);
-      const quality = normalizeQualityScore(input.scores[candidate.modelId]);
+      
+      const quality = await computeEvaluateQuality(candidate.text ?? "", query);
+      
       const allOtherContents = successful
         .filter((other) => other.modelId !== candidate.modelId)
         .map((other) => other.text ?? "");
-      const agreement = crossModelAgreement(candidate.text ?? "", allOtherContents);
+      const agreement = await crossModelAgreement(candidate.text ?? "", allOtherContents);
+      
       const score = computeCompositeScore(quality, agreement, tauHat);
       return { candidate, score, alpha, beta, tauHat };
-    });
+    }));
 
     scored.sort((a, b) => b.score - a.score);
     const allScores = scored.map((x) => x.score);
@@ -90,18 +97,20 @@ export function runConsensus(input: ConsensusInput): ConsensusOutput {
       trustUpdates[entry.candidate.modelId] = updated;
     }
 
+    const winnerAgreement = await crossModelAgreement(
+      winner.text ?? "",
+      successful
+        .filter((candidate) => candidate.modelId !== baseWinner.candidate.modelId)
+        .map((candidate) => candidate.text ?? "")
+    );
+
     const output: ConsensusOutput = {
       text: winner.text ?? "",
       chosenModelId: baseWinner.candidate.modelId,
       weights: normalizeWeights(
         Object.fromEntries(scored.map((entry) => [entry.candidate.modelId, Math.max(entry.score, 0)])),
       ),
-      agreement: crossModelAgreement(
-        winner.text ?? "",
-        successful
-          .filter((candidate) => candidate.modelId !== baseWinner.candidate.modelId)
-          .map((candidate) => candidate.text ?? ""),
-      ),
+      agreement: winnerAgreement,
       confidence: sigma,
       winner: { modelId: baseWinner.candidate.modelId, content: winner.text ?? "" },
       trustUpdates,
@@ -141,7 +150,7 @@ export function runConsensus(input: ConsensusInput): ConsensusOutput {
 
   const texts = ids.map((id) => byId.get(id)?.text ?? "");
   const chosenText = byId.get(bestId)?.text ?? "";
-  const agreement = crossModelAgreement(
+  const agreement = await crossModelAgreement(
     chosenText,
     ids.filter((id) => id !== bestId).map((id) => byId.get(id)?.text ?? ""),
   );

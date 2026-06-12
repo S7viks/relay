@@ -10,7 +10,6 @@ import { LoginPage } from './pages/LoginPage'
 import { MetricsPage } from './pages/MetricsPage'
 import { ModelsPage } from './pages/ModelsPage'
 import { OnboardingPage } from './pages/OnboardingPage'
-import { ReasoningPage } from './pages/ReasoningPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { SignupPage } from './pages/SignupPage'
@@ -42,7 +41,6 @@ export function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="onboarding" element={<OnboardingPage />} />
           <Route path="eval" element={<EvalPage />} />
-          <Route path="reasoning" element={<ReasoningPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

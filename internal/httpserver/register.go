@@ -12,7 +12,6 @@ import (
 	"gaiol/internal/database"
 	orchestratorv1 "gaiol/internal/gaiol/orchestratorcontract/v1"
 	"gaiol/internal/models"
-	"gaiol/internal/reasoning"
 )
 
 const RateLimitPerMin = 60
@@ -26,8 +25,6 @@ type Deps struct {
 	DBAvailable  bool
 	AuthDisabled bool
 	AuthAPI      *auth.AuthAPI
-	ReasoningAPI *reasoning.ReasoningAPI
-	WorldModel   *reasoning.WorldModel
 
 	TSOrchestrator         *orchestratorv1.Client
 	TSOrchestratorDelegate bool
@@ -120,14 +117,6 @@ func Register(mux *http.ServeMux, d *Deps) {
 		mux.Handle("/api/orchestration/eval/contains", cors(http.HandlerFunc(d.handleOrchestrationEvalContainsProxy)))
 		mux.Handle("/api/orchestration/traces/", cors(http.HandlerFunc(d.handleOrchestrationTraceProxy)))
 		mux.Handle("/api/query/model", cors(http.HandlerFunc(d.handleQueryModel)))
-		mux.Handle("/api/reasoning/start", cors(http.HandlerFunc(d.handleReasoningStart)))
-		mux.Handle("/api/reasoning/status/", cors(http.HandlerFunc(d.handleReasoningStatus)))
-		mux.Handle("/api/reasoning/ws", cors(http.HandlerFunc(d.handleReasoningWebSocket)))
-		mux.Handle("/api/monitoring/stats", cors(http.HandlerFunc(d.handleMonitoringStats)))
-		mux.Handle("/api/world-model/facts", cors(http.HandlerFunc(d.handleWorldModelFacts)))
-		mux.Handle("/api/world-model/store", cors(http.HandlerFunc(d.handleWorldModelStore)))
-		mux.Handle("/api/world-model/search", cors(http.HandlerFunc(d.handleWorldModelSearch)))
-		mux.Handle("/api/agent/workflow", cors(http.HandlerFunc(d.handleAgentWorkflow)))
 		mux.Handle("/api/settings/provider-keys", cors(http.HandlerFunc(d.noAuthHandleProviderKeys)))
 		mux.Handle("/api/settings/providers", cors(http.HandlerFunc(d.noAuthHandleCustomProviders)))
 		mux.Handle("/api/settings/models", cors(http.HandlerFunc(d.noAuthHandleTenantModelsSettings)))
@@ -150,14 +139,6 @@ func Register(mux *http.ServeMux, d *Deps) {
 		mux.Handle("/api/orchestration/eval/contains", cors(reqAuth(http.HandlerFunc(d.handleOrchestrationEvalContainsProxy))))
 		mux.Handle("/api/orchestration/traces/", cors(reqAuth(http.HandlerFunc(d.handleOrchestrationTraceProxy))))
 		mux.Handle("/api/query/model", cors(reqAuth(http.HandlerFunc(d.handleQueryModel))))
-		mux.Handle("/api/reasoning/start", cors(reqAuth(http.HandlerFunc(d.handleReasoningStart))))
-		mux.Handle("/api/reasoning/status/", cors(reqAuth(http.HandlerFunc(d.handleReasoningStatus))))
-		mux.Handle("/api/reasoning/ws", cors(reqAuth(http.HandlerFunc(d.handleReasoningWebSocket))))
-		mux.Handle("/api/monitoring/stats", cors(reqAuth(http.HandlerFunc(d.handleMonitoringStats))))
-		mux.Handle("/api/world-model/facts", cors(reqAuth(http.HandlerFunc(d.handleWorldModelFacts))))
-		mux.Handle("/api/world-model/store", cors(reqAuth(http.HandlerFunc(d.handleWorldModelStore))))
-		mux.Handle("/api/world-model/search", cors(reqAuth(http.HandlerFunc(d.handleWorldModelSearch))))
-		mux.Handle("/api/agent/workflow", cors(reqAuth(http.HandlerFunc(d.handleAgentWorkflow))))
 		mux.Handle("/api/settings/provider-keys", cors(reqAuth(http.HandlerFunc(d.handleProviderKeys))))
 		mux.Handle("/api/settings/providers", cors(reqAuth(http.HandlerFunc(d.handleCustomProviders))))
 		mux.Handle("/api/settings/models", cors(reqAuth(http.HandlerFunc(d.handleTenantModelsSettings))))

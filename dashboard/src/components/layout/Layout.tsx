@@ -33,15 +33,7 @@ const navItems: NavItem[] = [
       </svg>
     ),
   },
-  {
-    to: '/reasoning',
-    label: 'Reasoning',
-    icon: (
-      <svg className="sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path d="M12 2a8 8 0 1 0 8 8M12 2v4M12 18v4M2 12h4M18 12h4" strokeWidth="2" />
-      </svg>
-    ),
-  },
+
   {
     to: '/trace',
     label: 'Trace Viewer',
@@ -140,7 +132,7 @@ function Sidebar() {
 const ROUTE_NAMES: Record<string, string> = {
   '/home': 'Home',
   '/chat': 'Chat',
-  '/reasoning': 'Reasoning',
+
   '/trace': 'Trace Viewer',
   '/trust': 'Trust Heatmap',
   '/models': 'Models',

@@ -7,6 +7,7 @@ export interface StaticWeightMap {
 }
 
 export interface ConsensusInput {
+  query?: string;
   mode: ConsensusMode;
   domain: string;
   candidates: ModelCallResult[];

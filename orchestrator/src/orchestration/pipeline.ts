@@ -8,6 +8,7 @@ import {
   explainTrustSignal,
   type TrustConsensusRole,
 } from "../consensus/trust-update.js";
+import { updateTrust, DEFAULT_LAMBDA } from "../consensus/abtc.js";
 import { scorePaths, pruneBeam, pathIdForModel } from "../beam/path-explore.js";
 import { planSubtaskRouting } from "../routing/plan.js";
 import type { RoutingContext } from "../routing/types.js";
@@ -233,7 +234,8 @@ export class OrchestratorPipeline {
         consensusScores[p.modelId] = p.score;
       }
 
-      const consensus = runConsensus({
+      const consensus = await runConsensus({
+        query: sub.description,
         mode: cfg.consensusMode,
         domain: req.domain,
         candidates: keptCalls,
@@ -385,9 +387,10 @@ export class OrchestratorPipeline {
     } = args;
 
     const decay = cfg.abtc.decay;
+    const uniformPrior = cfg.abtc.uniformPrior ?? UNIFORM_PRIOR;
+    // strengthWinner/strengthParticipant kept for backward-compat trace fields
     const strengthWinner = cfg.abtc.strength;
     const strengthParticipant = cfg.abtc.participantStrength ?? cfg.abtc.strength * 0.6;
-    const uniformPrior = cfg.abtc.uniformPrior ?? UNIFORM_PRIOR;
     const persist = consensusMode === "abtc";
     const events: TrustUpdateEvent[] = [];
     const entries: TrustRoundTrace["entries"] = [];
@@ -397,20 +400,26 @@ export class OrchestratorPipeline {
       const role: TrustConsensusRole =
         winnerModelId !== "none" && c.modelId === winnerModelId ? "winner" : "participant";
       const quality = consensusScores[c.modelId] ?? 0;
-      const signal = consensusTrustSignal(quality, role);
-      const explanation = explainTrustSignal(quality, role, signal);
-      const strength = role === "winner" ? strengthWinner : strengthParticipant;
+      const isWinner = role === "winner";
 
+      // Algorithm 3 (paper): binary update with temporal decay λ:
+      //   α ← λ·α + 𝟙[m = m_w]   (reward winner)
+      //   β ← λ·β + 𝟙[m ≠ m_w]   (penalise non-winner)
+      // lambda = 1 - decay (decay ∈ (0,1) → lambda ∈ (0,1))
+      const lambda = Math.min(1, Math.max(0, 1 - decay));
       const existing = await this.deps.trust.getTrust(c.modelId, domain);
       const stored = existing?.distribution ?? UNIFORM_PRIOR;
-      const { afterDecay, posterior } = applyTrustPosteriorStep(stored, {
-        decay,
-        strength,
-        signal,
-        uniformPrior,
-      });
+      const posterior = updateTrust(stored.alpha, stored.beta, isWinner, lambda);
+
+      // afterDecay for trace purposes only (not persisted separately)
+      const afterDecay = { alpha: lambda * stored.alpha, beta: lambda * stored.beta };
       const { priorMean, posteriorMean } = betaMeanPair(stored, posterior);
 
+      // signal and explanation kept for observability (unchanged meaning)
+      const signal = isWinner ? 1.0 : 0.0;
+      const explanation = `binary: lambda=${lambda.toFixed(4)} isWinner=${isWinner} alpha: ${stored.alpha.toFixed(4)}->${posterior.alpha.toFixed(4)} beta: ${stored.beta.toFixed(4)}->${posterior.beta.toFixed(4)}`;
+
+      const strength = isWinner ? strengthWinner : strengthParticipant;
       entries.push({
         modelId: c.modelId,
         providerId: c.providerId,

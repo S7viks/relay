@@ -1,4 +1,4 @@
-﻿package httpserver
+package httpserver
 
 import (
 	"io"
@@ -10,8 +10,6 @@ import (
 	"testing"
 
 	"gaiol/internal/models"
-	"gaiol/internal/monitoring"
-	"gaiol/internal/reasoning"
 )
 
 // chdirProjectRoot sets working directory to the repo root (directory containing go.mod)
@@ -51,8 +49,6 @@ func newTestDepsAuthDisabled(t *testing.T) *Deps {
 		Router:         rtr,
 		Tracker:        tracker,
 		AuthDisabled:   true,
-		ReasoningAPI:   reasoning.NewReasoningAPI(rtr, monitoring.NewMetricsService()),
-		WorldModel:     reasoning.NewWorldModel(nil),
 		LogLevel:       "error",
 		AllowedOrigins: nil,
 	}
@@ -258,8 +254,6 @@ func TestCORS_Unauthorized_ProtectedRoute_HasAllowOrigin(t *testing.T) {
 		AuthDisabled: false,
 		DB:           nil,
 		DBAvailable:  false,
-		ReasoningAPI: reasoning.NewReasoningAPI(rtr, monitoring.NewMetricsService()),
-		WorldModel:   reasoning.NewWorldModel(nil),
 		LogLevel:     "error",
 		AllowedOrigins: map[string]struct{}{
 			"https://gaiol.vercel.app": {},
@@ -298,8 +292,6 @@ func TestCORS_Preflight_OPTIONS_AllowedOrigin(t *testing.T) {
 		Router:       rtr,
 		Tracker:      tracker,
 		AuthDisabled: true,
-		ReasoningAPI: reasoning.NewReasoningAPI(rtr, monitoring.NewMetricsService()),
-		WorldModel:   reasoning.NewWorldModel(nil),
 		LogLevel:     "error",
 		AllowedOrigins: map[string]struct{}{
 			"https://gaiol.vercel.app": {},

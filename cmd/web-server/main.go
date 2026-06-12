@@ -17,8 +17,7 @@ import (
 	"gaiol/internal/httpserver"
 	"gaiol/internal/models"
 	"gaiol/internal/models/adapters"
-	"gaiol/internal/monitoring"
-	"gaiol/internal/reasoning"
+
 
 	"github.com/joho/godotenv"
 )
@@ -108,12 +107,6 @@ func main() {
 
 	deps.Router = models.NewModelRouter(deps.Registry, deps.Tracker)
 	log.Println("Model router initialized")
-
-	deps.WorldModel = reasoning.NewWorldModel(deps.DB)
-	log.Println("World Model initialized")
-
-	deps.ReasoningAPI = reasoning.NewReasoningAPI(deps.Router, monitoring.NewMetricsService())
-	log.Println("Reasoning API initialized")
 
 	if tsURL := strings.TrimSpace(os.Getenv("GAIOL_TS_ORCHESTRATOR_URL")); tsURL != "" {
 		deps.TSOrchestrator = orchestratorv1.NewClient(tsURL)
