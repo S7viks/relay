@@ -1,0 +1,183 @@
+{
+  "timestamp": "2026-06-16T14:14:00.560483+00:00",
+  "query": "Explain the advantages of microservices architecture.",
+  "note": "Sys-2..5 only; Sys-1 from capacity/overhead scripts",
+  "systems": {
+    "sys2_direct_api": {
+      "label": "Sys-2",
+      "latency": {
+        "runs": 5,
+        "successes": 4,
+        "success_rate_pct": 80.0,
+        "error_rate_pct": 20.0,
+        "latency_ms_mean": 31366.4,
+        "latency_ms_ci95_low": 15569.0,
+        "latency_ms_ci95_high": 47163.7,
+        "latency_samples_ms": [
+          25379.6,
+          55049.6,
+          18897.4,
+          26138.9
+        ]
+      },
+      "throughput": [
+        {
+          "concurrency": 1,
+          "duration_ms": 21299.4,
+          "successes": 1,
+          "success_rate_pct": 100.0,
+          "error_rate_pct": 0.0,
+          "throughput_req_per_s": 0.05
+        },
+        {
+          "concurrency": 10,
+          "duration_ms": 58817.3,
+          "successes": 7,
+          "success_rate_pct": 70.0,
+          "error_rate_pct": 30.0,
+          "throughput_req_per_s": 0.12
+        },
+        {
+          "concurrency": 100,
+          "duration_ms": 79096.0,
+          "successes": 72,
+          "success_rate_pct": 72.0,
+          "error_rate_pct": 28.0,
+          "throughput_req_per_s": 0.91
+        }
+      ]
+    },
+    "sys3_langchain": {
+      "label": "Sys-3",
+      "latency": {
+        "runs": 5,
+        "successes": 5,
+        "success_rate_pct": 100.0,
+        "error_rate_pct": 0.0,
+        "latency_ms_mean": 20046.4,
+        "latency_ms_ci95_low": 15715.6,
+        "latency_ms_ci95_high": 24377.2,
+        "latency_samples_ms": [
+          24486.3,
+          25107.0,
+          20016.1,
+          13377.4,
+          17245.2
+        ]
+      },
+      "throughput": [
+        {
+          "concurrency": 1,
+          "duration_ms": 14356.0,
+          "successes": 1,
+          "success_rate_pct": 100.0,
+          "error_rate_pct": 0.0,
+          "throughput_req_per_s": 0.07
+        },
+        {
+          "concurrency": 10,
+          "duration_ms": 22137.8,
+          "successes": 7,
+          "success_rate_pct": 70.0,
+          "error_rate_pct": 30.0,
+          "throughput_req_per_s": 0.32
+        },
+        {
+          "concurrency": 100,
+          "duration_ms": 32939.1,
+          "successes": 67,
+          "success_rate_pct": 67.0,
+          "error_rate_pct": 33.0,
+          "throughput_req_per_s": 2.03
+        }
+      ]
+    },
+    "sys4_openrouter": {
+      "label": "Sys-4",
+      "latency": {
+        "runs": 5,
+        "successes": 4,
+        "success_rate_pct": 80.0,
+        "error_rate_pct": 20.0,
+        "latency_ms_mean": 35612.3,
+        "latency_ms_ci95_low": 17725.5,
+        "latency_ms_ci95_high": 53499.2,
+        "latency_samples_ms": [
+          61584.5,
+          26335.4,
+          20214.3,
+          34315.3
+        ]
+      },
+      "throughput": [
+        {
+          "concurrency": 1,
+          "duration_ms": 71025.9,
+          "successes": 1,
+          "success_rate_pct": 100.0,
+          "error_rate_pct": 0.0,
+          "throughput_req_per_s": 0.01
+        },
+        {
+          "concurrency": 10,
+          "duration_ms": 81671.0,
+          "successes": 8,
+          "success_rate_pct": 80.0,
+          "error_rate_pct": 20.0,
+          "throughput_req_per_s": 0.1
+        },
+        {
+          "concurrency": 100,
+          "duration_ms": 81877.8,
+          "successes": 69,
+          "success_rate_pct": 69.0,
+          "error_rate_pct": 31.0,
+          "throughput_req_per_s": 0.84
+        }
+      ]
+    },
+    "sys5_multi_wrap": {
+      "label": "Sys-5",
+      "latency": {
+        "runs": 5,
+        "successes": 3,
+        "success_rate_pct": 60.0,
+        "error_rate_pct": 40.0,
+        "latency_ms_mean": 60293.4,
+        "latency_ms_ci95_low": 45942.8,
+        "latency_ms_ci95_high": 74644.0,
+        "latency_samples_ms": [
+          48787.2,
+          73890.5,
+          58202.6
+        ]
+      },
+      "throughput": [
+        {
+          "concurrency": 1,
+          "duration_ms": 86880.6,
+          "successes": 1,
+          "success_rate_pct": 100.0,
+          "error_rate_pct": 0.0,
+          "throughput_req_per_s": 0.01
+        },
+        {
+          "concurrency": 10,
+          "duration_ms": 122092.1,
+          "successes": 3,
+          "success_rate_pct": 30.0,
+          "error_rate_pct": 70.0,
+          "throughput_req_per_s": 0.02
+        },
+        {
+          "concurrency": 100,
+          "duration_ms": 124507.6,
+          "successes": 50,
+          "success_rate_pct": 50.0,
+          "error_rate_pct": 50.0,
+          "throughput_req_per_s": 0.4
+        }
+      ]
+    }
+  }
+}

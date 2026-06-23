@@ -1,4 +1,10 @@
 import type { ModelRegistryEntry } from "../domain/registry.js";
+import { googleApiKey, huggingFaceApiKey, openRouterApiKey } from "./env-keys.js";
+import {
+  catalogEntries,
+  HUGGINGFACE_CATALOG,
+  OPENROUTER_CATALOG,
+} from "./provider-catalog.js";
 import { sampleRegistry } from "./sample-registry.js";
 
 /**
@@ -8,7 +14,7 @@ import { sampleRegistry } from "./sample-registry.js";
 function liveEntriesFromEnv(env: NodeJS.ProcessEnv): ModelRegistryEntry[] {
   const out: ModelRegistryEntry[] = [];
 
-  if (env.OPENAI_API_KEY) {
+  if (env.OPENAI_API_KEY?.trim()) {
     out.push({
       modelId: "openai-primary",
       providerId: "openai-compatible",
@@ -21,7 +27,7 @@ function liveEntriesFromEnv(env: NodeJS.ProcessEnv): ModelRegistryEntry[] {
     });
   }
 
-  if (env.ANTHROPIC_API_KEY) {
+  if (env.ANTHROPIC_API_KEY?.trim()) {
     out.push({
       modelId: "anthropic-primary",
       providerId: "anthropic",
@@ -34,7 +40,7 @@ function liveEntriesFromEnv(env: NodeJS.ProcessEnv): ModelRegistryEntry[] {
     });
   }
 
-  if (env.GOOGLE_API_KEY) {
+  if (googleApiKey(env)) {
     out.push({
       modelId: "gemini-primary",
       providerId: "google-gemini",
@@ -47,15 +53,15 @@ function liveEntriesFromEnv(env: NodeJS.ProcessEnv): ModelRegistryEntry[] {
     });
   }
 
-  if (env.GROQ_API_KEY) {
+  if (env.GROQ_API_KEY?.trim()) {
     out.push({
       modelId: "groq-llama3-8b",
       providerId: "groq",
-      remoteName: "llama-3.1-8b-instant",
+      remoteName: (env.GROQ_ORCHESTRATOR_MODEL ?? "llama-3.1-8b-instant").trim(),
       capabilities: ["general", "reasoning", "code"],
       costIndex: 0.1,
       latencyPriorMs: 300,
-      accuracyPrior: 0.70,
+      accuracyPrior: 0.7,
       available: true,
     });
     out.push({
@@ -80,11 +86,15 @@ function liveEntriesFromEnv(env: NodeJS.ProcessEnv): ModelRegistryEntry[] {
     });
   }
 
-  return out;
-}
+  if (openRouterApiKey(env)) {
+    out.push(...catalogEntries(OPENROUTER_CATALOG));
+  }
 
-function hasAnyLiveProviderKey(env: NodeJS.ProcessEnv): boolean {
-  return Boolean(env.OPENAI_API_KEY || env.ANTHROPIC_API_KEY || env.GOOGLE_API_KEY || env.GROQ_API_KEY);
+  if (huggingFaceApiKey(env)) {
+    out.push(...catalogEntries(HUGGINGFACE_CATALOG));
+  }
+
+  return out;
 }
 
 /**
@@ -92,7 +102,7 @@ function hasAnyLiveProviderKey(env: NodeJS.ProcessEnv): boolean {
  */
 export function buildOrchestratorRegistry(env: NodeJS.ProcessEnv = process.env): ModelRegistryEntry[] {
   const live = liveEntriesFromEnv(env);
-  if (!hasAnyLiveProviderKey(env)) {
+  if (live.length === 0) {
     return sampleRegistry();
   }
   return live;

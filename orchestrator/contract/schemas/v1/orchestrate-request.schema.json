@@ -42,6 +42,7 @@
     },
     "explore_paths": { "type": "boolean" },
     "beam_width": { "type": "integer", "minimum": 1 },
-    "consensus_mode": { "type": "string", "enum": ["uniform", "static", "abtc"] }
+    "consensus_mode": { "type": "string", "enum": ["uniform", "static", "abtc"] },
+    "abtc_decay": { "type": "number", "minimum": 0, "maximum": 1, "description": "ABTC temporal decay (λ = 1 − abtc_decay); overrides server default for this request." }
   }
 }

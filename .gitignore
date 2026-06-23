@@ -18,6 +18,10 @@ coverage.out
 vendor/
 node_modules/
 
+# Python bytecode cache
+__pycache__/
+*.pyc
+
 # Nested clone/submodule at repo root only (do not match internal/gaiol on case-insensitive FS)
 /GAIOL/
 
@@ -59,6 +63,12 @@ Thumbs.db
 *.synctex.gz
 *.run.xml
 *.bcf
+compile-out.txt
+compile-err.txt
+compile.log
+gaiol-iop-clean.tex
+gaiol-iop-final.tex
+Paper/Gaiol/IOP/gaiol-iop.pdf
 
 # Local project report captures (screenshots, curl outputs)
 report-artifacts/

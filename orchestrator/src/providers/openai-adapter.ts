@@ -5,6 +5,8 @@ export interface OpenAIAdapterConfig {
   baseUrl?: string;
   fetchImpl?: typeof fetch;
   providerId?: string;
+  /** Merged into every request (e.g. OpenRouter HTTP-Referer / X-Title). */
+  extraHeaders?: Record<string, string>;
 }
 
 /**
@@ -16,22 +18,29 @@ export class OpenAICompatibleAdapter implements LLMProviderAdapter {
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly fetchImpl: typeof fetch;
+  private readonly extraHeaders: Record<string, string>;
 
   constructor(cfg: OpenAIAdapterConfig) {
     this.providerId = cfg.providerId ?? "openai-compatible";
     this.apiKey = cfg.apiKey;
     this.baseUrl = (cfg.baseUrl ?? "https://api.openai.com/v1").replace(/\/$/, "");
     this.fetchImpl = cfg.fetchImpl ?? globalThis.fetch.bind(globalThis);
+    this.extraHeaders = cfg.extraHeaders ?? {};
+  }
+
+  private authHeaders(): Record<string, string> {
+    return {
+      Authorization: `Bearer ${this.apiKey}`,
+      "Content-Type": "application/json",
+      ...this.extraHeaders,
+    };
   }
 
   async generate(params: GenerateParams): Promise<GenerateResult> {
     const started = Date.now();
     const res = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: this.authHeaders(),
       body: JSON.stringify({
         model: params.model,
         messages: params.messages,
@@ -63,7 +72,7 @@ export class OpenAICompatibleAdapter implements LLMProviderAdapter {
     const started = Date.now();
     try {
       const res = await this.fetchImpl(`${this.baseUrl}/models`, {
-        headers: { Authorization: `Bearer ${this.apiKey}` },
+        headers: this.authHeaders(),
       });
       return { ok: res.ok, latencyMs: Date.now() - started, detail: res.statusText };
     } catch (e) {

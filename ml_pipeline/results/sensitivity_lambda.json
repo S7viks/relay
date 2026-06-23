@@ -5,7 +5,7 @@
     "domain": "analytical_reasoning",
     "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 689,
     "success": false
   },
   {
@@ -41,7 +41,7 @@
     "domain": "code_generation",
     "query": "Write a TypeScript function that debounces an async function call with configurable delay and immediate option.",
     "quality": 0,
-    "latency_ms": 3,
+    "latency_ms": 1,
     "success": false
   },
   {
@@ -68,7 +68,7 @@
     "domain": "multi_step_problem",
     "query": "A startup has a $50,000 budget and needs a mobile app, REST API backend, and 6 months of cloud hosting. Break down realistic costs and build priorities.",
     "quality": 0,
-    "latency_ms": 3,
+    "latency_ms": 1,
     "success": false
   },
   {
@@ -77,7 +77,7 @@
     "domain": "multi_step_problem",
     "query": "Design a PostgreSQL schema for a multi-tenant SaaS application with users, organizations, subscriptions, and a full audit log. Show the CREATE TABLE statements.",
     "quality": 0,
-    "latency_ms": 3,
+    "latency_ms": 1,
     "success": false
   },
   {
@@ -86,7 +86,7 @@
     "domain": "knowledge_retrieval",
     "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
     "quality": 0,
-    "latency_ms": 1,
+    "latency_ms": 54,
     "success": false
   },
   {
@@ -95,7 +95,7 @@
     "domain": "knowledge_retrieval",
     "query": "What is the CAP theorem? Explain the three properties and give a real-world example of a system that prioritizes each combination.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 3,
     "success": false
   },
   {
@@ -104,7 +104,7 @@
     "domain": "knowledge_retrieval",
     "query": "Explain how the Raft consensus algorithm achieves distributed agreement and how it handles a leader failure mid-transaction.",
     "quality": 0,
-    "latency_ms": 1,
+    "latency_ms": 835,
     "success": false
   },
   {
@@ -113,7 +113,7 @@
     "domain": "creative_synthesis",
     "query": "Write a technical blog post introduction (150 words) explaining why multi-model AI orchestration matters for production AI systems.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 1130,
     "success": false
   },
   {
@@ -131,7 +131,7 @@
     "domain": "creative_synthesis",
     "query": "Write an analogy explaining how Bayesian trust updates work to a non-technical business stakeholder who understands investing.",
     "quality": 0,
-    "latency_ms": 1,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -140,7 +140,7 @@
     "domain": "analytical_reasoning",
     "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
     "quality": 0,
-    "latency_ms": 3,
+    "latency_ms": 4,
     "success": false
   },
   {
@@ -149,7 +149,7 @@
     "domain": "analytical_reasoning",
     "query": "A train travels 120km in 1.5 hours. What is its average speed? If it then travels 80km at 60km/h, what is the total journey time?",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 1,
     "success": false
   },
   {
@@ -158,7 +158,7 @@
     "domain": "analytical_reasoning",
     "query": "Evaluate the logical validity: P1: All mammals are warm-blooded. P2: Whales are mammals. Conclusion: Whales are warm-blooded.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 3,
     "success": false
   },
   {
@@ -167,7 +167,7 @@
     "domain": "code_generation",
     "query": "Write a Python function that implements binary search on a sorted list. Include edge cases and a docstring.",
     "quality": 0,
-    "latency_ms": 4,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -176,7 +176,7 @@
     "domain": "code_generation",
     "query": "Write a TypeScript function that debounces an async function call with configurable delay and immediate option.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 2712,
     "success": false
   },
   {
@@ -185,7 +185,7 @@
     "domain": "code_generation",
     "query": "Implement a Go function that concurrently fetches multiple URLs using goroutines and returns all results with individual errors.",
     "quality": 0,
-    "latency_ms": 4,
+    "latency_ms": 3,
     "success": false
   },
   {
@@ -194,7 +194,7 @@
     "domain": "multi_step_problem",
     "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
     "quality": 0,
-    "latency_ms": 4,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -203,7 +203,7 @@
     "domain": "multi_step_problem",
     "query": "A startup has a $50,000 budget and needs a mobile app, REST API backend, and 6 months of cloud hosting. Break down realistic costs and build priorities.",
     "quality": 0,
-    "latency_ms": 3,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -221,7 +221,7 @@
     "domain": "knowledge_retrieval",
     "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
     "quality": 0,
-    "latency_ms": 1,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -248,7 +248,7 @@
     "domain": "creative_synthesis",
     "query": "Write a technical blog post introduction (150 words) explaining why multi-model AI orchestration matters for production AI systems.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 4,
     "success": false
   },
   {
@@ -257,7 +257,7 @@
     "domain": "creative_synthesis",
     "query": "Propose three novel research directions that could improve LLM reasoning reliability and reduce hallucination in multi-step tasks.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 3,
     "success": false
   },
   {
@@ -275,7 +275,7 @@
     "domain": "analytical_reasoning",
     "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 4,
     "success": false
   },
   {
@@ -284,7 +284,7 @@
     "domain": "analytical_reasoning",
     "query": "A train travels 120km in 1.5 hours. What is its average speed? If it then travels 80km at 60km/h, what is the total journey time?",
     "quality": 0,
-    "latency_ms": 1,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -293,7 +293,7 @@
     "domain": "analytical_reasoning",
     "query": "Evaluate the logical validity: P1: All mammals are warm-blooded. P2: Whales are mammals. Conclusion: Whales are warm-blooded.",
     "quality": 0,
-    "latency_ms": 1,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -302,7 +302,7 @@
     "domain": "code_generation",
     "query": "Write a Python function that implements binary search on a sorted list. Include edge cases and a docstring.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 3,
     "success": false
   },
   {
@@ -311,7 +311,7 @@
     "domain": "code_generation",
     "query": "Write a TypeScript function that debounces an async function call with configurable delay and immediate option.",
     "quality": 0,
-    "latency_ms": 4,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -329,7 +329,7 @@
     "domain": "multi_step_problem",
     "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
     "quality": 0,
-    "latency_ms": 1,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -338,7 +338,7 @@
     "domain": "multi_step_problem",
     "query": "A startup has a $50,000 budget and needs a mobile app, REST API backend, and 6 months of cloud hosting. Break down realistic costs and build priorities.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 1,
     "success": false
   },
   {
@@ -347,7 +347,7 @@
     "domain": "multi_step_problem",
     "query": "Design a PostgreSQL schema for a multi-tenant SaaS application with users, organizations, subscriptions, and a full audit log. Show the CREATE TABLE statements.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 37,
     "success": false
   },
   {
@@ -356,7 +356,7 @@
     "domain": "knowledge_retrieval",
     "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
     "quality": 0,
-    "latency_ms": 3,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -365,7 +365,7 @@
     "domain": "knowledge_retrieval",
     "query": "What is the CAP theorem? Explain the three properties and give a real-world example of a system that prioritizes each combination.",
     "quality": 0,
-    "latency_ms": 3,
+    "latency_ms": 1144,
     "success": false
   },
   {
@@ -392,7 +392,7 @@
     "domain": "creative_synthesis",
     "query": "Propose three novel research directions that could improve LLM reasoning reliability and reduce hallucination in multi-step tasks.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 229,
     "success": false
   },
   {
@@ -401,7 +401,7 @@
     "domain": "creative_synthesis",
     "query": "Write an analogy explaining how Bayesian trust updates work to a non-technical business stakeholder who understands investing.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 1,
     "success": false
   },
   {
@@ -410,7 +410,7 @@
     "domain": "analytical_reasoning",
     "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
     "quality": 0,
-    "latency_ms": 3,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -419,7 +419,7 @@
     "domain": "analytical_reasoning",
     "query": "A train travels 120km in 1.5 hours. What is its average speed? If it then travels 80km at 60km/h, what is the total journey time?",
     "quality": 0,
-    "latency_ms": 1,
+    "latency_ms": 478,
     "success": false
   },
   {
@@ -428,7 +428,7 @@
     "domain": "analytical_reasoning",
     "query": "Evaluate the logical validity: P1: All mammals are warm-blooded. P2: Whales are mammals. Conclusion: Whales are warm-blooded.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 1,
     "success": false
   },
   {
@@ -446,7 +446,7 @@
     "domain": "code_generation",
     "query": "Write a TypeScript function that debounces an async function call with configurable delay and immediate option.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 1,
     "success": false
   },
   {
@@ -464,7 +464,7 @@
     "domain": "multi_step_problem",
     "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
     "quality": 0,
-    "latency_ms": 5,
+    "latency_ms": 125,
     "success": false
   },
   {
@@ -473,7 +473,7 @@
     "domain": "multi_step_problem",
     "query": "A startup has a $50,000 budget and needs a mobile app, REST API backend, and 6 months of cloud hosting. Break down realistic costs and build priorities.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 3,
     "success": false
   },
   {
@@ -500,7 +500,7 @@
     "domain": "knowledge_retrieval",
     "query": "What is the CAP theorem? Explain the three properties and give a real-world example of a system that prioritizes each combination.",
     "quality": 0,
-    "latency_ms": 1,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -509,7 +509,7 @@
     "domain": "knowledge_retrieval",
     "query": "Explain how the Raft consensus algorithm achieves distributed agreement and how it handles a leader failure mid-transaction.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 782,
     "success": false
   },
   {
@@ -527,7 +527,7 @@
     "domain": "creative_synthesis",
     "query": "Propose three novel research directions that could improve LLM reasoning reliability and reduce hallucination in multi-step tasks.",
     "quality": 0,
-    "latency_ms": 3,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -536,7 +536,7 @@
     "domain": "creative_synthesis",
     "query": "Write an analogy explaining how Bayesian trust updates work to a non-technical business stakeholder who understands investing.",
     "quality": 0,
-    "latency_ms": 1,
+    "latency_ms": 272,
     "success": false
   },
   {
@@ -545,7 +545,7 @@
     "domain": "analytical_reasoning",
     "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
     "quality": 0,
-    "latency_ms": 3,
+    "latency_ms": 4,
     "success": false
   },
   {
@@ -554,7 +554,7 @@
     "domain": "analytical_reasoning",
     "query": "A train travels 120km in 1.5 hours. What is its average speed? If it then travels 80km at 60km/h, what is the total journey time?",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 16,
     "success": false
   },
   {
@@ -563,7 +563,7 @@
     "domain": "analytical_reasoning",
     "query": "Evaluate the logical validity: P1: All mammals are warm-blooded. P2: Whales are mammals. Conclusion: Whales are warm-blooded.",
     "quality": 0,
-    "latency_ms": 4,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -572,7 +572,7 @@
     "domain": "code_generation",
     "query": "Write a Python function that implements binary search on a sorted list. Include edge cases and a docstring.",
     "quality": 0,
-    "latency_ms": 1,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -581,7 +581,7 @@
     "domain": "code_generation",
     "query": "Write a TypeScript function that debounces an async function call with configurable delay and immediate option.",
     "quality": 0,
-    "latency_ms": 3,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -590,7 +590,7 @@
     "domain": "code_generation",
     "query": "Implement a Go function that concurrently fetches multiple URLs using goroutines and returns all results with individual errors.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 1,
     "success": false
   },
   {
@@ -599,7 +599,7 @@
     "domain": "multi_step_problem",
     "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
     "quality": 0,
-    "latency_ms": 4,
+    "latency_ms": 1,
     "success": false
   },
   {
@@ -608,7 +608,7 @@
     "domain": "multi_step_problem",
     "query": "A startup has a $50,000 budget and needs a mobile app, REST API backend, and 6 months of cloud hosting. Break down realistic costs and build priorities.",
     "quality": 0,
-    "latency_ms": 4,
+    "latency_ms": 68,
     "success": false
   },
   {
@@ -626,7 +626,7 @@
     "domain": "knowledge_retrieval",
     "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
     "quality": 0,
-    "latency_ms": 5,
+    "latency_ms": 1,
     "success": false
   },
   {
@@ -635,7 +635,7 @@
     "domain": "knowledge_retrieval",
     "query": "What is the CAP theorem? Explain the three properties and give a real-world example of a system that prioritizes each combination.",
     "quality": 0,
-    "latency_ms": 1,
+    "latency_ms": 2,
     "success": false
   },
   {
@@ -644,7 +644,7 @@
     "domain": "knowledge_retrieval",
     "query": "Explain how the Raft consensus algorithm achieves distributed agreement and how it handles a leader failure mid-transaction.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 4,
     "success": false
   },
   {
@@ -662,7 +662,7 @@
     "domain": "creative_synthesis",
     "query": "Propose three novel research directions that could improve LLM reasoning reliability and reduce hallucination in multi-step tasks.",
     "quality": 0,
-    "latency_ms": 1,
+    "latency_ms": 2208,
     "success": false
   },
   {
@@ -671,7 +671,7 @@
     "domain": "creative_synthesis",
     "query": "Write an analogy explaining how Bayesian trust updates work to a non-technical business stakeholder who understands investing.",
     "quality": 0,
-    "latency_ms": 2,
+    "latency_ms": 4,
     "success": false
   }
 ]

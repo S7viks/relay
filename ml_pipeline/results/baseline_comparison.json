@@ -2,76 +2,76 @@
   "analytical_reasoning": {
     "query": "If all roses are flowers and some flowers fade quickly, what can we conclude about roses?",
     "abtc": {
-      "quality": 0,
-      "latency_ms": 195
+      "quality": 0.72,
+      "latency_ms": 30892
     },
     "uniform": {
-      "quality": 0,
-      "latency_ms": 4
+      "quality": 0.72,
+      "latency_ms": 33296
     },
     "static": {
-      "quality": 0,
-      "latency_ms": 6
+      "quality": 0.72,
+      "latency_ms": 29997
     }
   },
   "code_generation": {
     "query": "Write a Python function that implements binary search on a sorted list. Include edge cases and a docstring.",
     "abtc": {
       "quality": 0,
-      "latency_ms": 277
+      "latency_ms": 180000
     },
     "uniform": {
       "quality": 0,
-      "latency_ms": 7
+      "latency_ms": 180000
     },
     "static": {
       "quality": 0,
-      "latency_ms": 4
+      "latency_ms": 180000
     }
   },
   "multi_step_problem": {
     "query": "Plan a complete 7-day machine learning project: from problem definition and data collection to model deployment. Give concrete daily steps.",
     "abtc": {
       "quality": 0,
-      "latency_ms": 223
+      "latency_ms": 180000
     },
     "uniform": {
       "quality": 0,
-      "latency_ms": 9
+      "latency_ms": 180000
     },
     "static": {
       "quality": 0,
-      "latency_ms": 2
+      "latency_ms": 180000
     }
   },
   "knowledge_retrieval": {
     "query": "Explain the difference between transformer attention mechanisms: self-attention, cross-attention, and multi-head attention. When is each used?",
     "abtc": {
       "quality": 0,
-      "latency_ms": 461
+      "latency_ms": 180000
     },
     "uniform": {
       "quality": 0,
-      "latency_ms": 8
+      "latency_ms": 180000
     },
     "static": {
       "quality": 0,
-      "latency_ms": 6
+      "latency_ms": 180000
     }
   },
   "creative_synthesis": {
     "query": "Write a technical blog post introduction (150 words) explaining why multi-model AI orchestration matters for production AI systems.",
     "abtc": {
-      "quality": 0,
-      "latency_ms": 165
+      "quality": 0.72,
+      "latency_ms": 81291
     },
     "uniform": {
-      "quality": 0,
-      "latency_ms": 3
+      "quality": 0.72,
+      "latency_ms": 85145
     },
     "static": {
-      "quality": 0,
-      "latency_ms": 2
+      "quality": 0.72,
+      "latency_ms": 84611
     }
   }
 }

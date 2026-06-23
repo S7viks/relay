@@ -1,20 +1,20 @@
 [
   {
     "concurrency": 1,
-    "durationMs": 395,
-    "successRate": 1,
-    "qps": 2.5316455696202533
+    "durationMs": 303810,
+    "successRate": 0,
+    "qps": 0
   },
   {
     "concurrency": 10,
-    "durationMs": 513,
-    "successRate": 1,
-    "qps": 19.49317738791423
+    "durationMs": 303953,
+    "successRate": 0.6,
+    "qps": 0.019739893996769238
   },
   {
     "concurrency": 100,
-    "durationMs": 3460,
-    "successRate": 1,
-    "qps": 28.90173410404624
+    "durationMs": 304361,
+    "successRate": 0.89,
+    "qps": 0.29241591399686556
   }
 ]

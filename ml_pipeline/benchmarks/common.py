@@ -18,7 +18,7 @@ STANDARD_RESULTS_PATH = RESULTS_DIR / "standard_benchmarks.json"
 
 
 def orchestrator_url() -> str:
-    base = os.getenv("GAIOL_ORCHESTRATOR_URL", "http://localhost:3001").strip().rstrip("/")
+    base = os.getenv("GAIOL_ORCHESTRATOR_URL", "http://localhost:8787").strip().rstrip("/")
     if base.endswith("/v1/orchestrate"):
         return base
     return f"{base}/v1/orchestrate"
@@ -33,7 +33,7 @@ def load_fixture(name: str) -> list[dict[str, Any]]:
     return data
 
 
-def post_orchestrate(objective: str, task_kind: str = "qa", domain: str = "knowledge_retrieval", timeout: int = 90) -> dict[str, Any]:
+def post_orchestrate(objective: str, task_kind: str = "qa", domain: str = "knowledge_retrieval", timeout: int = 180) -> dict[str, Any]:
     payload = {
         "schema_version": "1.0",
         "trace_id": f"bench-{int(time.time() * 1000)}",

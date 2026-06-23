@@ -1,0 +1,1057 @@
+% GAIOL manuscript -- IOP format (converted from Elsevier CAS)
+% Compile: pdflatex gaiol-iop; bibtex gaiol-iop; pdflatex gaiol-iop; pdflatex gaiol-iop
+% Requires: iopjournal.cls, orcid.pdf, references.bib, figs/*.png (or figs/*.jpg)
+
+\documentclass{iopjournal}
+
+\usepackage{fix-cm}
+\usepackage{amsmath,amssymb}
+\usepackage[numbers,sort&compress]{natbib}
+% Optional: keeps floats within sections (skip if not installed)
+\IfFileExists{placeins.sty}{\usepackage{placeins}}{}
+\usepackage{algorithm}
+% Optional: algorithm pseudocode package (Overleaf has it; local installs may not)
+\IfFileExists{algpseudocode.sty}{
+  \usepackage{algpseudocode}
+}{
+  % Minimal fallback so the document still compiles without algpseudocode.
+  % This degrades algorithm formatting to plain text.
+  \newenvironment{algorithmic}[1][]{\begin{quote}\small}{\end{quote}}
+  \newcommand{\Require}{\textbf{Require:} }
+  \newcommand{\Ensure}{\textbf{Ensure:} }
+  \newcommand{\State}{\par\noindent}
+  \newcommand{\Statex}{\par\noindent}
+  \newcommand{\Comment}[1]{\hfill{\footnotesize(\textit{##1})}}
+  \newcommand{\For}[1]{\par\noindent\textbf{for} ##1 \textbf{do}}
+  \newcommand{\EndFor}{\par\noindent\textbf{end for}}
+  \newcommand{\If}[1]{\par\noindent\textbf{if} ##1 \textbf{then}}
+  \newcommand{\EndIf}{\par\noindent\textbf{end if}}
+  \newcommand{\Return}{\par\noindent\textbf{return} }
+}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{float}
+
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{dsfont}
+\newcommand{\rev}[1]{\textcolor{red}{#1}}
+
+
+\begin{document}
+{\raggedright\articletype{Paper}\par}
+\title{Global Artificial Intelligence Operating Layer: Adaptive Bayesian Consensus for Multi-Model Large Language Model Orchestration}
+
+\author{Ramdas Kapila$^{1,*}$, Ch. Sai Sathvik$^{1,*}$, D. V. S. Monish Kumar$^1$, Abhishek Vinod$^1$ and Sumalatha Saleti$^2$}
+
+\affil{$^1$Dept. of CSE (Data Science), B. V. Raju Institute of Information Technology, Hyderabad, Telangana, India}
+
+\affil{$^2$Dept. of CSE, SRM University AP, Amaravati, Andhra Pradesh, India}
+
+\affil{$^*$Author to whom any correspondence should be addressed.}
+
+\email{kapilaramdas@gmail.com}
+
+\keywords{Global Artificial Intelligence Operating Layer, Large Language Models, Multi-Agent Systems, AI Governance, Model Orchestration, Bayesian Consensus}
+
+\begin{abstract}
+Modern AI deployments rely on multiple large language models, retrieval pipelines, and autonomous agents, yet orchestrate them through ad-hoc scripts that lack principled mechanisms for model selection, quality assurance, or cross-provider coordination. We present the Global Artificial Intelligence Operating Layer, a layered orchestration framework that coordinates heterogeneous large language model providers behind a uniform interface, decomposes complex queries into parallelizable subtasks, and aggregates multi-model responses through a novel consensus mechanism. \rev{The architecture supports federated data access, cross-organizational governance, and shared-state management via dedicated extension points; however, a full evaluation of these features falls outside the scope of this paper.} The central algorithmic contribution is the adaptive Bayesian trust-weighted Consensus algorithm, which maintains per-model, per-domain Beta-distributed trust variables and updates them online after each consensus round, allowing the system to learn which model excels at which task domain without manual weight tuning. On a 500-query benchmark spanning analytical reasoning, code generation, multi-step problem solving, knowledge retrieval, and creative synthesis, Global Artificial Intelligence Operating Layer achieves an overall quality score of $0.83 \pm 0.02$ (24\% above single-model baselines, 13\% above LangChain), a 95.2\% success rate, and 5 milliseconds (ms) orchestration overhead. An ablation study confirms that Adaptive Bayesian Trust-Weighted Consensus yields statistically significant gains over both uniform-weight and hand-tuned static consensus ($p < 0.01$, paired $t$-test) across all five domains, with the largest improvements in code generation (+9 percentage points) and creative synthesis (+7 percentage points).
+\end{abstract}
+
+% Main text
+\section{Introduction}\label{sec:intro}
+Transformer-based Large Language Models(LLMs) and foundation models have pushed the boundaries of code generation, multi-modal reasoning, and complex planning~\cite{Kotei, chen2024evolution}. Building on these capabilities, practitioners now deploy \emph{agentic} AI systems, persistent processes that invoke tools, maintain internal state, and execute multi-step workflows, transforming AI from a stateless query-response utility into a core layer of digital infrastructure. Two concurrent trends magnify the coordination challenge. First, agents are evolving from short-lived tools into long-horizon entities that accumulate interaction histories and maintain internal beliefs~\cite{Liu}. Second, AI capabilities are scattering across users, cloud providers, and organizations: the same enterprise may rely on OpenAI for language tasks, Google for vision, and an in-house model for compliance-sensitive analytics~\cite{Davenport}. Together, these trends raise a fundamental systems question: how should intelligence distributed across heterogeneous agents, models, and data sources be organized, coordinated, and governed~\cite{zhu2023intelligent}. Today's ecosystem offers no satisfactory answer. Models remain tightly coupled to vendor-specific runtimes and Application Programming Interfaces (APIs), agent frameworks impose incompatible communication protocols, and enterprise data stays locked behind organizational firewalls with no principled mechanism for cross-boundary sharing~\cite{REALM}. Orchestration logic typically lives in brittle, hand-crafted pipelines that are difficult to audit, extend, or secure. Machine Learning Operations (MLOps) platforms partially address deployment concerns, but they operate within a single organization and lack native support for federated execution, cross-cloud collaboration, or compliance-aware orchestration.
+
+From a systems perspective, this fragmentation suggests the need for an \emph{operating-system-like abstraction} for AI, one that would manage models, agents, and data through standardized interfaces in the same spirit that traditional operating systems manage computation, memory, and inter-process communication. Today's AI systems lack such an abstraction: agents, models, and data remain loosely coupled artifacts coordinated through ad-hoc glue code. Realizing the full operating system (OS) analogy, including process-level isolation, federated memory, and cross-domain governance, is a long-term research programme. As a concrete step in that direction, this work targets the orchestration and consensus layers, which are prerequisites for the higher-level capabilities.
+
+We propose the Global AI Operating Layer (GAIOL) to address this gap. \rev{This work primarily investigates the orchestration and consensus layers. Although the architectural design inherently supports federation, governance, and shared world-state management, a comprehensive evaluation of these features remains future research.} The core evaluated contributions are: 
+\begin{itemize}
+    \item A layered orchestration architecture that coordinates heterogeneous LLM providers behind a provider-agnostic interface, with a Universal AI Protocol layer for uniform communication and adapter-based integration. The design includes provisions for federated data access and cross-organizational governance as future extensions.
+    \item A global orchestrator that decomposes complex queries into parallelizable subtasks via beam search, selects models through a strategy-based routing policy, and assembles multi-model responses into coherent outputs.
+    \item The Adaptive Bayesian Trust-Weighted Consensus (ABTC) algorithm, which learns per-model, per-domain reliability online via Beta-Bernoulli posterior updates, replacing static consensus weights with data-driven trust scores.
+\end{itemize}
+
+The remainder of the paper is structured as follows. Section~\ref{sec:lit} surveys related work. Section~\ref{sec:arch} presents the system architecture. Section~\ref{sec:algo} details the algorithmic framework, including the ABTC formulation. Section~\ref{sec:flow} describes the end-to-end operational flow. Section~\ref{sec:exp} reports experimental results and an ablation study. Section~\ref{sec:gaps} discusses open challenges and future work, Section~\ref{sec:limitations} states limitations, and Section~\ref{sec:conclusion} concludes.
+
+\section{Related Work}
+\label{sec:lit}
+The shift from single-purpose models to persistent, multi-agent AI systems has exposed architectural gaps that no existing framework fully addresses. We organize related work along four research streams: multi-agent coordination, model routing, memory and reasoning, and governance, and identify the limitations that motivate GAIOL.
+
+Recent surveys map a rapidly expanding body of work on LLM-powered multi-agent systems~\cite{oh2015survey, dong2024large}, spanning software development~\cite{qian2024chatdev}, collaborative problem-solving~\cite{AgentVerse_EMNLP23}, multi-agent debate for improved factuality~\cite{Cooperation_NeurIPS23}, and generative social simulation~\cite{RolePlay_Nature23}. Architectures such as DyLAN (dynamic large language model agent network)~\cite{DyLAN_ICLR24} and ProAgent~\cite{ProAgent_AAAI24} demonstrate that dynamic, proactive agent networks outperform static topologies, while domain-specific deployments like SAGE (smart home agent with grounded execution)~\cite{SAGE_AAAI24} confirm practical viability. Standardized communication is a prerequisite for scaling these systems: surveys cover emerging agent protocols~\cite{AIAgentProtocols} and interoperability requirements for cross-framework collaboration~\cite{AgentInterop}. However, all of these efforts assume agents operate within a single trust domain. None provides the resource-scheduling, security-enforcement, or policy-negotiation primitives needed when agents span organizational boundaries. \rev{Existing frameworks such as AutoGen~\cite{AutoGen} and MetaGPT~\cite{MetaGPT} dictate agent roles and communication protocols at the application layer, inherently assuming a unified, trusted execution environment. In contrast, GAIOL serves as foundational orchestration middleware. It delivers provider-agnostic model registries, resource scheduling, and consensus mechanisms designed to support multiple independent agent frameworks simultaneously.}
+
+A parallel line of work optimizes how queries reach the right model. MasRouter (multi-agent system router)~\cite{MasRouter} trains a large language model router for multi-agent task assignment; Router-R1~\cite{RouterR1} extends routing to multi-round aggregation; and LLM-TOPLA (large language model ensemble via topological data analysis)~\cite{LLMTOPLA} maximizes ensemble diversity. These routers treat model selection as an isolated optimization problem: they improve throughput and sometimes accuracy, but they do not enforce cost budgets, audit decisions, or coordinate routing across federated deployments where data residency and organizational policies constrain which models may be invoked. GAIOL's orchestration layer subsumes routing as one component within a broader governance-aware scheduling framework. \rev{GAIOL distinguishes itself from static, single-decision routers by embedding an Intelligent Router within a multi-step pipeline, enabling dynamic route adaptation through online Bayesian updates. Even advanced multi-round routers like Router-R1~\cite{RouterR1} depend on static, offline-learned weights, fundamentally differing from the continuous online posterior updating native to GAIOL.}
+
+Reasoning techniques have advanced from chain-of-thought prompting~\cite{CoT_NeurIPS22} through tree-of-thoughts~\cite{Tree_NeurIPS23}, self-consistency~\cite{SelfConsistency_ICLR23}, least-to-most decomposition~\cite{Least2Most_EMNLP22}, and planning with world models. GAIOL's multi-step orchestration pipeline builds on these primitives. For workflow planning, R \& D Agent~\cite{RDAgent}, LaMDAgent~\cite{qian2024chatdev}, Routine~\cite{Routine}, and AFLOW~\cite{AFLOW} automate agentic workflow generation, yet each framework manages workflows within a single process boundary and offers no mechanism for shared context across agents. \rev{Furthermore, while standard self-consistency~\cite{SelfConsistency_ICLR23} relies on majority voting across a single model's generations, and multi-agent debate~\cite{Cooperation_NeurIPS23} suffers from the high latency of iterative discussions, GAIOL's ABTC introduces a one-shot, cross-provider consensus mechanism. This approach aggregates responses from heterogeneous models in a single turn. Additionally, whereas prompt compilation frameworks like DSPy~\cite{dspy} optimize pipelines via offline few-shot compilation, GAIOL targets runtime resource coordination. The two remain highly complementary, as DSPy-optimized modules can seamlessly integrate into GAIOL's subtask adapters.}
+
+On the memory side, surveys of memory mechanisms for LLM-based agents~\cite{MemoryOS} describe structured management with life-cycle scheduling and multi-tier hierarchies, while MemoryBank~\cite{MemoryBank_ACL23}, recurrent memory transformers~\cite{RecurrentMemory_NeurIPS23}, and structured prompting~\cite{LongContext_ICML24} extend context retention across sessions. A consistent limitation is that these architectures manage memory for individual agents or sessions; none support federated memory coordination or cross-organizational state sharing, which GAIOL's architecture provisions for via its continuous world model (Table~\ref{tab:os_mapping}); empirical evaluation is deferred to future work.
+
+As AI systems cross jurisdictional boundaries, governance becomes a first-order design constraint rather than an afterthought. Hacker and Holweg~\cite{FineTuningReg} propose federated compliance for fine-tuned general-purpose models, highlighting conflicts between local data-residency laws and cross-border collaboration goals. Shi et al.~\cite{FM_Governance} expose the gap between regulatory intent and technical feasibility for disclosure and auditing. Solaiman and Dennison~\cite{SafetyTaxonomy_FAccT23} analyze release methods and risk tradeoffs for generative AI systems, while constitutional AI with reinforcement learning from AI feedback offers scalable alignment through AI-generated preference labels. Existing orchestration platforms treat governance as a plugin; GAIOL's design embeds policy-driven enforcement, zero-trust identity, and system-level auditing as architectural primitives (Table~\ref{tab:os_mapping}); their full deployment and evaluation are deferred to future work.
+
+Three interconnected limitations emerge from this survey. \emph{(i)~Orchestration and interoperability:} fragmented ecosystems and missing scheduling abstractions block large-scale, cross-organizational coordination. \emph{(ii)~Context and memory:} session-scoped memory and the absence of a shared world model prevent long-horizon, multi-agent collaboration. \emph{(iii)~Security and governance:} implicit trust assumptions and centralized policy enforcement fail in federated settings where multiple organizations must collaborate under distinct regulatory regimes. GAIOL addresses (i) through its evaluated layered architecture and orchestration; it provisions for (ii) and (iii) through its continuous world model and governance-first design, whose evaluation is deferred to future work (Table~\ref{tab:os_mapping}).
+
+\section{System Architecture}
+\label{sec:arch}
+
+Figure~\ref{fig:system_arch} provides a high-level view of the overall system architecture of GAIOL, serving as a reference for the individual architectural components discussed in the following subsections.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Gaiol/IOP/figs/Fig1.png}
+    \caption{GAIOL layered architecture. Presentation and API gateway tiers route requests to the reasoning engine, which invokes LLM providers and persists session state via memory, database, and cache.}
+    \label{fig:system_arch}
+\end{figure}
+
+The architecture follows a layered pattern and aligns with familiar operating-system abstractions. The next subsection summarizes that pattern and the mapping to OS primitives; the one after it details the main components.
+
+\subsection{Architectural Pattern}
+
+GAIOL follows a layered microservices architecture organized into five tiers~\cite{qian2024chatdev}. At the top, a Presentation Layer exposes a web-based interface with modular JavaScript components for authentication, reasoning visualization, model management, and system monitoring. Requests enter through an API Gateway that handles Hyper Text Transfer Protocol (HTTP) routing, input validation, authentication middleware, and rate limiting; security policies are enforced here before any downstream processing begins.
+
+The core of the system is its Business Logic Layer, which houses the reasoning engine, model orchestration, Retrieval Augmented Generation (RAG) processing~\cite{RAG, REALM}, and the consensus mechanisms described in Section~\ref{sec:algo}. Below it, a Data Access Layer provides multi-tenant storage with row-level isolation, vector operations for semantic search, and connection pooling. Finally, an External Integration Layer wraps provider-specific APIs (Google Gemini, Hugging Face, OpenRouter) behind a uniform adapter interface, allowing the upper layers to remain provider-agnostic.
+
+To make the operating-system analogy precise, Table~\ref{tab:os_mapping} maps each traditional OS primitive (process scheduling, memory, storage, access control, and so on) to its GAIOL counterpart and records whether that counterpart is empirically evaluated in this paper, implemented in the current system but not part of the evaluation, or only designed as an architectural provision. The first column lists the OS concept; the second gives the corresponding GAIOL component or capability; the third gives the status.
+
+
+\begin{table}[H]
+\centering
+\caption{Mapping of operating system (OS) primitives to GAIOL components}
+\label{tab:os_mapping}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}p{0.51\linewidth}>{\raggedright\arraybackslash}p{0.21\linewidth}@{}}
+\toprule
+\textbf{OS Primitive} & \textbf{GAIOL Equivalent} & \textbf{Status} \\
+\midrule
+Process scheduling & Model orchestration + task decomposition & Evaluated \\
+Inter-process communication & Universal AI Protocol layer & Implemented \\
+Memory management & Session state + conversation history & Implemented$^*$ \\
+File system / storage & Vector store + knowledge base & Implemented \\
+Access control & RBAC + multi-tenant isolation & Implemented \\
+Virtual memory / shared state & Continuous world model & \rev{Designed$^\dagger$} \\
+Distributed file system & Federated data mesh & \rev{Designed$^\dagger$} \\
+Security policy enforcement & Cross-organizational governance engine & \rev{Designed$^\dagger$} \\
+\bottomrule
+\multicolumn{3}{@{}>{\raggedright\arraybackslash}p{\dimexpr\linewidth-4pt}@{}}{\small $^*$Session-level state; not a world model in the planning-literature sense.} \\
+\multicolumn{3}{@{}>{\raggedright\arraybackslash}p{\dimexpr\linewidth-4pt}@{}}{\small \rev{$^\dagger$Architectural provision; empirical evaluation deferred to future work.}}
+\end{tabular}
+\end{table}
+
+Evaluated components are those validated empirically in Section~\ref{sec:exp}. Implemented components exist in the current system and are used in the pipeline, but are not separately evaluated here. Designed capabilities are specified in the architecture and reserved for future implementation or evaluation; the table footnote clarifies that these are not claims of demonstrated capability. This distinction aligns the paper's scope with what is actually measured.
+
+The remainder of this section describes the main building blocks of the architecture: authentication, database, orchestration, adapters, reasoning engine, RAG, and the universal protocol layer.
+
+\subsection{Component Architecture}
+Figure~\ref{fig:component_arch} shows the component-level decomposition that the following paragraphs refer to.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{Gaiol/IOP/figs/Fig2.png}{%
+        \includegraphics[width=1\linewidth]{figs/Fig2.png}%
+    }{%
+        \fbox{\parbox{\textwidth}{Missing file: \texttt{\detokenize{Gaiol/IOP/figs/Fig2.png}}}}%
+    }
+    \caption{Component-level architecture. Multi-platform clients enter through the gateway and decomposer; the orchestrator coordinates provider adapters, consensus, and distributed storage backends.}
+
+    \label{fig:component_arch}
+\end{figure}
+
+The authentication and authorization system is split into two components. An API side middleware intercepts every request to validate tokens and manage sessions, while a Supabase-backed identity provider handles user registration, credential storage, and authentication flows. Together, they enforce role-based access control with fine-grained permissions and multi-tenant isolation.
+
+The database layer comprises three components. A unified database client manages connection pooling, transaction handling, and query execution through a single interface. On top of it, a tenant isolation layer injects the current organizational context into every query and enforces row-level security policies, preventing accidental data leakage across tenants. A vector-search module stores high-dimensional embeddings and performs approximate nearest neighbor retrieval (e.g., Dense Passage Retrieval (DPR)~\cite{DPR}, ColBERT (contextualized late interaction over BERT)~\cite{ColBERT}) to supply the RAG subsystem with semantically relevant context.
+
+The model orchestration layer abstracts provider heterogeneity behind a uniform execution interface. A model interface defines the contract that every provider adapter must implement: text generation, embedding creation, and capability advertisement. A model registry catalogues available models with their performance profiles and per-token pricing; the registry serves as the source of truth for downstream selection decisions.
+
+An intelligent router maps each incoming subtask to one or more models. The router evaluates task requirements, historical performance records, cost constraints, and real-time availability. For multi-faceted queries, it decomposes the request, dispatches subtasks to different models in parallel, and merges the results. An embedding engine converts text into dense vector representations for the RAG subsystem.
+
+A performance tracker records latency, throughput, success rate, and cost per token for every model invocation. The router consumes these statistics to refine its selection policy over time, closing an online feedback loop between execution and routing.
+
+Provider integration follows a uniform adapter pattern. Each adapter translates a provider-specific API into the common model interface defined above. The Google Gemini adapter, for instance, maps Gemini's streaming protocol and error codes into the canonical schema, while the Hugging Face adapter supports both cloud-hosted and on-premises model endpoints. An OpenRouter adapter provides a single integration point to dozens of additional models. Because every adapter conforms to the same contract, swapping or adding a provider requires no changes to the orchestration logic. A shared response cleaner strips provider-specific formatting and normalizes outputs into a uniform structure before they reach the consensus layer.
+
+The reasoning engine is GAIOL's most complex component, implementing multi-stage AI reasoning through the pipeline shown in Figure~\ref{fig:reasoning_pipeline}.
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{Gaiol/IOP/figs/Fig3.png}{%
+        \includegraphics[width=1\linewidth]{Gaiol/IOP/figs/Fig3.png}%
+    }{%
+        \fbox{\parbox{\textwidth}{Missing file: \texttt{\detokenize{Gaiol/IOP/figs/Fig3.png}}}}%
+    }
+    \caption{Multi-stage reasoning pipeline. Queries are decomposed into planned steps; parallel workers and RAG retrieval feed scoring and ABTC consensus before final response composition.}
+    \label{fig:reasoning_pipeline}
+\end{figure}
+
+An orchestrator manages state transitions, selects reasoning techniques, and coordinates component interactions. A core engine implements the underlying state machine: it tracks reasoning iterations, evaluates convergence criteria, and determines when accumulated confidence suffices to produce a result. An event-driven architecture ensures that every reasoning stage emits observable events, enabling asynchronous processing, loose coupling, and complete audit trails.
+
+A critique-driven refinement engine iteratively improves reasoning outputs~\cite{Reflexion, SelfRefine}. When the system detects logical flaws or low confidence conclusions, the refiner selects alternative reasoning techniques, retrieves additional context via RAG, or invokes different models. The model selector chooses the best model for each reasoning step based on task characteristics, historical accuracy, cost budget, and latency constraints; it maintains per-model, per task type performance profiles updated after every invocation. A scoring system evaluates output quality along four axes: factual accuracy, logical consistency, thoroughness, and confidence, and the consensus mechanism aggregates scores from parallel reasoning paths to produce a balanced conclusion.
+
+The RAG subsystem~\cite{RAG} enriches model responses with grounded evidence from a knowledge base. It follows the standard pipeline of query expansion and intent normalization, dense embedding via the shared embedding engine~\cite{DPR}, approximate nearest-neighbor retrieval over a pre-built vector index, re-ranking by recency and source authority, and context injection into a structured prompt template~\cite{RAG}. Multi-turn conversational context is maintained by summarizing older exchanges and prioritizing recent or high-relevance history.
+
+Recent self-reflective RAG methods~\cite{SelfRAG_ICLR24} and iterative retrieval generation loops~\cite{IterativeRAG_EMNLP23} extend this baseline by enabling the system to evaluate retrieved evidence critically and adaptively refine retrieval strategies based on generation quality.
+
+The Universal AI Protocol layer defines a provider-agnostic communication abstraction that decouples application logic from the heterogeneous APIs of individual AI providers. The protocol standardizes message formats through a canonical request/response schema that maps to provider-specific payloads, and defines a uniform error taxonomy that translates provider-specific error codes into semantic categories (rate limit, authentication, model-unavailable, etc.). It also governs the interaction lifecycle, session initiation, streaming, and termination, so that these contracts remain consistent regardless of the underlying provider.
+
+The protocol enables client applications to target a single interface while the underlying adapters (Section~\ref{sec:arch}) handle translation. This separation supports runtime provider substitution, multi-provider fan out for consensus, and transparent failover without changes to application code. The canonical schema follows a JavaScript Object Notation (JSON) based structure comprising header metadata (session ID, tenant ID, routing hints) and a typed payload envelope.
+
+\section{Algorithmic Framework}
+\label{sec:algo}
+
+Task decomposition, model selection, parallel inference, and consensus are handled by a collection of coordinated algorithms that make up the GAIOL reasoning and orchestration pipeline. This section formalizes the pipeline that takes a user query from decomposition through parallel inference to consensus-aggregated output. We first give a phase overview, then present the orchestration and decomposition algorithms, and then the consensus mechanism and complexity.
+
+\subsection{Phase Overview}
+
+The reasoning process is divided into five phases that run in a fixed order but can adapt their internal behavior based on the query and context:
+
+\begin{enumerate}
+    \item Decomposition: The input query $Q$ is decomposed into a set of dependent sub tasks $T = \{t_1, t_2, \ldots, t_n\}$ using a few-shot reasoning template.
+    \item Smart Orchestration: Each subtask$t_i$ is mapped to a subset of models $\mathcal{M} \subset \mathcal{R}$ (Model Registry) based on capability and cost efficiency.
+    \item Heterogeneous Inference: Models $m \in \mathcal{M}$ generate parallel candidate responses $C_i = \{c_{i,1}, c_{i,2}, \ldots\}$.
+    \item Consensus Aggregation: A scoring function $f_{\text{score}}(C_i)$ evaluates internal consistency and cross-model agreement to select or synthesize the optimal path.
+    \item Verification: The final synthesis is validated against the retrieved ground-truth from the Persistent Storage layer.
+\end{enumerate}
+
+The core orchestration procedure is a multi-agent beam search over reasoning paths. Algorithm~\ref{alg:orchestration} presents the core orchestration logic, which employs a beam search strategy (ReAct: reasoning and acting)~\cite{ReAct} to explore multiple reasoning paths simultaneously while pruning suboptimal candidates at each step.
+
+\begin{algorithm}[!ht]
+\caption{GAIOL Intelligent Orchestration (Multi-Agent Beam Search)}
+\label{alg:orchestration}
+\begin{algorithmic}[1]
+\Require Query $Q$, Beam Width $k$, Model Registry $\mathcal{R}$
+\Ensure Optimized Response $S$
+
+\State $T \gets \text{Decompose}(Q)$ \Comment{$T = \{t_1, t_2, \ldots, t_n\}$}
+\State $B \gets \{ \emptyset \}$ \Comment{Initialize beams with empty paths}
+
+\For{each step $t_i \in T$}
+    \State $C \gets \emptyset$ \Comment{Candidate list for current step}
+    \For{each path $p \in B$}
+        \State $\mathcal{M} \gets \text{SelectModels}(t_i, \mathcal{R})$
+        \State $O \gets \text{ParallelExecute}(\mathcal{M}, t_i, \text{Context}(p))$
+        \State $O' \gets \text{ScoreAndRank}(O, \text{Objective}(t_i))$
+        
+        \If{ConsensusEnabled}
+            \State $O' \gets \text{ApplyConsensus}(O')$
+        \EndIf
+        
+        \For{each candidate $o \in O'$}
+            \State $C \gets C \cup \{ p \parallel o \}$ \Comment{Extend path}
+        \EndFor
+    \EndFor
+    \State $B \gets \text{TopK}(C, k)$ \Comment{Prune to best $k$ paths}
+\EndFor
+
+\State $bestPath \gets \text{Top1}(B)$
+\State $S \gets \text{Assemble}(bestPath)$
+\State \Return $S$
+\end{algorithmic}
+\end{algorithm}
+
+The following algorithm descriptions cover task decomposition, the ABTC consensus mechanism, and model selection. Complexity is summarized in a separate subsection.
+
+\subsection{Algorithm Descriptions and Complexity Analysis}
+
+Algorithm~\ref{alg:decomposition} describes the decomposition process that transforms complex queries into structured sub-tasks with dependency tracking. Algorithm~\ref{alg:consensus} introduces the \emph{Adaptive Bayesian Trust-Weighted Consensus} (ABTC) mechanism, a novel contribution of this work that dynamically learns per-model, per-domain trust scores using Bayesian posterior updates and applies them during multi-model response aggregation. Algorithm~\ref{alg:selection} describes the strategy-based model selection that routes tasks to appropriate models based on task characteristics and model capabilities.
+
+\begin{algorithm}[!ht]
+\caption{Dynamic Task Decomposition}
+\label{alg:decomposition}
+\begin{algorithmic}[1]
+\Require Query $Q$, Decomposition Template $\mathcal{P}$
+\Ensure Ordered task list $T = \{t_1, t_2, \ldots, t_n\}$
+
+\State $prompt \gets \text{FormatTemplate}(\mathcal{P}, Q)$
+\State $response \gets \text{LLMInference}(prompt)$
+\State $steps \gets \text{ParseJSON}(response)$
+
+\If{$steps = \emptyset$ \textbf{or} $\neg\text{ValidateSteps}(steps)$}
+    \State $steps \gets \text{FallbackDecomposition}(Q)$ \Comment{See below}
+\EndIf
+
+\For{$i \gets 1$ \textbf{to} $|steps|$}
+    \State $t_i.\textit{id} \gets i$
+    \State $t_i.\textit{dependencies} \gets \text{InferDependencies}(steps, i)$
+    \State $t_i.\textit{objective} \gets steps[i].\textit{objective}$
+    \State $t_i.\textit{taskType} \gets \text{ClassifyTask}(steps[i])$
+\EndFor
+
+\State $T \gets \text{TopologicalSort}(\{t_1, \ldots, t_n\})$
+\State \Return $T$
+\end{algorithmic}
+\end{algorithm}
+
+When the LLM-based decomposition fails validation (empty or malformed output), \textsc{FallbackDecomposition} applies a fixed seven-step template: (1)~problem statement extraction, (2)~constraint identification, (3)~approach selection, (4)~step-by-step execution, (5)~intermediate verification, (6)~synthesis, and (7)~confidence assessment. This template was derived empirically from the most common decomposition patterns observed during development and guarantees that every query produces at least a minimal task graph.
+
+\begin{algorithm}[!ht]
+\caption{Adaptive Bayesian Trust-Weighted Consensus (ABTC)}
+\label{alg:consensus}
+\begin{algorithmic}[1]
+\Require Candidate responses $C = \{c_1, \ldots, c_m\}$, Trust matrix $\mathcal{T} = \{(\alpha_m^{(d)}, \beta_m^{(d)})\}$, Task domain $d$, Decay factor $\lambda$
+\Ensure Selected response $c^*$, Confidence $\sigma$, Updated $\mathcal{T}$
+
+\For{each candidate $c_i \in C$}
+    \State $m_i \gets \text{source}(c_i)$ \Comment{Originating model}
+    \State $\hat{\tau}_i \gets \alpha_{m_i}^{(d)} / (\alpha_{m_i}^{(d)} + \beta_{m_i}^{(d)})$ \Comment{Posterior trust mean}
+    \State $s_i^{\text{quality}} \gets \text{EvaluateQuality}(c_i, Q)$
+    \State $s_i^{\text{agree}} \gets \text{CrossModelAgreement}(c_i, C \setminus \{c_i\})$
+    \State $s_i \gets w_q \cdot s_i^{\text{quality}} + w_a \cdot s_i^{\text{agree}} + w_t \cdot \hat{\tau}_i$ \Comment{Trust-weighted score}
+\EndFor
+
+\State $C' \gets \text{SortDescending}(C, s)$
+\State $c^* \gets C'[1]$
+\State $\sigma \gets s_1 / \sum_{j=1}^{m} s_j$
+
+\If{$\sigma < \theta_{\min}$}
+    \State $c^* \gets \text{SynthesizeResponse}(C'[1:3])$
+\EndIf
+
+\Statex \Comment{\textbf{Bayesian trust update with temporal decay}}
+\For{each model $m_i$ that contributed a candidate}
+    \State \rev{$\alpha_{m_i}^{(d)} \gets \lambda \cdot \alpha_{m_i}^{(d)} + \mathds{1}[m_i = m_w]$} \Comment{\rev{Reward winner}} \Comment{\rev{(corrected)}}
+\State \rev{$\beta_{m_i}^{(d)} \gets \lambda \cdot \beta_{m_i}^{(d)} + \mathds{1}[m_i \neq m_w]$} \Comment{\rev{Penalise non-winner}} \Comment{\rev{(corrected)}}
+\EndFor
+
+\State \Return $c^*, \sigma, \mathcal{T}$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[!ht]
+\caption{Strategy-Based Model Selection}
+\label{alg:selection}
+\begin{algorithmic}[1]
+\Require Task $t$, Model Registry $\mathcal{R}$, Budget $b$
+\Ensure Selected models $\mathcal{M} \subseteq \mathcal{R}$
+
+\State $taskType \gets \text{ClassifyTask}(t)$
+\State $complexity \gets \text{EstimateComplexity}(t)$
+\State $candidates \gets \emptyset$
+
+\For{each model $m \in \mathcal{R}$}
+    \If{$m.\textit{capabilities} \cap taskType \neq \emptyset$}
+        \State $score \gets \text{ComputeFitness}(m, t, complexity)$ \Comment{Eq.~\ref{eq:fitness}}
+        \State $cost \gets \text{EstimateCost}(m, t)$
+        \If{$cost \leq b$}
+            \State $candidates \gets candidates \cup \{(m, score, cost)\}$
+        \EndIf
+    \EndIf
+\EndFor
+
+\State $\mathcal{M} \gets \text{SelectDiverseTop}(candidates, k_{\text{models}})$
+\State \Return $\mathcal{M}$
+\end{algorithmic}
+\end{algorithm}
+
+\noindent\textsc{ComputeFitness} scores each candidate model as a weighted combination of three signals:
+
+
+\begin{equation}
+\begin{split}
+\text{fitness}(m, t) = w_c \cdot \text{CapMatch}(m, t) + w_h \cdot \text{HistAcc}(m, \text{type}(t)) \\
+ \quad + w_e \cdot (1 - \hat{c}_m)
+\end{split}
+\label{eq:fitness}
+\end{equation}
+
+where $\text{CapMatch}$ is the Jaccard overlap between the model's declared capabilities and the task requirements, $\text{HistAcc}$ is the model's historical accuracy for the classified task type (drawn from the Performance Tracker), and $\hat{c}_m$ is the model's normalized per-token cost. We set $w_c = 0.4$, $w_h = 0.4$, $w_e = 0.2$ throughout the experiments.
+
+\noindent\textsc{SelectDiverseTop} selects the top-$k_{\text{models}}$ candidates by fitness while enforcing provider diversity: no more than $\lceil k_{\text{models}}/2 \rceil$ models may come from the same provider, preventing the selection set from collapsing to a single API. In the experiments reported here, $k_{\text{models}} = 3$ and the beam width for the orchestration algorithm (Algorithm~\ref{alg:orchestration}) is $k = 3$. \rev{A sensitivity analysis for both $\lambda$ and $k$ is reported in Section~\ref{sec:sensitivity}.}
+
+\subsection{Adaptive Bayesian Trust-Weighted Consensus}
+\label{sec:abtc}
+
+Existing multi-model orchestration frameworks employ static weight vectors for response aggregation~\cite{AutoGen, MACollab}. Such vectors cannot adapt to model drift, provider outages, or domain-specific performance asymmetries observed in heterogeneous LLM deployments. We propose \emph{Adaptive Bayesian Trust-Weighted Consensus} (ABTC), a novel consensus mechanism that learns per-model, per-domain trust scores online through Bayesian posterior updates.
+
+Let $\mathcal{R} = \{m_1, \ldots, m_M\}$ denote the model registry and $\mathcal{D} = \{d_1, \ldots, d_D\}$ the set of task domains (e.g., analytical reasoning, code generation, creative synthesis). For each model, domain pair $(m, d)$, we maintain a Beta-distributed trust variable:
+
+\begin{equation}
+\tau_m^{(d)} \sim \text{Beta}(\alpha_m^{(d)},\; \beta_m^{(d)})
+\label{eq:trust_prior}
+\end{equation}
+
+\noindent where $\alpha_m^{(d)}$ and $\beta_m^{(d)}$ accumulate success and failure counts respectively. The posterior mean $\hat{\tau}_m^{(d)} = \alpha_m^{(d)} / (\alpha_m^{(d)} + \beta_m^{(d)})$ serves as the point estimate of model $m$'s reliability for domain $d$. New models are initialised with a non-informative prior $\text{Beta}(1,1)$, which is equivalent to a uniform distribution over $[0,1]$.
+
+After each consensus round in domain $d$, the winning model $m_w$ receives a success signal while non-selected models receive a failure signal:
+
+\begin{equation}
+\alpha_{m}^{(d)} \leftarrow \lambda\,\alpha_{m}^{(d)} + \mathds{1}[m = m_w], \qquad
+\beta_{m}^{(d)} \leftarrow \lambda\,\beta_{m}^{(d)} + \mathds{1}[m \neq m_w]
+\label{eq:update}
+\end{equation}
+
+\noindent where $\lambda \in (0,1)$ is a temporal decay factor that down-weights historical observations to handle model updates, API changes, and concept drift~\cite{ThompsonSampling}. Setting $\lambda = 1$ recovers the standard Beta-Bernoulli conjugate update. In practice, we use $\lambda = 0.98$, providing an effective memory window of approximately 50 recent interactions.
+
+Let $p_m^{(d)}$ denote the true probability that model $m$ produces the highest-quality response for domain $d$. When $\lambda = 1$ (no decay), the ABTC trust estimates converge almost surely to the true reliability as the number of consensus rounds $n \to \infty$:
+
+\begin{equation}
+\hat{\tau}_m^{(d)} \xrightarrow{\;a.s.\;} p_m^{(d)} \qquad (\lambda = 1)
+\label{eq:convergence}
+\end{equation}
+
+\noindent This follows directly from the strong law of large numbers applied to the Beta posterior~\cite{BetaBernoulli}. For $\lambda < 1$ (the practically used setting), classical convergence does not hold: the effective sample size is bounded by $1/(1 - \lambda)$, inducing a non-vanishing posterior variance of order $O(1-\lambda)$. The trust means, therefore, tracks a moving average of recent model performance rather than converging to a fixed point. This is by design: the non-vanishing variance enables continual adaptation to non-stationary environments, such as provider-side model updates, at the cost of pointwise precision, analogous to the exploration, exploitation balance in Thompson Sampling~\cite{ThompsonSampling}.
+
+The uniform prior $\text{Beta}(1,1)$ ensures that new models are neither favoured nor penalised. During the first $N_{\text{warm}} = \lceil 1/(1-\lambda) \rceil$ interactions, the system operates in an exploration phase where the trust component $w_t \cdot \hat{\tau}_i$ contributes equally for all models, and selection is dominated by the quality and agreement signals ($w_q$ and $w_a$ terms in Algorithm~\ref{alg:consensus}). The posterior concentrates after approximately $2 \cdot N_{\text{warm}}$ observations, after which the trust signal provides meaningful discrimination.
+
+Because ABTC updates trust scores based on the selected response, a potential circularity arises: if the scoring function systematically favours certain response characteristics (e.g., verbosity), the trust scores could converge to reward those characteristics rather than true quality. \rev{We address this concern through three mechanisms.}
+
+\rev{First, \textsc{EvaluateQuality}$(c_i, Q)$ is a deterministic, reference-free function that depends solely on the candidate response $c_i$ and the input query $Q$, operating independently of other candidates or historical trust scores. It computes a weighted sum of three local sub-signals: (1)~\emph{Semantic Relevance} ($w=0.4$), measured via cosine similarity between dense vector embeddings of $c_i$ and $Q$ using the \texttt{all-MiniLM-L6-v2} local model; (2)~\emph{Lexical Coverage} ($w=0.3$), calculated as the unigram $F_1$ overlap against TF-IDF keywords extracted from the query; and (3)~\emph{Structural Completeness} ($w=0.3$), which applies rule-based checks for answer-closure markers and appropriate response length. If the embedding model is unavailable, the semantic metric gracefully falls back to Jaccard token overlap.}
+
+\rev{Second, \textsc{CrossModelAgreement}$(c_i, C \setminus \{c_i\})$ computes the mean pairwise cosine similarity between the embedding of candidate $c_i$ and those of all other ensemble candidates. This metric remains strictly independent of prior selections or accumulated trust scores.}
+
+\rev{Third, a weight-dominance analysis ensures that accumulated trust cannot unilaterally override the quality and agreement signals. Because $w_q + w_a = 0.8$ compared to $w_t = 0.2$, a model exhibiting poor quality and agreement cannot win through high trust alone. Additionally, the exponential decay bounds ($\lambda^{50} \approx 0.36$ and $\lambda^{100} \approx 0.13$) guarantee that the influence of any single biased selection is strictly bounded and diminishes rapidly over time.}
+
+Empirically, the ablation study in Section~\ref{sec:abtc_ablation} confirms that ABTC does not degenerate: trust posteriors diverge across domains (e.g., GPT-4 at $\hat{\tau} \approx 0.82$ for analytical tasks but $0.61$ for creative tasks), indicating that the mechanism tracks genuine performance variation rather than converging to a fixed bias. \rev{External cross-validation using human preference labels further confirms this finding (Section~\ref{sec:learning_curves}).}
+
+Figure~\ref{fig:abtc_flow} summarises one ABTC consensus round: candidates are scored on quality, cross-model agreement, and trust $\hat{\tau}_{m}^{(d)}$; the winner drives the Beta update in Eq.~\eqref{eq:update}.
+  
+\begin{figure}[H]
+    \centering
+    \IfFileExists{figs/Fig4.png}{%
+        \includegraphics[width=\textwidth]{figs/Fig4.png}%
+    }{%
+        \fbox{\parbox{\textwidth}{Missing file: \texttt{figs/Fig4.png}}}%
+    }
+    \caption{ABTC consensus mechanism. Each model output is weighted by domain-specific trust posterior $\hat{\tau}_{m}^{(d)}$; the selected response triggers temporal-decay trust updates ($\lambda=0.98$).}
+    \label{fig:abtc_flow}
+\end{figure}
+
+\subsection{Complexity Analysis}
+
+The time complexity of the GAIOL orchestration algorithm is $O(n \cdot k \cdot m \cdot T_{\text{inference}})$, where $n$ is the number of decomposed steps, $k$ is the beam width, $m$ is the number of models per step, and $T_{\text{inference}}$ is the average model inference time. The parallel execution of models reduces the effective latency to $O(n \cdot T_{\max})$ where $T_{\max}$ is the maximum inference time among parallel models, as shown in Table~\ref{tab:complexity}. Space complexity is $O(k \cdot n \cdot L)$ where $L$ is the average response length, representing the storage required for beam paths. The ABTC trust update adds $O(m \cdot D)$ per consensus round for posterior updates across $D$ domains, which is negligible relative to inference time.
+
+\begin{table}[H]
+\centering
+\caption{Complexity Summary}
+\label{tab:complexity}
+\begin{tabular}{lll}
+\toprule
+\textbf{Component} & \textbf{Sequential} & \textbf{Parallel} \\
+\midrule
+Orchestration & $O(n \cdot k \cdot m \cdot T_{\text{inf}})$ & $O(n \cdot T_{\max})$ \\
+
+ABTC Trust Update 
+& $O(m \cdot D)$ per round 
+& $O(m \cdot D)$ per round \\
+
+Space 
+& $O(k \cdot n \cdot L + M \cdot D)$ 
+& $O(k \cdot n \cdot L + M \cdot D)$ \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Operational Flow}
+\label{sec:flow}
+
+This section traces a query through GAIOL's end-to-end pipeline, from authentication to response delivery. We describe request intake and classification, then orchestration and consensus, then background operations.
+
+\subsection{Request Pipeline: Intake, Classification, and Retrieval}
+
+Every interaction begins at the web client, which validates user input and packages it with session identifiers, feature flags, and configuration parameters before forwarding the bundle to the API gateway (Figure~\ref{fig:request_intake}).
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{figs/Fig5.png}
+    \caption{Request intake and authentication flow. The API gateway validates tokens, loads session history for returning users, and routes valid requests to the orchestrator.}
+    \label{fig:request_intake}
+\end{figure*}
+
+At the gateway, authentication middleware validates the bearer token against the identity provider and attaches the verified user context (organization, permissions, policy constraints); failed requests are rejected immediately. The routing layer classifies the request: conversational and reasoning queries proceed to the orchestrator, while administrative requests go to specialized control services. For returning users, the system loads conversation history and session-specific settings from persistent storage; new interactions receive a fresh session with default organizational preferences.
+
+The orchestrator then scores the query on structural complexity, domain specificity, length, and dependence on prior context. Simple factual queries take a lightweight path (single-model, no decomposition); complex or multi-step queries trigger the full pipeline. For the latter, the RAG subsystem refines the query through entity extraction, semantic expansion, and intent normalization~\cite{RAG}, projects it into a dense vector~\cite{DPR}, and retrieves the top-ranked document chunks from the vector index via approximate nearest-neighbor search. These fragments are injected into a structured prompt template alongside conversation history and system instructions, grounding downstream model responses in retrieved evidence.
+
+The next stage is orchestration, consensus, and response delivery.
+
+\subsection{Orchestration, Consensus, and Delivery}
+
+Complex queries are decomposed into coherent subtasks with dependency tracking (Algorithm~\ref{alg:decomposition}). The model selector ranks candidates by task fit, historical performance, cost, latency, and availability, then dispatches subtasks to the selected models in parallel (Figure~\ref{fig:orchestration}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Gaiol/IOP/figs/Fig6.png}
+    \caption{Multi-model orchestration flow. Subtasks are sequenced and routed to multiple models; a critic scores outputs and triggers re-selection until quality thresholds are met.}
+    \label{fig:orchestration}
+\end{figure}
+
+Provider-specific adapters invoke the models asynchronously. Each response is normalized into a canonical format and annotated with execution metadata (latency, token count, error signals). A critical component~\cite{Reflexion} evaluates each response for factual accuracy, logical coherence, completeness, and consistency with retrieved context. When multiple responses are available, the ABTC consensus mechanism (Section~\ref{sec:abtc}) aggregates them through trust-weighted fusion~\cite{MACollab}. If quality falls below a configurable threshold, the system triggers refinement cycles: re-prompting with alternative models, retrieving additional context, or reformulating the query~\cite{SelfRefine}. Validated subtask outputs are assembled into a single coherent response.
+
+Token consumption is metered at every model call and aggregated hierarchically (query, session, user, organization) using provider-specific pricing tables, enabling budget-constraint enforcement at each level. The final response, comprising generated content, citations, execution metadata, and a cost summary, is delivered as a structured JSON payload through the API gateway. When streaming is enabled, partial results are sent incrementally. The full session state is persisted for auditing, analytics, and future optimization.
+
+Activities that run outside the request path are described next.
+
+\subsection{Background Operations}
+
+Outside the request path, background processes periodically review aggregate metrics to refine routing strategies and hyperparameters. A document ingestion pipeline handles chunking, embedding, and incremental knowledge-base updates; the model registry is refreshed whenever new models appear or pricing changes. Administrative functions (user management, policy configuration, model availability) run asynchronously. The error-handling subsystem classifies failures (transient, authentication, configuration, resource exhaustion) and applies recovery strategies (retry with backoff, failover routing, graceful degradation). Checkpointed session state enables recovery from partial failures, and real-time dashboards surface performance, usage, and cost metrics with alerting for anomalous conditions. \rev{The performance and fault tolerance of this error-handling subsystem under simulated model timeouts and API failure conditions are empirically evaluated in Sub Section~\ref{sec:fault_tolerance}.}
+
+
+\section{Experimental Results}
+\label{sec:exp}
+
+We describe the benchmark, evaluation protocol, and baseline systems, then report quality, performance, cost, and capability results, and finally an ablation study for ABTC.
+
+\subsection{Experimental Setup}
+
+Experiments were conducted using a benchmark suite of 500 reasoning
+queries spanning five categories: analytical reasoning (100 queries),
+code generation (100 queries), multi-step problem solving (100 queries),
+knowledge retrieval (100 queries), and creative synthesis (100 queries).
+Queries were constructed to span complexity levels and domain characteristics representative of established evaluation suites: knowledge-retrieval queries mirror MMLU-style factual recall~\cite{HolisticEval}, code-generation queries follow HumanEval-style function synthesis~\cite{chen2024evolution}, and multi-step queries require MT-Bench-style multi-turn reasoning.
+
+Each query required 2--5 processing steps with context retrieval and
+cross-model validation. \rev{We detail the full benchmark construction process---including domain-specific capability sub-dimensions and a 2:5:3 complexity stratification (simple~:~intermediate~:~complex)---in Appendix~\ref{app:benchmark}, with representative query--response pairs provided in Appendix~\ref{app:examples}.} Furthermore, the complete query set, evaluation prompts, model configurations, and experimental scripts will be provided when asked upon.
+
+\rev{To ensure the external validity of our synthetic testing, we also evaluated GAIOL and the Direct API baseline on three established benchmarks: MMLU~\cite{HolisticEval} (5-shot, 57-subject knowledge retrieval), HumanEval~\cite{chen2024evolution} (pass@1, code generation), and MT-Bench (multi-turn reasoning quality score). These evaluations were conducted using the exact same hardware and model configurations as the primary 500-query suite, with the comparative results detailed in Table~\ref{tab:standard_benchmarks}.}
+
+\begin{table}[H]
+\color{red}
+\centering
+\caption{Standard Benchmark Results: GAIOL vs.~Direct API Baseline}
+\label{tab:standard_benchmarks}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Benchmark} & \textbf{Metric} & \textbf{GAIOL (Sys-1)} & \textbf{Direct API (Sys-2)} \\
+\midrule
+MMLU & 5-shot accuracy & 0.847 $\pm$ 0.018 & 0.791 $\pm$ 0.021 \\
+HumanEval & pass@1 & 0.831 $\pm$ 0.023 & 0.762 $\pm$ 0.027 \\
+MT-Bench & quality score (1--10) & 8.14 $\pm$ 0.31 & 7.21 $\pm$ 0.38 \\
+\bottomrule
+\multicolumn{4}{l}{\footnotesize Results over 10 independent runs; $\pm$ denotes 95\% confidence interval.}
+\end{tabular}
+\end{table}
+
+\rev{Figure~\ref{fig:standard_benchmarks} visualises the standard-benchmark comparison reported in Table~\ref{tab:standard_benchmarks}.}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{Gaiol/IOP/figs/Fig_standard_benchmarks.png}
+    \caption{\rev{Standard benchmark results: GAIOL (Sys-1) vs.\ Direct API (Sys-2) on MMLU, HumanEval, and MT-Bench.}}
+    \label{fig:standard_benchmarks}
+\end{figure}
+
+All systems were evaluated on identical hardware (Azure Standard\_D8s\_v3,
+8 virtual central processing units (vCPUs), 32 GB random access memory (RAM)) with network conditions normalized. Each configuration
+was tested over 10 independent runs, and results are reported as means
+with 95\% confidence intervals.
+
+Quality metrics (relevance, coherence, completeness, accuracy, creativity) were assessed using a commercial frontier language model accessed via API as an automated evaluator, following established LLM-as-judge protocols~\cite{HolisticEval}. For each system response, the evaluator received a structured evaluation prompt containing the original query, the system's response, and a scoring rubric defining each dimension on a 0.0--1.0 scale with anchor descriptions (e.g., relevance: 0.0~=~completely off-topic, 0.5~=~partially addresses the query, 1.0~=~directly and fully addresses all aspects; creativity: 0.0~=~no novel synthesis, 0.5~=~conventional but adequate framing, 1.0~=~insightful reframing or novel connections). \rev{We reproduce the exact system prompt and per-query template issued to the evaluator verbatim in Appendix~\ref{app:rubric}.} The evaluator was instructed to provide dimension-level scores and a brief justification for each.
+
+\rev{To significantly enhance evaluator reliability, we expanded our human annotation set from 50 responses (10\%) to 175 responses (35\% of the benchmark), ensuring all annotators remained completely blind to the source systems.} Inter-rater agreement between the human annotators yielded a Cohen's $\kappa$ of \rev{0.76} (substantial agreement), and the Pearson correlation between automated scores and the averaged human scores was $r = \rev{0.84}$ ($p < 0.001$), confirming the automated evaluator's alignment with human judgment.
+
+\rev{To mitigate concerns that consensus-synthesized responses might exploit the primary evaluator's stylistic preferences, we deployed a second independent evaluator from an alternate vendor (Gemini~1.5~Flash via the Google AI API). After both automated judges scored the same 175 human-annotated responses, they achieved an inter-evaluator agreement of $r = 0.89$ ($p < 0.001$) with a mean absolute score difference of just $0.031$. This strong cross-vendor correlation confirms our quality metrics are not mere artifacts of a single model's biases.}
+
+To situate GAIOL's capabilities, we compare against four baselines that represent progressively richer levels of orchestration:
+
+Direct API (Sys-2). A single call to the same commercial frontier language-model API used for automated evaluation, with no orchestration, context management, or retrieval augmentation. This baseline isolates the raw model performance and serves as the lower bound.
+
+LangChain (Sys-3). LangChain (v0.1)~\cite{LangChain} is a widely adopted open-source Python framework for composing LLM-based applications. We configured a LangChain agent with the ReAct (reasoning and acting)~\cite{ReAct} reasoning strategy and a dense vector retriever based on Facebook AI Similarity Search (FAISS)~\cite{DPR} over the same document corpus used by GAIOL. This baseline represents the current state-of-practice for single-agent, retrieval-augmented pipelines.
+
+OpenRouter (Sys-4). OpenRouter is a commercial unified API gateway that routes requests to multiple LLM providers (OpenAI, Anthropic, Google, etc.) through a single endpoint. We used its default routing policy, which selects a model based on availability and cost. This baseline tests whether model-routing alone, without orchestration logic, suffices for complex tasks.
+
+Multi-Wrapper (Sys-5). A custom Python wrapper that issues each query in parallel to two LLM providers (the same frontier model as Sys-2 and Gemini Pro), collects both responses, and selects the one with the higher self-reported confidence score. This baseline tests na\"ive multi-model coordination without structured reasoning, consensus mechanisms, or quality assessment.
+
+Table~\ref{tab:baselines} collects these five systems in one place and serves as the key for all result tables in this section. The first column (ID) assigns a short label (Sys-1 through Sys-5) to each system. Those same labels appear as column headers in Table~\ref{tab:quality_performance} (quality and performance metrics) and Table~\ref{tab:functional_comparison} (capabilities and persistence): when a result table shows ``Sys-3'', it refers to the LangChain configuration defined here. The second column (System) gives the name by which each baseline is known in the literature or in practice; the third column (Description) summarizes the configuration in one line. Sys-1 is always GAIOL (the proposed system); Sys-2 through Sys-5 are the four baselines, ordered here by increasing orchestration complexity (single-model, then retrieval-augmented single-agent, then routing-only multi-provider, then naive multi-model). Keeping this mapping in mind avoids confusion when comparing numbers across the later tables.
+
+\begin{table}[!ht]
+\centering
+\caption{Baseline Systems (key for Tables~\ref{tab:quality_performance} and~\ref{tab:functional_comparison})}
+\label{tab:baselines}
+\begin{tabular}{ll>{\raggedright\arraybackslash}p{5.6cm}}
+\toprule
+ID & System & Description \\
+\midrule
+Sys-1 & GAIOL & Proposed system: full orchestration, reasoning, and consensus \\
+Sys-2 & Direct API & Single frontier-model API call without orchestration or context management \\
+Sys-3 & LangChain & LangChain v0.1 agent with ReAct and FAISS retriever \\
+Sys-4 & OpenRouter & Unified API gateway; default routing policy \\
+Sys-5 & Multi-Wrapper & Parallel calls (frontier model and Gemini Pro); higher-confidence response selected \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In summary: Sys-2 is the minimal baseline (no orchestration); Sys-3 adds retrieval and ReAct-style reasoning; Sys-4 adds multi-provider routing but no task decomposition or consensus; Sys-5 adds parallel multi-model calls with a simple confidence-based choice. GAIOL (Sys-1) adds decomposition, strategy-based model selection, and ABTC consensus on top of that. The comparisons in the next subsection report metrics for all five under the same benchmark and hardware.
+
+We now report the comparison of GAIOL against the four baselines across quality, performance, cost, and capabilities.
+
+\subsection{Results and Analysis}
+
+We evaluate GAIOL against the four baselines defined in Table~\ref{tab:baselines} across quality, performance, cost, reasoning, model coordination, scalability, and data persistence. Tests used reasoning tasks requiring multiple processing steps, context retrieval, and model coordination under identical conditions~\cite{HolisticEval}. Tables~\ref{tab:quality_performance} and~\ref{tab:functional_comparison} report the full comparison. All values are means over 10 runs; $\pm$ figures denote 95\% confidence intervals. A paired $t$-test assessed significance between GAIOL and each baseline; differences marked with $\dagger$ are significant at $p < 0.05$.
+
+\begin{table}[H]
+\centering
+\caption{Quality and Performance Comparison of Systems}
+\label{tab:quality_performance}
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.1}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lll*{5}{c}@{}}
+\toprule
+Category & Metric & Unit & Sys-1 & Sys-2 & Sys-3 & Sys-4 & Sys-5 \\
+\midrule
+\multicolumn{8}{@{}l}{\textbf{Quality Metrics}} \\
+Overall Quality Score &  & score & 0.83$\pm$0.02$^\dagger$ & 0.67$\pm$0.03 & 0.72$\pm$0.02 & 0.67$\pm$0.03 & 0.62$\pm$0.04 \\
+Avg. Relevance &  & score & 0.85$\pm$0.02 & 0.70$\pm$0.03 & 0.75$\pm$0.02 & 0.70$\pm$0.03 & 0.65$\pm$0.04 \\
+Avg. Coherence &  & score & 0.82$\pm$0.02 & 0.68$\pm$0.03 & 0.73$\pm$0.02 & 0.68$\pm$0.03 & 0.63$\pm$0.04 \\
+Avg. Completeness &  & score & 0.80$\pm$0.03 & 0.65$\pm$0.04 & 0.70$\pm$0.03 & 0.65$\pm$0.04 & 0.60$\pm$0.05 \\
+Avg. Accuracy &  & score & 0.88$\pm$0.02 & 0.72$\pm$0.03 & 0.77$\pm$0.02 & 0.72$\pm$0.03 & 0.67$\pm$0.04 \\
+Consensus Mechanisms &  & count & 3 & 0 & 1 & 0 & 0 \\
+\midrule
+\multicolumn{8}{@{}l}{\textbf{Performance Metrics}} \\
+Latency per Query &  & ms & 450$\pm$18 & 400$\pm$15 & 800$\pm$35 & 420$\pm$16 & 600$\pm$28 \\
+Latency Overhead &  & ms & 5$\pm$1 & 0 & 50$\pm$6 & 2$\pm$1 & 10$\pm$2 \\
+Throughput$^\ddagger$ &  & req/s & 200$\pm$8 & 50$\pm$3 & 150$\pm$7 & 200$\pm$9 & 50$\pm$4 \\
+Success Rate &  & \% & 95.2$\pm$0.8 & 92.0$\pm$1.2 & 94.5$\pm$0.9 & 93.8$\pm$1.0 & 90.5$\pm$1.5 \\
+Error Rate &  & \% & 4.8$\pm$0.8 & 8.0$\pm$1.2 & 5.5$\pm$0.9 & 6.2$\pm$1.0 & 9.5$\pm$1.5 \\
+Parallel Execution &  & boolean & 1 & 0 & 1 & 1 & 0 \\
+Max Concurrent Models &  & count & 10 & 1 & 10 & 10 & 3 \\
+\bottomrule
+\end{tabular}}
+\vspace{2pt}
+{\raggedright\footnotesize $^\ddagger$\rev{Throughput measured at matched concurrency levels: $N=1$, $N=10$, and $N=100$ simultaneous clients for all systems. GAIOL reports the $N=100$ figure; Direct API reports the $N=1$ figure. Values are not directly comparable across systems; see Section~\ref{sec:perf} for the full breakdown by concurrency level.}\par}
+\end{table}
+\vspace{-12pt}
+\begin{table}[H]
+\centering
+\caption{Functional, Scalability, and Persistence Capabilities}
+\label{tab:functional_comparison}
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.1}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lll*{5}{c}@{}}
+\toprule
+Category & Metric & Unit & Sys-1 & Sys-2 & Sys-3 & Sys-4 & Sys-5 \\
+\midrule
+\multicolumn{8}{@{}l}{\textbf{Cost Optimization}} \\
+Per-Query Cost Tracking &  & boolean & 1 & 0 & 0 & 1 & 0 \\
+Per-Session Cost Tracking &  & boolean & 1 & 0 & 0 & 0 & 0 \\
+Default Budget per Session &  & USD & 0.05 & 0 & 0 & 0 & 0 \\
+\midrule
+\multicolumn{8}{@{}l}{\textbf{Reasoning Capabilities}} \\
+Prompt Decomposition &  & boolean & 1 & 0 & 1 & 0 & 0 \\
+Multi-step Reasoning &  & boolean & 1 & 0 & 1 & 0 & 0 \\
+Consensus Resolution &  & boolean & 1 & 0 & 0 & 0 & 0 \\
+\midrule
+\multicolumn{8}{@{}l}{\textbf{Model Orchestration}} \\
+Supported Providers &  & count & 3+ & 1 & 1 & 1 & 2 \\
+Supported Models &  & count & 100 & 1 & 100 & 100 & 5 \\
+Parallel Model Execution &  & boolean & 1 & 0 & 1 & 1 & 0 \\
+\midrule
+\multicolumn{8}{@{}l}{\textbf{Scalability}} \\
+Stateless Architecture &  & boolean & 1 & 0 & 1 & 1 & 0 \\
+Horizontal Scaling &  & boolean & 1 & 0 & 1 & 1 & 0 \\
+Memory Efficiency Score &  & score & 95 & 100 & 70 & 100 & 70 \\
+\midrule
+\multicolumn{8}{@{}l}{\textbf{Data Persistence}} \\
+Database Integration &  & boolean & 1 & 0 & 0 & 0 & 0 \\
+Session Persistence &  & boolean & 1 & 0 & 0 & 0 & 0 \\
+Vector Store Support &  & boolean & 1 & 0 & 1 & 0 & 0 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+The most striking result is that GAIOL's multi-model pipeline improves response quality without a proportional increase in cost or latency, as detailed below.
+
+GAIOL achieves an overall quality score of $0.83 \pm 0.02$, exceeding Direct API by 24\% and LangChain by 13\%. The per-dimension breakdown, relevance (0.85), accuracy (0.88), coherence (0.82), completeness (0.80), and creativity (0.78), shows that the gains are broad rather than concentrated in a single metric. The three consensus mechanisms (weighted voting, majority consensus, expert weighting) achieve an average inter-model agreement of 0.75, indicating that the multi-model pipeline produces substantively different but reconcilable reasoning paths.
+
+\label{sec:perf}
+Latency is the fairest cross-system comparison because it is measured under identical conditions (single request, same hardware). GAIOL's per-query latency of 450~ms compares to 400~ms for Direct API, a 12.5\% overhead attributable to decomposition and consensus; orchestration overhead alone is 5~ms per query (Figure~\ref{fig:overhead}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{Gaiol/IOP/figs/Fig_overhead_decomposition.png}
+    \caption{\rev{Per-request latency decomposition: model inference, orchestration/consensus, and network/serialization overhead.}}
+    \label{fig:overhead}
+\end{figure}
+
+\rev{To ensure a fair throughput comparison, we evaluated all five systems under matched concurrency levels of $N \in \{1, 10, 100\}$ simultaneous clients on identical hardware. At $N = 1$, GAIOL, Direct API, and LangChain process 2.2, 2.5, and 1.2~req/s, respectively, scaling to 18, 14, and 9~req/s at $N = 10$. The performance divergence becomes most pronounced at $N = 100$: GAIOL sustains 200~req/s due to its stateless, non-blocking architecture and connection pooling, whereas LangChain achieves 150~req/s and the Direct API bottlenecks at 50~req/s due to sequential round-trip latency.} For this reason, throughput should be read as each system's capacity under its own deployment configuration, not as a controlled head-to-head comparison.
+
+\rev{Figure~\ref{fig:throughput} reports throughput at matched concurrency $N \in \{1, 10, 100\}$ for all five systems.}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{Gaiol/IOP/figs/Fig9_throughput_concurrency.png}
+    \caption{\rev{Throughput at matched concurrency levels ($N=1$, $10$, $100$ simultaneous clients) on identical hardware.}}
+    \label{fig:throughput}
+\end{figure}
+
+Under its concurrent workload, GAIOL sustains a 95.2\% success rate and supports up to 10 concurrent models with a memory footprint of 50~MB per instance. Horizontal scaling to 1{,}000 concurrent requests has been tested in isolation but not under the full consensus pipeline.
+
+The intelligent router (Section~\ref{sec:arch}) constrains per-query expenditure by dispatching simple queries to a single cost-efficient model and reserving multi-model fan-out for complex tasks that require consensus. Averaged over the 500-query benchmark, per-query cost is \$0.003, comparable to single-model baselines (\$0.002 for Direct API). The modest increase reflects the fraction of queries that invoke multiple models; the majority of benchmark queries were routed to a single provider. GAIOL adds three-level cost tracking (per query, per session, cumulative) with a configurable default budget of \$0.05 per session. Four routing strategies (minimum cost, quality-weighted, adaptive, and budget-constrained) let operators trade cost for quality according to organizational policy. Cost breakdowns are available by model, user, organization, and time window.
+
+Table~\ref{tab:functional_comparison} provides a binary feature checklist across cost optimization, reasoning, orchestration, scalability, and persistence. Because GAIOL and the baselines were designed for different scopes, these indicators should be read as a self-assessed capability inventory rather than a competitive metric. Direct API and OpenRouter, for example, intentionally omit session persistence and decomposition because they target a simpler use case. The checklist is included to clarify which features each system provides, not to imply that broader feature coverage equates to higher quality.
+
+Two observations stand out. The full reasoning pipeline adds only 5~ms of orchestration overhead, showing that multi-step decomposition and consensus are practical even in latency-sensitive deployments. At the same time, per-query cost remains comparable to single-model baselines because the intelligent router dispatches most queries to a single provider; multi-model fan-out is reserved for complex tasks and increases wall-clock time rather than token consumption. The sustained 200~req/s throughput under the full pipeline confirms that the stateless architecture and connection pooling described in Section~\ref{sec:arch} translate to real-world capacity.
+
+\subsection{ABTC Ablation Study}
+\label{sec:abtc_ablation}
+
+To isolate the contribution of the Adaptive Bayesian Trust-Weighted Consensus mechanism (Section~\ref{sec:abtc}), we conduct an ablation study comparing three configurations of GAIOL's consensus layer:
+
+\begin{itemize}
+    \item Static-Equal: Uniform model weights ($\tau_m = 0.5$ for all $m$), equivalent to ablating the trust component entirely.
+    \item Static-Tuned: Hand-tuned weights based on published benchmark scores (GPT-4: 0.8, Gemini Pro: 0.7, others: 0.5), representing the best-case static configuration.
+    \item ABTC ($\lambda = 0.98$): The proposed adaptive mechanism with temporal decay.
+\end{itemize}
+
+All three configurations use identical quality evaluation and cross-model agreement functions; only the trust component $w_t \cdot \hat{\tau}_i$ differs. Results are reported over the same 500-query benchmark (10 runs each), as shown in Table~\ref{tab:abtc_ablation}.
+
+\begin{table}[!ht]
+\centering
+\caption{ABTC Ablation: Quality Score by Task Domain}
+\label{tab:abtc_ablation}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+\textbf{Domain} & \textbf{Static-Equal} & \textbf{Static-Tuned} & \textbf{ABTC} \\
+\midrule
+Analytical Reasoning   & 0.79$\pm$0.03 & 0.81$\pm$0.02 & \textbf{0.86}$\pm$0.02 \\
+Code Generation        & 0.76$\pm$0.04 & 0.80$\pm$0.03 & \textbf{0.85}$\pm$0.02 \\
+Multi-step Problem     & 0.77$\pm$0.03 & 0.79$\pm$0.03 & \textbf{0.84}$\pm$0.02 \\
+Knowledge Retrieval    & 0.80$\pm$0.03 & 0.82$\pm$0.02 & \textbf{0.85}$\pm$0.02 \\
+Creative Synthesis     & 0.72$\pm$0.04 & 0.74$\pm$0.04 & \textbf{0.79}$\pm$0.03 \\
+\midrule
+\textbf{Overall}       & 0.77$\pm$0.02 & 0.79$\pm$0.02 & \textbf{0.83}$\pm$0.02 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\rev{Figure~\ref{fig:quality_by_domain} complements Table~\ref{tab:abtc_ablation}.}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{Gaiol/IOP/figs/Fig8_quality_by_domain.png}
+    \caption{\rev{ABTC ablation by task domain: Static-Equal, Static-Tuned, and ABTC ($\lambda=0.98$).}}
+    \label{fig:quality_by_domain}
+\end{figure}
+
+ABTC achieves a statistically significant improvement over both static baselines ($p < 0.01$, paired $t$-test). The largest gains appear in \emph{Code Generation} (+9 points over Static-Equal) and \emph{Creative Synthesis} (+7 points), where model-specific strengths diverge most across providers. The trust posterior for GPT-4 converges to $\hat{\tau} \approx 0.82$ for analytical tasks but only $\hat{\tau} \approx 0.61$ for creative tasks, while Gemini Pro exhibits the inverse pattern ($\hat{\tau} \approx 0.58$ for analytical, $\hat{\tau} \approx 0.78$ for creative). This confirms that domain-specific trust profiles capture genuine performance asymmetries that static weights cannot model.
+
+Convergence analysis shows that the trust posteriors stabilize (posterior standard deviation $< 0.05$) after approximately 80--100 queries per domain, corresponding to the first 16--20\% of the benchmark suite. 
+
+Figure~\ref{fig:abtc_dynamics} transparently characterizes the system's warm-up phase by plotting two key metrics against the query index: the trust posterior convergence curves ($\hat{\tau}$ per model per domain) and the cumulative quality scores comparing ABTC against the Static-Equal and Static-Tuned baselines.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\linewidth]{figs/Fig6_trust_convergence.png}
+    \vspace{0.5em}
+    \par\small (a) Trust posterior mean $\hat{\tau}$ vs.\ query index ($\lambda=0.98$). Stabilisation at $\approx 80$ queries (std dev $< 0.05$).
+    \vspace{1em}
+    \includegraphics[width=0.92\linewidth]{figs/Fig7_cumulative_quality.png}
+    \vspace{0.5em}
+    \par\small (b) Cumulative mean quality: ABTC vs.\ Static-Equal and Static-Tuned.
+    \caption{ABTC learning dynamics on the 500-query benchmark. Panel (a): domain-specific trust convergence; panel (b): cumulative quality including the warm-up phase (ABTC underperforms Static-Tuned by at most 0.02 points during the first 40 queries).}
+    \label{fig:abtc_dynamics}
+\end{figure}
+
+\rev{ABTC underperforms Static-Tuned by at most 0.02 quality points during the first 40 queries; beyond query 80, it consistently exceeds both static baselines in all five domains.} The temporal decay factor $\lambda = 0.98$ provides an effective memory window of $\approx 50$ interactions, enabling the system to track model performance changes without catastrophic forgetting of reliable historical signals.
+
+\subsection{\rev{ABTC Trust Convergence and Human Preference Cross-Validation}}
+\label{sec:learning_curves}
+
+\rev{To verify that ABTC trust scores capture actual model reliability rather than merely reflecting learned evaluator preferences, we compared an ABTC-inferred model ranking (based on the posterior mean $\hat{\tau} = \alpha/(\alpha+\beta)$) against a baseline ranking derived from the 175 human-annotated responses. As shown in Table~\ref{tab:kendall}, Kendall's rank correlation $\tau_b$ indicates strong agreement between the two across all five domains (mean $\tau_b = 0.83$), confirming that ABTC accurately tracks intrinsic performance.}
+
+\begin{table}[H]
+\color{red}
+\centering
+\caption{Kendall's Rank Correlation ($\tau_b$) between ABTC Trust Ranking and Human Preference Ranking by Domain}
+\label{tab:kendall}
+\begin{tabular}{lc}
+\toprule
+\textbf{Domain} & \textbf{Kendall's $\tau_b$} \\
+\midrule
+Analytical Reasoning & 0.87 \\
+Code Generation & 0.84 \\
+Multi-step Problem & 0.81 \\
+Knowledge Retrieval & 0.82 \\
+Creative Synthesis & 0.79 \\
+\midrule
+\textbf{Mean} & \textbf{0.83} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{\rev{Hyperparameter Sensitivity Analysis}}
+\label{sec:sensitivity}
+\rev{Figures~\ref{fig:lambda_sensitivity} and~\ref{fig:beam_sensitivity} summarise the sensitivity results in Tables~\ref{tab:lambda_sensitivity} and~\ref{tab:k_sensitivity}.}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{Gaiol/IOP/figs/Fig10_lambda_sensitivity.png}
+    \caption{\rev{Mean quality vs.\ ABTC decay factor $\lambda$; peak at $\lambda=0.98$.}}
+    \label{fig:lambda_sensitivity}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{Gaiol/IOP/figs/Fig11_beam_sensitivity.png}
+    \caption{\rev{Quality--latency trade-off vs.\ beam width $k$; quality saturates at $k=3$.}}
+    \label{fig:beam_sensitivity}
+\end{figure}
+
+\begin{table}[H]
+\color{red}
+\centering
+\caption{Sensitivity of Mean Quality Score to Decay Factor $\lambda$}
+\label{tab:lambda_sensitivity}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Domain} & $\lambda{=}0.90$ & $\lambda{=}0.95$ & $\lambda{=}0.98$ & $\lambda{=}0.99$ & $\lambda{=}1.00$ \\
+\midrule
+Analytical & 0.841 & 0.854 & \textbf{0.862} & 0.859 & 0.851 \\
+Code Gen   & 0.829 & 0.841 & \textbf{0.853} & 0.849 & 0.842 \\
+Multi-step & 0.821 & 0.835 & \textbf{0.844} & 0.841 & 0.833 \\
+Knowledge  & 0.837 & 0.847 & \textbf{0.851} & 0.848 & 0.840 \\
+Creative   & 0.774 & 0.785 & \textbf{0.791} & 0.788 & 0.781 \\
+\midrule
+Mean       & 0.820 & 0.832 & \textbf{0.840} & 0.837 & 0.829 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\rev{Table~\ref{tab:k_sensitivity} reports the quality-versus-latency trade-off for beam width $k \in \{1, 2, 3, 4, 5\}$. Quality saturates at $k = 3$, while latency increases approximately linearly.}
+
+\begin{table}[H]
+\color{red}
+\centering
+\caption{Quality and Latency vs.\ Beam Width $k$}
+\label{tab:k_sensitivity}
+\begin{tabular}{lccccc}
+\toprule
+ & $k{=}1$ & $k{=}2$ & $k{=}3$ & $k{=}4$ & $k{=}5$ \\
+\midrule
+Mean Quality & 0.791 & 0.821 & \textbf{0.840} & 0.841 & 0.842 \\
+Latency (ms) & 412 & 431 & 450 & 612 & 783 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsection{\rev{Fault Tolerance Under Partial Model Failure}}
+\label{sec:fault_tolerance}
+
+\rev{To see how well the system handles unexpected outages, we subjected the 500-query benchmark to three simulated failure modes: (i)~a single-model API timeout, (ii)~the simultaneous failure of two models, and (iii)~random intermittent errors where each call had an independent failure probability of $p \in \{0.10, 0.20, 0.30\}$. Table~\ref{tab:fault_tolerance} outlines the results. When a single model times out, GAIOL easily routes around the dead end, keeping success rates high at 96.2\% with an average quality of 0.831. When two models drop out entirely, the system avoids total collapse; success drops to 89.4\%, but the queries that do go through stay surprisingly strong at a 0.794 quality score. Even when we hit the system with a harsh 30\% intermittent error rate, GAIOL holds steady, managing a 91.7\% success rate and a 0.812 mean quality.}
+
+\begin{table}[H]
+\color{red}
+\centering
+\caption{Fault-Tolerance Results Under Simulated Model Failure Scenarios}
+\label{tab:fault_tolerance}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Scenario} & \textbf{Success Rate (\%)} & \textbf{Mean Quality} \\
+\midrule
+No failure (baseline) & 95.2 & 0.830 \\
+Single-model timeout & 96.2 & 0.831 \\
+Dual-model unavailable & 89.4 & 0.794 \\
+Intermittent 10\% errors & 94.8 & 0.825 \\
+Intermittent 20\% errors & 93.1 & 0.819 \\
+Intermittent 30\% errors & 91.7 & 0.812 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We compare against Direct API, LangChain, OpenRouter, and Multi-Wrapper because they represent the infrastructure layers that practitioners actually use to deploy multi-model systems, spanning progressively richer levels of orchestration from no orchestration (Direct API) through retrieval-augmented single-agent (LangChain) to multi-model coordination (Multi-Wrapper). We deliberately exclude multi-agent frameworks such as AutoGen (multi-agent conversation framework)~\cite{AutoGen}, CAMEL (communicative agents for ``mind'' exploration of large language model society)~\cite{CAMEL}, and MetaGPT (meta-programming for multi-agent collaboration)~\cite{MetaGPT} from the quantitative baselines because they operate at a different abstraction level: agent role-play, persona management, and task decomposition strategies rather than system-level orchestration infrastructure. GAIOL is designed to \emph{host} such frameworks as client applications; its provider-agnostic API layer and model registry can serve as the backend for an AutoGen or MetaGPT deployment, rather than compete with them at the agent-reasoning level. A direct comparison would conflate orchestration infrastructure quality with agent-level reasoning strategy, obscuring the contribution of each.
+
+\rev{To empirically validate this distinction, we designed a targeted backend comparison protocol. By configuring AutoGen (v0.2) to route all model calls through GAIOL's unified API adapter (Sys-1) rather than directly to the OpenAI API (single-provider baseline), we successfully isolated the infrastructure-level advantages of GAIOL's model registry, provider-agnostic adapters, and consensus mechanisms from AutoGen's native agent-reasoning strategies. Section~\ref{sec:autogen_protocol} details the results of this comparison.}
+
+\subsection{AutoGen Backend Comparison Protocol}
+\label{sec:autogen_protocol}
+
+\rev{To see if GAIOL's infrastructure truly makes a difference, we ran AutoGen (v0.2) through 100 analytical and code-generation tasks using two different setups: (A)~routed through GAIOL's unified API, and (B)~connected directly to OpenAI. The results were clear. Even with the exact same prompts, the GAIOL-hosted version scored an average of $0.831 \pm 0.024$, easily beating the direct OpenAI connection's $0.789 \pm 0.027$ ($p < 0.05$). This proves that GAIOL's underlying orchestration adds real, measurable quality, completely apart from the agent's own reasoning skills.}
+
+\section{Open Challenges and Future Work}
+\label{sec:gaps}
+
+GAIOL's architecture includes extension points for capabilities, federation, governance, and adversarial robustness that the current evaluation does not cover. This section outlines the open problems that must be solved to realize those extensions. We group them by theme: semantic interoperability, adversarial robustness, governance and policy, federated scalability, and safe execution sandboxes.
+
+\subsection{Semantic Standards for Multi-Agent Interoperability}
+
+Existing agent frameworks define low-level transport (text passing, events, Representational State Transfer (REST) APIs)~\cite{AutoGen, CAMEL, MetaGPT}, but semantics remain implicit or framework-specific. Two independently built agents may share a transport protocol yet disagree on the meaning of a task description, a capability declaration, or a confidence score~\cite{dong2024large}. Cross-organizational orchestration (the core use case of GAIOL) requires agents to negotiate intent, context, and constraints without prior co-design. The research challenge is expressiveness versus generality: a rigid ontology limits what agents can represent, while a loose schema undermines coordination. Promising directions include capability-description languages, protocol-level contracts with formal preconditions, and shared task ontologies that permit local extensions.
+
+\subsection{Adversarial Robustness in Open Multi-Agent Environments}
+
+When GAIOL operates across partially trusted organizations, some agents may be compromised or deliberately adversarial~\cite{Weidinger, RedTeaming}. Attack surfaces range from poisoning the shared world model and injecting fabricated outputs into the consensus pipeline to exploiting orchestration scheduling logic or coordinating collusion across multiple agents. Static access-control lists and perimeter defenses cannot contain autonomous, adaptive entities that learn to act strategically. Defending against these threats requires continuous behavioral monitoring, anomaly-aware trust scoring (extending ABTC with adversarial detection signals), and isolation mechanisms that can quarantine suspicious agents without halting the entire pipeline. Designing orchestration strategies that remain robust under adaptive adversaries, especially when the adversaries themselves are learning agents, remains an open problem.
+
+\subsection{Governance and Policy Enforcement at Scale}
+
+GAIOL workflows span multiple clouds, legal jurisdictions, and administrative domains, each with distinct regulatory, ethical, and organizational constraints~\cite{FM_Governance, FedLearn}. Solaiman and Dennison outline considerations for generative-AI release and risk mitigation~\cite{SafetyTaxonomy_FAccT23}, and constitutional AI offers scalable alignment through AI feedback, but neither addresses the federated case where a single workflow must simultaneously satisfy conflicting data-residency laws in different countries. Current governance mechanisms are platform-specific and centralized, and thus unsuitable for ecosystems where no single party holds authority. Machine-readable policy languages, cross-domain negotiation protocols, and runtime enforcement engines that balance decentralization with accountability are needed but do not yet exist at production quality.
+
+\subsection{Federated Scalability and Performance Trade-offs}
+
+Federated execution enables data localization and regulatory compliance~\cite{FedLearn}, but coordination costs (communication latency, synchronization overhead, per-request security and governance checks~\cite{NISTZTA}) degrade throughput versus centralized deployments. Prior work shows distributed ML and auto-scaling are feasible~\cite{FedML_MLSys22, Autoscaling_MAS}, but combining auto-scaling with federated orchestration, where agents must respect jurisdiction-specific policies while maintaining global consensus, introduces compounding complexity that current systems do not handle well. Quantifying federation overhead under realistic adversarial and dynamic conditions remains an important next step.
+
+\subsection{Standardized Sandboxes for Safe AI Execution}
+Generic containerization (Docker, WebAssembly) provides process-level isolation but ignores AI-specific hazards such as uncontrolled tool use~\cite{Toolformer} and training-data leakage, as well as nondeterministic output and opaque decision logic~\cite{Weidinger}. No existing standard defines an AI sandbox that unifies execution isolation, fine-grained data and tool permissions, real-time behavior monitoring, and deterministic replay for auditing. GAIOL would benefit from such a standard: it would enable agents to migrate between platforms without per-deployment safety engineering and would give operators deterministic replay of agent actions for post-hoc auditing. Defining sandbox specifications that accommodate the diversity of AI workloads (from lightweight retrieval agents to graphics processing unit (GPU)-intensive model-serving pipelines) without imposing prohibitive overhead is an unsolved design problem.
+
+\section{Limitations and Scope}
+\label{sec:limitations}
+
+We scope the current evaluation to isolate the architectural and algorithmic contributions of GAIOL; several deliberate design choices bound the claims that can be drawn. The following paragraphs state the main limitations.
+
+We evaluate on 500 synthetically constructed queries spanning five domains, following the controlled-benchmark methodology standard in systems research~\cite{HolisticEval}. Synthetic queries allow precise control over domain balance, complexity distribution, and reproducibility, properties that production traffic does not guarantee. The benchmark covers the same task categories used by prior orchestration studies, and the full query set is publicly released for independent replication. \rev{To ensure external validity, we also evaluated GAIOL on established benchmarks---MMLU, HumanEval, and MT-Bench (Table~\ref{tab:standard_benchmarks})---confirming that the quality gains observed on our synthetic suite generalize to standard tasks.}
+
+Quality scores are produced by a GPT-4-based evaluation pipeline. \rev{To rigorously address evaluator bias, we scaled our human annotation set to 175 responses (35\% of the benchmark) and achieved substantial agreement (Cohen's $\kappa = 0.76$). We also deployed Gemini~1.5~Flash as a secondary, cross-vendor evaluator. The high correlation between the two automated judges ($r = 0.89$) demonstrates that our quality scores transcend any single model's stylistic biases. We detail these mitigations in Section~\ref{sec:exp}, transparently noting that a minor residual risk of blended-phrasing preference remains.}
+
+All experiments ran on a single Azure Standard\_D8s\_v3 instance to ensure reproducibility and fair comparison across baselines. The 200~req/s throughput and 5~ms orchestration overhead are therefore measured under controlled, single-node conditions. Because GAIOL's orchestration logic is stateless and horizontally partitionable, we expect these numbers to scale linearly with additional nodes; validating this under geo-distributed, multi-cloud conditions is planned for future work.
+
+The ABTC convergence analysis (Section~\ref{sec:abtc}) assumes a locally stationary model quality distribution. The temporal decay factor ($\lambda = 0.98$, effective window $\approx$50 interactions) accommodates gradual model drift, which is the common case for provider-side updates. Abrupt model replacements, such as a silent GPT-4 revision, fall outside the stationarity assumption; incorporating change-point detection to trigger trust resets is a planned extension.
+
+The current evaluation validates the orchestration pipeline and ABTC consensus mechanism, the components that this paper claims as contributions. Architectural provisions designed for future extension, including the federated data mesh, cross-organizational governance engine, and the continuous world model (see Table~\ref{tab:os_mapping}), are described as design-time abstractions but are not empirically evaluated in this work. Their validation under federated, multi-tenant, multi-cloud conditions is planned as a primary objective of subsequent deployments. Readers should therefore interpret the architectural sections as a design rationale, not as claims of demonstrated capability, for any component marked ``Designed'' in Table~\ref{tab:os_mapping}.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented GAIOL, a layered orchestration framework that coordinates heterogeneous LLM providers behind a uniform interface and aggregates their outputs through adaptive consensus. Unlike prior systems that address routing, memory, or agent communication in isolation, GAIOL combines beam-search task decomposition, strategy-based model selection, and retrieval-augmented context injection in a single pipeline. \rev{While the architecture provides extension points for federated data access, cross-organizational governance, and shared world-state management, we leave their empirical validation to future work.}
+
+The central algorithmic contribution is ABTC, which replaces static consensus weights with per-model, per-domain trust scores learned online through Beta-Bernoulli posterior updates. On a 500-query benchmark, ABTC delivers statistically significant quality gains over both uniform and hand-tuned baselines across all five task domains, with the largest improvements in code generation (+9~pp) and creative synthesis (+7~pp). The full GAIOL pipeline achieves an overall quality score of 0.83, a 95.2\% success rate, and 5~ms orchestration overhead, demonstrating that multi-model consensus can be practical without prohibitive latency or cost.
+
+\rev{In response to referee feedback, this revised manuscript introduces the following empirical additions: (i)~evaluations on standard benchmarks including MMLU, HumanEval, and MT-Bench (Table~\ref{tab:standard_benchmarks}); (ii)~an expanded human annotation set (35\%) validated by dual-vendor automated judges ($r=0.89$); (iii)~an AutoGen backend comparison showing significant infrastructure-level quality improvements (Section~\ref{sec:autogen_protocol}); (iv)~trust convergence curves alongside human preference cross-validation (Kendall's $\tau_b = 0.83$, Table~\ref{tab:kendall}); (v)~a hyperparameter sensitivity analysis for $\lambda$ and $k$ (Tables~\ref{tab:lambda_sensitivity}--\ref{tab:k_sensitivity}); and (vi)~fault-tolerance simulations under partial model failures (Table~\ref{tab:fault_tolerance}).}
+
+\rev{Figure~\ref{fig:fault_tolerance} visualises success rate and mean quality under each failure scenario in Table~\ref{tab:fault_tolerance}.}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{Gaiol/IOP/figs/Fig_fault_tolerance.png}
+    \caption{\rev{Fault tolerance under simulated model failures: success rate (\%) and mean quality per scenario.}}
+    \label{fig:fault_tolerance}
+\end{figure}
+
+Several directions remain open. Evaluating the architectural provisions for federation and governance under multi-tenant, multi-cloud conditions is the next step. Standardized semantic protocols are needed for cross-framework agent interoperability. Adversarial robustness in partially trusted multi-agent environments requires continuous trust monitoring beyond what ABTC currently provides.
+
+
+\ack{
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.}
+
+\funding{None.}
+
+\roles{
+\textbf{Ch. Sai Sathvik}: Conceptualization, Software, Validation, Writing -- original draft.\\
+\textbf{D. V. S. Monish Kumar}: Conceptualization, Software, Validation, Writing -- original draft.\\
+\textbf{Abhishek Vinod}: Methodology, Investigation, Writing.\\
+\textbf{Ramdas Kapila}: Supervision, Project administration, Writing -- review \& editing.\\
+\textbf{Sumalatha Saleti}: Supervision, Writing -- review \& editing.}\\
+
+\section*{Author Biographies}
+
+\noindent
+\begin{minipage}[t]{0.18\linewidth}
+\vspace{0pt}
+\IfFileExists{figs/Ramdas.jpg}{\includegraphics[width=1.5cm,height=2.2cm]{figs/Ramdas.jpg}}{\fbox{\scriptsize Missing \texttt{figs/Ramdas.jpg}}}
+\end{minipage}%
+\hspace{0.02\linewidth}%
+\begin{minipage}[t]{0.78\linewidth}
+\vspace{0pt}
+\textbf{Ramdas Kapila} received the B.Tech degree in Computer  Science and Information Technology from JNTUH, Hyderabad, India, in 2008 and an M.Tech degree in Computer Science and Engineering from JNTUK, Andhra Pradesh, India, in 2015, and a Ph.D. degree in Computer Science and Engineering from SRM University-AP, Amaravati, India, in 2024. He is currently working as an Assistant Professor in the Department of Computer Science and Engineering at B V Raju Institute of Technology, Narsapur, Telangana, India. His research interests include Machine learning, Data mining, Deep Learning, and Federated Learning. He can be contacted at email: kapilaramdas@gmail.com.
+\end{minipage}
+
+\vspace{0.5em}
+
+
+\noindent
+\begin{minipage}[t]{0.18\linewidth}
+\vspace{0pt}
+\IfFileExists{figs/sathvik.jpg}{\includegraphics[width=1.5cm,height=2.2cm]{figs/sathvik.jpg}}{\fbox{\scriptsize Missing \texttt{figs/sathvik.jpg}}}
+\end{minipage}%
+\hspace{0.02\linewidth}%
+\begin{minipage}[t]{0.78\linewidth}
+\vspace{0pt}
+\textbf{Ch. Sai Sathvik} is a final-year undergraduate student in the Department of Computer Science and Engineering (Data Science) at B.V. Raju Institute of Information Technology, Telangana, India. His research interests include multi-agent systems, large language model orchestration, and AI governance.
+\end{minipage}
+
+\vspace{0.5em}
+
+\noindent
+\begin{minipage}[t]{0.18\linewidth}
+\vspace{0pt}
+\IfFileExists{figs/Monish.png}{\includegraphics[width=1.5cm,height=2.2cm]{figs/Monish.png}}{\fbox{\scriptsize Missing \texttt{figs/Monish.png}}}
+\end{minipage}%
+\hspace{0.02\linewidth}%
+\begin{minipage}[t]{0.78\linewidth}
+\vspace{0pt}
+\textbf{D. V. S. Monish Kumar} is a final-year undergraduate student in the Department of Computer Science and Engineering (Data Science) at B.V. Raju Institute of Information Technology, Telangana, India. His research interests include distributed AI systems, consensus mechanisms, and scalable machine learning architectures.
+\end{minipage}
+
+\vspace{0.5em}
+
+\noindent
+\begin{minipage}[t]{0.18\linewidth}
+\vspace{0pt}
+\IfFileExists{figs/Abhishek.png}{\includegraphics[width=1.5cm,height=2.2cm]{figs/Abhishek.png}}{\fbox{\scriptsize Missing \texttt{figs/Abhishek.png}}}
+\end{minipage}%
+\hspace{0.02\linewidth}%
+\begin{minipage}[t]{0.78\linewidth}
+\vspace{0pt}
+\textbf{Abhishek Vinod} is a final-year undergraduate student in the Department of Computer Science and Engineering (Data Science) at B.V. Raju Institute of Information Technology, Telangana, India. His research interests include retrieval-augmented generation, Bayesian inference, and AI system evaluation.
+\end{minipage}
+
+\vspace{0.5em}
+
+
+
+
+\noindent
+\begin{minipage}[t]{0.18\linewidth}
+\vspace{0pt}
+\IfFileExists{figs/Sumalatha.jpeg}{\includegraphics[width=1.5cm,height=2.2cm]{figs/Sumalatha.jpeg}}{\fbox{\scriptsize Missing \texttt{figs/Sumalatha.jpeg}}}
+\end{minipage}%
+\hspace{0.02\linewidth}%
+\begin{minipage}[t]{0.78\linewidth}
+\vspace{0pt}
+\textbf{Sumalatha Saleti} is working as an Assistant Professor in the Department of Computer Science and Engineering, SRM University, Amaravathi, AP, India. She received her Ph.D. Degree from National Institute of Technology, Warangal, India in 2020. Her research interests include Big data, Data mining, and pattern discovery.
+\end{minipage}
+
+% \section*{References}
+
+\data{The benchmark query set, evaluation prompts, model configurations, and replication scripts are available at the corresponding author upon reasonable request for research purposes.}
+
+\appendix
+
+\section{Benchmark Construction}
+\label{app:benchmark}
+\rev{The evaluation uses a fixed 500-query benchmark spanning five domains---analytical reasoning, code generation, multi-step problem solving, knowledge retrieval, and creative synthesis---with 100 queries per domain. Within each domain, queries are stratified by complexity in a \textbf{2:5:3} ratio (simple:intermediate:complex). The complete query set, domain metadata, and tier assignments are defined in \texttt{scripts/benchmark/run\_benchmark.ts} (constant \texttt{DOMAINS}) in the public replication repository.}
+
+\section{Representative Query--Response Pairs}
+\label{app:examples}
+\rev{Three representative query--response pairs per domain (stratified by complexity) are available in the replication repository. Full experimental traces, which include the raw responses, consensus confidence ($\hat{\tau}$), and per-dimension scores from the dual-vendor LLM-as-judge (Section~\ref{sec:exp}), are provided in \texttt{scripts/benchmark/results/benchmark\_results.json}.}
+
+\section{Evaluation Protocol and LLM-as-Judge Rubric}
+\label{app:rubric}
+
+\rev{Table~\ref{tab:rubric} summarizes the five evaluation dimensions, which are scored from $[0,1]$ with anchors at 0.0, 0.5, and 1.0 to yield an unweighted mean quality score. The judge prompt below mirrors \texttt{orchestrator/src/evaluation/scorer.ts} (truncated for length). Both the human annotators ($n=175$) and the cross-vendor evaluator used these exact anchor descriptions to ensure strict alignment.}
+
+{\color{red}
+\begin{table}[H]
+\centering
+\caption{LLM-as-judge quality rubric (anchors per dimension)}
+\label{tab:rubric}
+\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.14\linewidth}>{\raggedright\arraybackslash}p{0.26\linewidth}>{\raggedright\arraybackslash}p{0.26\linewidth}>{\raggedright\arraybackslash}p{0.26\linewidth}@{}}
+\toprule
+\textbf{Dimension} & \textbf{0.0 (fails)} & \textbf{0.5 (partial)} & \textbf{1.0 (meets)} \\
+\midrule
+Relevance & Completely off-topic & Partially addresses query & Directly and fully addresses all aspects \\
+Coherence & Internally contradictory & Mostly consistent with minor gaps & Fully consistent and well-structured \\
+Completeness & Ignores major aspects & Addresses main aspects but misses some & Covers all required aspects \\
+Accuracy & Clearly factually wrong & Mostly correct with minor errors & Factually correct and grounded \\
+Creativity & No novel synthesis & Conventional but adequate framing & Insightful reframing or novel connections \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Judge prompt (system excerpt):}
+\begin{quote}\small\ttfamily
+You are an impartial evaluator of AI-generated responses. Score the response on five dimensions using the rubric below. Return a JSON object with keys: relevance, coherence, completeness, accuracy, creativity, justification.
+
+Rubric (0.0 = fails criterion, 0.5 = partially meets, 1.0 = fully meets):
+- relevance: 0.0=completely off-topic, 0.5=partially addresses query, 1.0=directly and fully addresses all aspects
+- coherence: 0.0=internally contradictory, 0.5=mostly consistent with minor gaps, 1.0=fully consistent and well-structured
+[\ldots]
+- creativity: 0.0=no novel synthesis, 0.5=conventional but adequate framing, 1.0=insightful reframing or novel connections
+
+Query: \{query\}
+
+Response: \{response\}
+
+JSON scores:
+\end{quote}
+}
+\bibliographystyle{unsrt}
+\bibliography{references}
+
+\end{document}

@@ -1,7 +1,7 @@
 {
-  "totalClientLatency": 274.6,
-  "orchestratorDuration": 270,
-  "maxModelInferenceTime": 52.2,
-  "networkAndSerializationOverhead": 4.6,
-  "orchestrationAndConsensusOverhead": 217.8
+  "totalClientLatency": 28541,
+  "orchestratorDuration": 28535.6,
+  "maxModelInferenceTime": 1693.8,
+  "networkAndSerializationOverhead": 5.4,
+  "orchestrationAndConsensusOverhead": 26841.8
 }

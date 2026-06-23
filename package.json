@@ -8,6 +8,7 @@
     "benchmark:sweeps": "npx tsx scripts/benchmark/run_benchmark.ts --sweeps-only",
     "benchmark:convergence": "npx tsx scripts/benchmark/run_benchmark.ts --convergence",
     "benchmark:cumulative": "npx tsx scripts/benchmark/run_benchmark.ts --cumulative",
+    "charts:generate": "python ml_pipeline/figures/generate_paper_charts.py",
     "inject-results": "npx tsx scripts/benchmark/inject_results.ts"
   }
 }

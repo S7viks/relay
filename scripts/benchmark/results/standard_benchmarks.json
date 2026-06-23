@@ -1,54 +1,135 @@
 {
   "mmlu": {
-    "count": 3,
+    "count": 10,
     "results": [
       {
-        "id": "mmlu_001",
-        "subject": "high_school_mathematics",
-        "gold": "A",
-        "gaiol_predicted": "F",
-        "gaiol_correct": false,
-        "gaiol_latency_ms": 3276,
-        "gaiol_failed": false
-      },
-      {
-        "id": "mmlu_002",
-        "subject": "world_history",
-        "gold": "A",
-        "gaiol_predicted": "A",
-        "gaiol_correct": true,
-        "gaiol_latency_ms": 2825,
-        "gaiol_failed": false
-      },
-      {
-        "id": "mmlu_003",
-        "subject": "computer_science",
+        "id": "mmlu_hf_0000",
+        "subject": "abstract_algebra",
         "gold": "B",
         "gaiol_predicted": "A",
         "gaiol_correct": false,
-        "gaiol_latency_ms": 2900,
+        "gaiol_latency_ms": 28012,
+        "gaiol_failed": false
+      },
+      {
+        "id": "mmlu_hf_0001",
+        "subject": "abstract_algebra",
+        "gold": "C",
+        "gaiol_predicted": "A",
+        "gaiol_correct": false,
+        "gaiol_latency_ms": 98346,
+        "gaiol_failed": false
+      },
+      {
+        "id": "mmlu_hf_0002",
+        "subject": "abstract_algebra",
+        "gold": "D",
+        "gaiol_predicted": "A",
+        "gaiol_correct": false,
+        "gaiol_latency_ms": 76742,
+        "gaiol_failed": false
+      },
+      {
+        "id": "mmlu_hf_0003",
+        "subject": "abstract_algebra",
+        "gold": "B",
+        "gaiol_predicted": "A",
+        "gaiol_correct": false,
+        "gaiol_latency_ms": 59115,
+        "gaiol_failed": false
+      },
+      {
+        "id": "mmlu_hf_0004",
+        "subject": "abstract_algebra",
+        "gold": "B",
+        "gaiol_predicted": "A",
+        "gaiol_correct": false,
+        "gaiol_latency_ms": 41507,
+        "gaiol_failed": false
+      },
+      {
+        "id": "mmlu_hf_0005",
+        "subject": "abstract_algebra",
+        "gold": "A",
+        "gaiol_predicted": "A",
+        "gaiol_correct": true,
+        "gaiol_latency_ms": 43184,
+        "gaiol_failed": false
+      },
+      {
+        "id": "mmlu_hf_0006",
+        "subject": "abstract_algebra",
+        "gold": "A",
+        "gaiol_predicted": "A",
+        "gaiol_correct": true,
+        "gaiol_latency_ms": 35544,
+        "gaiol_failed": false
+      },
+      {
+        "id": "mmlu_hf_0007",
+        "subject": "abstract_algebra",
+        "gold": "D",
+        "gaiol_predicted": "C",
+        "gaiol_correct": false,
+        "gaiol_latency_ms": 44703,
+        "gaiol_failed": false
+      },
+      {
+        "id": "mmlu_hf_0008",
+        "subject": "abstract_algebra",
+        "gold": "B",
+        "gaiol_predicted": "A",
+        "gaiol_correct": false,
+        "gaiol_latency_ms": 23266,
+        "gaiol_failed": false
+      },
+      {
+        "id": "mmlu_hf_0009",
+        "subject": "abstract_algebra",
+        "gold": "C",
+        "gaiol_predicted": "C",
+        "gaiol_correct": true,
+        "gaiol_latency_ms": 63163,
         "gaiol_failed": false
       }
     ],
-    "generated_at": "2026-06-12T14:30:40.557206+00:00"
+    "generated_at": "2026-06-16T16:46:54.170570+00:00"
   },
   "humaneval": {
-    "count": 2,
+    "count": 5,
     "results": [
       {
         "task_id": "HumanEval/0",
-        "gaiol_pass": false,
-        "gaiol_latency_ms": 2828,
+        "gaiol_pass": true,
+        "gaiol_latency_ms": 120439,
         "gaiol_failed": false
       },
       {
         "task_id": "HumanEval/1",
+        "gaiol_pass": true,
+        "gaiol_latency_ms": 100923,
+        "gaiol_failed": false
+      },
+      {
+        "task_id": "HumanEval/2",
+        "gaiol_pass": true,
+        "gaiol_latency_ms": 58884,
+        "gaiol_failed": false
+      },
+      {
+        "task_id": "HumanEval/3",
         "gaiol_pass": false,
-        "gaiol_latency_ms": 2536,
+        "gaiol_latency_ms": 48066,
+        "gaiol_failed": false
+      },
+      {
+        "task_id": "HumanEval/4",
+        "gaiol_pass": true,
+        "gaiol_latency_ms": 105923,
         "gaiol_failed": false
       }
     ],
-    "generated_at": "2026-06-12T14:30:46.161934+00:00"
+    "generated_at": "2026-06-16T16:54:20.923835+00:00"
   },
   "mt_bench": {
     "count": 2,
@@ -59,15 +140,15 @@
         "turns": [
           {
             "turn": 1,
-            "latency_ms": 2744,
+            "latency_ms": 46549,
             "failed": false,
-            "response_chars": 236
+            "response_chars": 8494
           },
           {
             "turn": 2,
-            "latency_ms": 3005,
+            "latency_ms": 65207,
             "failed": false,
-            "response_chars": 1066
+            "response_chars": 13372
           }
         ],
         "turn_count": 2
@@ -78,20 +159,20 @@
         "turns": [
           {
             "turn": 1,
-            "latency_ms": 2422,
+            "latency_ms": 28937,
             "failed": false,
-            "response_chars": 340
+            "response_chars": 1924
           },
           {
             "turn": 2,
-            "latency_ms": 4161,
+            "latency_ms": 54061,
             "failed": false,
-            "response_chars": 1646
+            "response_chars": 4792
           }
         ],
         "turn_count": 2
       }
     ],
-    "generated_at": "2026-06-12T14:30:58.741588+00:00"
+    "generated_at": "2026-06-16T16:57:36.575236+00:00"
   }
 }

@@ -1,0 +1,47 @@
+{
+  "timestamp": "2026-06-16T14:27:59.212000+00:00",
+  "query": "Explain the advantages of microservices architecture.",
+  "note": "Sys-1 latency from 3 sequential runs (600s timeout); throughput from 05_capacity_loading.ts",
+  "latency": {
+    "runs": 3,
+    "successes": 3,
+    "success_rate_pct": 100.0,
+    "error_rate_pct": 0.0,
+    "latency_ms_mean": 407730.0,
+    "latency_samples_ms": [405289, 332225, 485677]
+  },
+  "throughput": [
+    {
+      "concurrency": 1,
+      "duration_ms": 303810,
+      "successes": 0,
+      "success_rate_pct": 0.0,
+      "error_rate_pct": 100.0,
+      "throughput_req_per_s": 0.0
+    },
+    {
+      "concurrency": 10,
+      "duration_ms": 303953,
+      "successes": 6,
+      "success_rate_pct": 60.0,
+      "error_rate_pct": 40.0,
+      "throughput_req_per_s": 0.02
+    },
+    {
+      "concurrency": 100,
+      "duration_ms": 304361,
+      "successes": 89,
+      "success_rate_pct": 89.0,
+      "error_rate_pct": 11.0,
+      "throughput_req_per_s": 0.29
+    }
+  ],
+  "overhead_abtc_profiling": {
+    "totalClientLatency_ms": 28541.0,
+    "orchestrationOverhead_ms": 26841.8,
+    "maxModelInference_ms": 1693.8,
+    "networkSerialization_ms": 5.4,
+    "query": "What is the capital of Spain?",
+    "consensus_mode": "abtc"
+  }
+}

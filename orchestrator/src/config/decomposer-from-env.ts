@@ -1,6 +1,7 @@
 import { HeuristicDecomposer, LlmDecomposer, type LlmInfer } from "../decomposition/engine.js";
 import type { Decomposer } from "../decomposition/types.js";
 import type { ModelRegistryEntry } from "../domain/registry.js";
+import { googleApiKey, huggingFaceApiKey, openRouterApiKey } from "./env-keys.js";
 import { newTraceId } from "../observability/trace.js";
 import type { LLMProviderAdapter } from "../providers/contract.js";
 
@@ -13,10 +14,12 @@ function llmDecomposerEnabled(env: NodeJS.ProcessEnv): boolean {
     return true;
   }
   return Boolean(
-    env.OPENAI_API_KEY ||
-      env.OPENROUTER_API_KEY ||
-      env.ANTHROPIC_API_KEY ||
-      env.GOOGLE_API_KEY,
+    env.OPENAI_API_KEY?.trim() ||
+      openRouterApiKey(env) ||
+      env.ANTHROPIC_API_KEY?.trim() ||
+      googleApiKey(env) ||
+      env.GROQ_API_KEY?.trim() ||
+      huggingFaceApiKey(env),
   );
 }
 
@@ -31,6 +34,8 @@ function pickDecomposerModel(
   }
   return (
     registry.find((e) => e.available && e.providerId === "openai-compatible") ??
+    registry.find((e) => e.available && e.providerId === "groq") ??
+    registry.find((e) => e.available && e.providerId === "openrouter") ??
     registry.find((e) => e.available)
   );
 }
